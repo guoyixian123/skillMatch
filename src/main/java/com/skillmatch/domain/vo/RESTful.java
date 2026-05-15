@@ -13,9 +13,9 @@ public class RESTful<T> {
         this.data = data;
     }
     public static <T> RESTful<T> success(T data) {
-        return new RESTful<T>(200, "success", data);
+        return new RESTful<>(200, "success", data);
     }
-    public static <T> RESTful<T> error(Integer code, String message) {
-        return new RESTful<T>(500, message, null);
+    public static <T> RESTful<T> error(String message) {
+        return new RESTful<>(500, message, null);
     }
 }
