@@ -15,6 +15,7 @@ public class RESTful<T> {
     public static <T> RESTful<T> success(T data) {
         return new RESTful<>(200, "success", data);
     }
+    public static <T> RESTful<T> success() {return new RESTful<>(200, "success", null);}
     public static <T> RESTful<T> error(String message) {
         return new RESTful<>(500, message, null);
     }

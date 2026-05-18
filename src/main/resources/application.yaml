@@ -3,7 +3,7 @@ spring:
     name: skillMatch
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/skillMatch
+    url: jdbc:mysql://localhost:3306/skill_match
     username: root
     password: g091600jiof
 mybatis-plus:
@@ -12,3 +12,7 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+logging:
+  level:
+    root: info
+    com.skillmatch: debug

@@ -27,20 +27,15 @@ public class User implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 用户主键
+     * 用户主键,账号
      */
-    @TableId(value = "id", type = IdType.ASSIGN_UUID)
-    private String id;
+    @TableId(value = "user_id", type = IdType.ASSIGN_UUID)
+    private String userId;
 
     /**
      * 用户姓名
      */
     private String name;
-
-    /**
-     * 账号id
-     */
-    private String userId;
 
     /**
      * 账号密码

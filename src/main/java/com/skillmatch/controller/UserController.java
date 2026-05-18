@@ -2,8 +2,11 @@ package com.skillmatch.controller;
 
 
 import com.skillmatch.domain.vo.RESTful;
+import com.skillmatch.service.IUserService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import org.springframework.web.bind.annotation.RestController;
@@ -21,18 +24,13 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/api/user")
+@RequiredArgsConstructor
 public class UserController {
-    @GetMapping("/test")
-    public RESTful<List<String>> test() {
-        List<String> list = new ArrayList<>();
-        list.add("惠");
-        list.add("惠");
-        list.add("是");
-        list.add("小");
-        list.add("🐷");
-        log.info("{}", list);
+    private final IUserService userService;
+    @GetMapping("/profile")
+    public RESTful<List<String>> profile() {
+        List<String> list = userService.getProfile();
         return RESTful.success(list);
     }
-
 }
