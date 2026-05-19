@@ -1,8 +1,9 @@
 package com.skillmatch.domain.po;
 
 import java.math.BigDecimal;
+
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.IdType;
 import java.time.LocalDateTime;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.io.Serializable;
@@ -29,7 +30,7 @@ public class User implements Serializable {
     /**
      * 用户主键,账号
      */
-    @TableId(value = "user_id", type = IdType.ASSIGN_UUID)
+    @TableId(value = "user_id")
     private String userId;
 
     /**
@@ -50,7 +51,8 @@ public class User implements Serializable {
     /**
      * 头像url
      */
-    private String headUrl;
+    @TableField("head_url")
+    private String avatarUrl;
 
     /**
      * 签名
@@ -85,7 +87,7 @@ public class User implements Serializable {
     /**
      * 发帖数
      */
-    private String postCount;
+    private Integer postCount;
 
     /**
      * 更新时间

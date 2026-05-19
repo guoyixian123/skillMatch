@@ -1,9 +1,11 @@
 package com.skillmatch.service;
 
+import com.skillmatch.domain.dto.PassWordDTO;
+import com.skillmatch.domain.dto.UserDTO;
 import com.skillmatch.domain.po.User;
 import com.baomidou.mybatisplus.extension.service.IService;
-
-import java.util.List;
+import com.skillmatch.domain.vo.UserVO;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * <p>
@@ -14,5 +16,11 @@ import java.util.List;
  * @since 2026-05-15
  */
 public interface IUserService extends IService<User> {
-    List<String> getProfile();
+    UserVO getProfile(String  userId);
+
+    void updateUser(UserDTO userInfo);
+
+    void uploadAvatar(MultipartFile avatarUrl);
+
+    void updatePassword(PassWordDTO  password);
 }

@@ -106,7 +106,14 @@
             <version>0.13.0</version>
             <scope>runtime</scope>
         </dependency>
+        <!-- 阿里云依赖 -->
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
+            <version>3.18.4</version>
+        </dependency>
     </dependencies>
+
     <!-- 构建配置 -->
     <build>
         <plugins>

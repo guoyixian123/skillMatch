@@ -2,12 +2,10 @@ package com.skillmatch.controller;
 
 import com.skillmatch.context.BeanContext;
 import com.skillmatch.domain.dto.RegisterAndLogin;
-import com.skillmatch.domain.dto.TokenDto;
 import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.service.IAuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.annotations.Param;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;

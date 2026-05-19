@@ -32,7 +32,6 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         if(register == null){
             return null;
         }
-        Map<String, Object> map = new HashMap<>();
         //md5加密处理
         String md5Password = SecureUtil.md5(register.getPassword());
         //重新修改用户密码
@@ -68,6 +67,13 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         if(one == null){
             return null;
         }
+        //设置最后登录时间
+        lambdaUpdate()
+                .eq(User::getUserId, login.getUserId())
+                .eq(User::getPassword, md5Password)
+                .set(User::getLastLoginAt, LocalDateTime.now())
+                .update();
+        //封装返回信息
         return getStringObjectMap(one);
     }
 
@@ -84,7 +90,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         mapInfo.put("id", user.getUserId());
         mapInfo.put("name", user.getName());
         //TODO:封装头像信息
-        mapInfo.put("avatarUrl", null);
+        mapInfo.put("avatarUrl", user.getAvatarUrl());
         map.put("user", mapInfo);
         return map;
     }

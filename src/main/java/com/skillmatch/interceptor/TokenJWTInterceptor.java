@@ -20,6 +20,7 @@ public class TokenJWTInterceptor implements HandlerInterceptor {
         String token = request.getHeader("user_info");
         if (token == null || token.isEmpty()) {
             response.setStatus(401);
+            return false;
         }
         try {
             // 解析token

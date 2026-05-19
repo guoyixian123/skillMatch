@@ -2,6 +2,7 @@ package com.skillmatch.service;
 
 import com.skillmatch.domain.po.UserSkill;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.skillmatch.domain.vo.SkillVO;
 
 /**
  * <p>
@@ -13,4 +14,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IUserSkillService extends IService<UserSkill> {
 
+    SkillVO getUserAndSkillInfo();
 }
