@@ -2,6 +2,7 @@ package com.skillmatch.controller;
 
 
 import com.skillmatch.context.BeanContext;
+import com.skillmatch.domain.dto.LocationDTO;
 import com.skillmatch.domain.dto.PassWordDTO;
 import com.skillmatch.domain.dto.UserDTO;
 import com.skillmatch.domain.vo.RESTful;
@@ -75,6 +76,14 @@ public class UserController {
         return RESTful.success(null);
     }
 
-
+    /**
+     * 获取用户地理位置
+     */
+    @PutMapping("/location")
+    public RESTful<Object> updateLocation(@RequestBody LocationDTO location) {
+        log.info("修改用户id:{}的地理位置:经度->{} 纬度->{}", BeanContext.getUserId(), location.getLongitude(), location.getLatitude());
+        userService.updateLocation(location);
+        return RESTful.success(null, "位置已经更新");
+    }
 
 }

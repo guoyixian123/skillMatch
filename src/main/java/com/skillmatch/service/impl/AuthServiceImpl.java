@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static com.skillmatch.constants.RedisConstant.LOGIN_TOKEN_KEY;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -54,7 +56,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
     public Map<String, Object> login(RegisterAndLogin login) {
         //登录信息不能为空
         if(login == null){
-            return null;
+            throw new RuntimeException("用户信息不能为空");
         }
         //md5加密处理
         String md5Password = SecureUtil.md5(login.getPassword());
@@ -83,13 +85,13 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
     private  @NonNull Map<String, Object> getStringObjectMap(User user) {
         //生成TOKEN
         String token = JwtUtil.createToken(user.getUserId(), user.getName());
-        redisTemplate.opsForValue().set("login:token:"+user.getUserId(), token, 1, TimeUnit.DAYS);
+        redisTemplate.opsForValue().set(LOGIN_TOKEN_KEY+user.getUserId(), token, 1, TimeUnit.DAYS);
         Map<String, Object> map = new HashMap<>();
         map.put("token", token);
         Map<String, String> mapInfo = new HashMap<>();
         mapInfo.put("id", user.getUserId());
         mapInfo.put("name", user.getName());
-        //TODO:封装头像信息
+        //TODO:封装头像信息(y)
         mapInfo.put("avatarUrl", user.getAvatarUrl());
         map.put("user", mapInfo);
         return map;
@@ -105,13 +107,13 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         }
         log.info("用户id:{} 刷新token", userId);
         //获取redis中的token信息
-        String token = redisTemplate.opsForValue().get("login:token:"+userId);
+        String token = redisTemplate.opsForValue().get(LOGIN_TOKEN_KEY+userId);
         Map<String, String> info = JwtUtil.parseToken(token);
         String id = info.get("userId");
         String name = info.get("name");
         //生成新的token
         String s1= JwtUtil.createToken(id, name);
-        redisTemplate.opsForValue().set("login:token:"+userId, s1, 1, TimeUnit.DAYS);
+        redisTemplate.opsForValue().set(LOGIN_TOKEN_KEY+userId, s1, 1, TimeUnit.DAYS);
         return s1;
     }
     /*
@@ -122,6 +124,6 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         String userId = BeanContext.getUserId();
         log.info("用户 id:{}退出登录", userId);
         //删除redis中的token,实现登出
-        redisTemplate.delete("login:token:"+userId);
+        redisTemplate.delete(LOGIN_TOKEN_KEY+userId);
     }
 }

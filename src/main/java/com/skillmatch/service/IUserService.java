@@ -1,5 +1,6 @@
 package com.skillmatch.service;
 
+import com.skillmatch.domain.dto.LocationDTO;
 import com.skillmatch.domain.dto.PassWordDTO;
 import com.skillmatch.domain.dto.UserDTO;
 import com.skillmatch.domain.po.User;
@@ -23,4 +24,6 @@ public interface IUserService extends IService<User> {
     void uploadAvatar(MultipartFile avatarUrl);
 
     void updatePassword(PassWordDTO  password);
+
+    void updateLocation(LocationDTO location);
 }

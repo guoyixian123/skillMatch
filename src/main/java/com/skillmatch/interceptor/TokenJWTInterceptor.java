@@ -11,6 +11,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.Objects;
 
+import static com.skillmatch.constants.RedisConstant.LOGIN_TOKEN_KEY;
+
 @Component
 @RequiredArgsConstructor
 public class TokenJWTInterceptor implements HandlerInterceptor {
@@ -25,8 +27,12 @@ public class TokenJWTInterceptor implements HandlerInterceptor {
         try {
             // 解析token
             String userId = JwtUtil.parseToken(token).get("userId");
+            if (userId == null || userId.isEmpty()) {
+                response.setStatus(401);
+                return false;
+            }
             //判断在redis中是否存在
-            if (!(redisTemplate.hasKey("login:token:"+userId)&&Objects.equals(redisTemplate.opsForValue().get("login:token:" + userId), token))) {
+            if (!(redisTemplate.hasKey(LOGIN_TOKEN_KEY+userId)&&Objects.equals(redisTemplate.opsForValue().get("login:token:" + userId), token))) {
                 throw new Exception("用户不存在");
             }
             //放入线程中

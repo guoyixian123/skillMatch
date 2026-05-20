@@ -33,11 +33,10 @@ public class OssUtil {
         // 填写Bucket名称，例如examplebucket。
         String bucketName = "skillmatch";
         // 填写Object完整路径，完整路径中不能包含Bucket名称，例如exampledir/exampleobject.txt。
-        String format = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMM"));
         UUID uuid = UUID.randomUUID();
         int lastDotIndex = fileName.lastIndexOf(".");
         String lastDot = fileName.substring(lastDotIndex);
-        String objectName = format+"/"+userId+"/"+type+"/"+uuid+lastDot;
+        String objectName = userId+"/"+type+"/"+uuid+lastDot;
         // 填写Bucket所在地域。以华东1（杭州）为例，Region填写为cn-hangzhou。
         String region = "cn-beijing";
 
@@ -69,5 +68,51 @@ public class OssUtil {
             ossClient.shutdown();
         }
         return "https://" + bucketName + "." + useEndpoint + "/" + objectName;
+    }
+    public static void delete(String fileUrl) throws ClientException {
+        if(fileUrl == null || fileUrl.isEmpty()) {
+            return;
+        }
+
+        // Endpoint以华东1（杭州）为例，其它Region请按实际情况填写。
+        String endpoint = "https://oss-cn-beijing.aliyuncs.com";
+        // 从URL中提取objectName
+        // URL格式: https://skillmatch.oss-cn-beijing.aliyuncs.com/userId/type/uuid.jpg
+        String prefix = "https://skillmatch.oss-cn-beijing.aliyuncs.com/";
+        if(!fileUrl.startsWith(prefix)) {
+            throw new ClientException("无效的OSS文件URL");
+        }
+        String objectName = fileUrl.substring(prefix.length());
+
+        // 从环境变量中获取访问凭证
+        EnvironmentVariableCredentialsProvider credentialsProvider = CredentialsProviderFactory.newEnvironmentVariableCredentialsProvider();
+        // 填写Bucket名称
+        String bucketName = "skillmatch";
+        // 填写Bucket所在地域
+        String region = "cn-beijing";
+
+        // 创建OSSClient实例
+        ClientBuilderConfiguration clientBuilderConfiguration = new ClientBuilderConfiguration();
+        clientBuilderConfiguration.setSignatureVersion(SignVersion.V4);
+        OSS ossClient = OSSClientBuilder.create()
+                .endpoint(endpoint)
+                .credentialsProvider(credentialsProvider)
+                .clientConfiguration(clientBuilderConfiguration)
+                .region(region)
+                .build();
+
+        try {
+            // 删除文件
+            ossClient.deleteObject(bucketName, objectName);
+        } catch (OSSException oe) {
+            System.out.println("Caught an OSSException, which means your request made it to OSS, "
+                    + "but was rejected with an error response for some reason.");
+            System.out.println("Error Message:" + oe.getErrorMessage());
+            System.out.println("Error Code:" + oe.getErrorCode());
+            System.out.println("Request ID:" + oe.getRequestId());
+            System.out.println("Host ID:" + oe.getHostId());
+        } finally {
+            ossClient.shutdown();
+        }
     }
 }
