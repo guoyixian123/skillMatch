@@ -48,6 +48,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             throw new RuntimeException("用户不存在");
         }
         User user = getById(userId);
+        //TODO:点赞数,和帖子数目前没有封装,返回
         UserVO userVO = BeanUtil.copyProperties(user, UserVO.class);
         if(user == null){
             throw new RuntimeException("用户不存在");
@@ -150,6 +151,5 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             log.warn("用户地理位置更新失败:{}", userId);
             throw new RuntimeException("用户地理位置更新失败");
         }
-
     }
 }

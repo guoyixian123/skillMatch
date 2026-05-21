@@ -92,6 +92,4 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return { token, user, latitude, longitude, isLoggedIn, doLogin, doRegister, doLogout, setUser }
-}, {
-  persist: true,
 })

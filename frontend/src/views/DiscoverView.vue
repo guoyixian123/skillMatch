@@ -188,7 +188,9 @@ import { ElMessage } from 'element-plus'
 import { Search, Location } from '@element-plus/icons-vue'
 import { getRecommendedUsers } from '@/api/matching'
 import { createRequest } from '@/api/notification'
+import { useAuthStore } from '@/stores/auth'
 
+const authStore = useAuthStore()
 const loading = ref(false)
 const users = ref([])
 const total = ref(0)
@@ -221,6 +223,10 @@ async function fetchUsers() {
       keyword: keyword.value,
       page: page.value,
       size: size.value,
+      ...(authStore.latitude && authStore.longitude ? {
+        latitude: authStore.latitude,
+        longitude: authStore.longitude,
+      } : {}),
     })
     users.value = res.data?.list || []
     total.value = res.data?.total || 0
