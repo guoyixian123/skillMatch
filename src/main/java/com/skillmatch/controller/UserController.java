@@ -1,9 +1,9 @@
 package com.skillmatch.controller;
 
 
-import com.skillmatch.context.BeanContext;
+import com.skillmatch.context.UserContext;
 import com.skillmatch.domain.dto.LocationDTO;
-import com.skillmatch.domain.dto.PassWordDTO;
+import com.skillmatch.domain.dto.PasswordDTO;
 import com.skillmatch.domain.dto.UserDTO;
 import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.domain.vo.UserVO;
@@ -53,7 +53,7 @@ public class UserController {
      */
     @PutMapping("/avatar")
     public RESTful<Object> uploadAvatar(@RequestParam MultipartFile avatarUrl) {
-        log.info("更新用户id:{}的头像", BeanContext.getUserId());
+        log.info("更新用户id:{}的头像", UserContext.getUserId());
         userService.uploadAvatar(avatarUrl);
         return RESTful.success(null, "头像已经更新");
     }
@@ -62,8 +62,8 @@ public class UserController {
      * 修改密码
      */
     @PutMapping("/password")
-    public RESTful<Object> updatePassword(@RequestBody PassWordDTO password) {
-        log.info("修改用户id:{}的密码", BeanContext.getUserId());
+    public RESTful<Object> updatePassword(@RequestBody PasswordDTO password) {
+        log.info("修改用户id:{}的密码", UserContext.getUserId());
         userService.updatePassword(password);
         return RESTful.success(null, "密码已经更新");
     }
@@ -81,7 +81,7 @@ public class UserController {
      */
     @PutMapping("/location")
     public RESTful<Object> updateLocation(@RequestBody LocationDTO location) {
-        log.info("修改用户id:{}的地理位置:经度->{} 纬度->{}", BeanContext.getUserId(), location.getLongitude(), location.getLatitude());
+        log.info("修改用户id:{}的地理位置:经度->{} 纬度->{}", UserContext.getUserId(), location.getLongitude(), location.getLatitude());
         userService.updateLocation(location);
         return RESTful.success(null, "位置已经更新");
     }

@@ -4,7 +4,6 @@ import com.skillmatch.domain.dto.UserSkillDTO;
 import com.skillmatch.domain.dto.UserSkillListDTO;
 import com.skillmatch.domain.po.UserSkill;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.skillmatch.domain.vo.Skill;
 import com.skillmatch.domain.vo.SkillVO;
 
 /**
@@ -22,4 +21,6 @@ public interface IUserSkillService extends IService<UserSkill> {
     void addUserSkills(UserSkillDTO skill);
 
     void updateUserSkillList(UserSkillListDTO  skills);
+
+    void removeUserSkillById(String skillId);
 }

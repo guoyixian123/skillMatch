@@ -50,7 +50,7 @@
             :src="post.author?.avatarUrl || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"
             class="brutal-avatar"
           />
-          <span class="post-author-name">{{ post.author?.nickname }}</span>
+          <span class="post-author-name">{{ post.author?.name }}</span>
           <span class="post-time">{{ formatTime(post.createdAt) }}</span>
         </div>
 

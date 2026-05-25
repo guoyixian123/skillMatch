@@ -4,7 +4,6 @@ package com.skillmatch.controller;
 import com.skillmatch.domain.dto.UserSkillDTO;
 import com.skillmatch.domain.dto.UserSkillListDTO;
 import com.skillmatch.domain.vo.RESTful;
-import com.skillmatch.domain.vo.Skill;
 import com.skillmatch.domain.vo.SkillVO;
 import com.skillmatch.service.IUserSkillService;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +48,7 @@ public class UserSkillController {
     @DeleteMapping("/skills/{skillId}")
     public RESTful<Object> deleteUserSkills(@PathVariable String skillId) {
         log.info("删除用户技能信息:技能id=>{}", skillId);
-        userSkillService.removeById(skillId);
+        userSkillService.removeUserSkillById(skillId);
         return RESTful.success(null);
     }
     /**

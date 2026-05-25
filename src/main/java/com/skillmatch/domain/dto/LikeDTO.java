@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class LikeDTO {
-    private String biz_id;
-    private Boolean isLike;
+    private String bizId;
+    private Integer type;
 }

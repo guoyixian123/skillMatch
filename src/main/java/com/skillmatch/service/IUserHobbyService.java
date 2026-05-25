@@ -3,7 +3,6 @@ package com.skillmatch.service;
 import com.skillmatch.domain.dto.HobbyDTO;
 import com.skillmatch.domain.po.UserHobby;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.skillmatch.domain.vo.HobbyListVO;
 import com.skillmatch.domain.vo.HobbyVO;
 
 import java.util.List;
@@ -18,7 +17,7 @@ import java.util.List;
  */
 public interface IUserHobbyService extends IService<UserHobby> {
 
-    HobbyListVO getUserHobbyInfo();
+    List<HobbyVO> getUserHobbyInfo();
 
     void addUserHobbies(HobbyDTO hobby);
 

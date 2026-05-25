@@ -17,6 +17,7 @@ import org.apache.ibatis.annotations.Select;
 public interface UserGalleryMapper extends BaseMapper<UserGallery> {
     @Select("select max(sort_order) from user_gallery")
     Integer selectMaxSort();
+    //查询图片url
     @Select("select image_url from user_gallery where id = #{imageId}")
     String selectUrl(String imageId);
 }

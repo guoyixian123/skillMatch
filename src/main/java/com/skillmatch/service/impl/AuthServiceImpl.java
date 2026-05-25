@@ -3,9 +3,11 @@ package com.skillmatch.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.crypto.SecureUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.skillmatch.context.BeanContext;
-import com.skillmatch.domain.dto.RegisterAndLogin;
+import com.skillmatch.context.UserContext;
+import com.skillmatch.domain.dto.RegisterAndLoginDTO;
 import com.skillmatch.domain.po.User;
+import com.skillmatch.enums.ErrorCode;
+import com.skillmatch.exceptions.BusinessException;
 import com.skillmatch.mapper.UserMapper;
 import com.skillmatch.service.IAuthService;
 import com.skillmatch.utils.JwtUtil;
@@ -30,13 +32,14 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
     注册
      */
     @Override
-    public Map<String, Object> register(RegisterAndLogin register) {
+    public Map<String, Object> register(RegisterAndLoginDTO register) {
+        //注册信息不能为空
         if(register == null){
-            return null;
+           throw new BusinessException( ErrorCode.PARAM_ERROR,"用户信息不能为空");
         }
         //md5加密处理
         String md5Password = SecureUtil.md5(register.getPassword());
-        //重新修改用户密码
+        //重新修改用户传递的密码
         register.setPassword(md5Password);
         //拷贝注册信息到用户对象
         User user = BeanUtil.copyProperties(register, User.class);
@@ -53,7 +56,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
     登录
      */
     @Override
-    public Map<String, Object> login(RegisterAndLogin login) {
+    public Map<String, Object> login(RegisterAndLoginDTO login) {
         //登录信息不能为空
         if(login == null){
             throw new RuntimeException("用户信息不能为空");
@@ -85,7 +88,9 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
     private  @NonNull Map<String, Object> getStringObjectMap(User user) {
         //生成TOKEN
         String token = JwtUtil.createToken(user.getUserId(), user.getName());
-        redisTemplate.opsForValue().set(LOGIN_TOKEN_KEY+user.getUserId(), token, 1, TimeUnit.DAYS);
+        //保存token到redis中,7天有效
+        redisTemplate.opsForValue().set(LOGIN_TOKEN_KEY+user.getUserId(), token, 7, TimeUnit.DAYS);
+        //封装返回信息
         Map<String, Object> map = new HashMap<>();
         map.put("token", token);
         Map<String, String> mapInfo = new HashMap<>();
@@ -101,7 +106,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
      */
     @Override
     public String refreshToken() {
-        String userId = BeanContext.getUserId();
+        String userId = UserContext.getUserId();
         if(userId == null){
             return null;
         }
@@ -121,7 +126,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
      */
     @Override
     public void logout() {
-        String userId = BeanContext.getUserId();
+        String userId = UserContext.getUserId();
         log.info("用户 id:{}退出登录", userId);
         //删除redis中的token,实现登出
         redisTemplate.delete(LOGIN_TOKEN_KEY+userId);

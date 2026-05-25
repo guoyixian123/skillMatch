@@ -4,13 +4,17 @@ export function getProfile(userId) {
   return request.get(`/user/profile/${userId}`)
 }
 
+export function likeProfile(userId) {
+  return request.post('/like', { bizId: String(userId), type: 1 })
+}
+
 export function updateProfile(data) {
   return request.put('/user/profile', data)
 }
 
 export function uploadAvatar(file) {
   const formData = new FormData()
-  formData.append('file', file)
+  formData.append('avatarUrl', file)
   return request.put('/user/avatar', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })

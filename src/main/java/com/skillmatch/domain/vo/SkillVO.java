@@ -9,6 +9,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SkillVO {
-    private List<Skill> canSkills;
-    private List<Skill> wantSkills;
+    private List<SkillItemVO> canSkills;
+    private List<SkillItemVO> wantSkills;
 }

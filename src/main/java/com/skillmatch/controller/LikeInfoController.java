@@ -1,7 +1,7 @@
 package com.skillmatch.controller;
 
 
-import com.skillmatch.context.BeanContext;
+import com.skillmatch.context.UserContext;
 import com.skillmatch.domain.dto.LikeDTO;
 import com.skillmatch.domain.vo.LikeVO;
 import com.skillmatch.domain.vo.RESTful;
@@ -26,9 +26,9 @@ public class LikeInfoController {
     private final ILikeInfoService likeInfoService;
     @PostMapping("/like")
     public RESTful<LikeVO> like(@RequestBody LikeDTO likeDTO) {
-        log.info("用户:{}点赞了:{}", BeanContext.getUserId(), likeDTO.getBiz_id());
-        LikeVO likeVO =likeInfoService.saveLikeInfo(likeDTO);
-        return RESTful.success(likeVO);
+        log.info("用户:{}点赞了:{}", UserContext.getUserId(), likeDTO.getBizId());
+        LikeVO likeVO = likeInfoService.saveLikeInfo(likeDTO);
+        return RESTful.success(likeVO,"点赞成功");
     }
 
 }

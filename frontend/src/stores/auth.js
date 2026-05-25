@@ -8,22 +8,39 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
   const latitude = ref(parseFloat(localStorage.getItem('lat') || '') || null)
   const longitude = ref(parseFloat(localStorage.getItem('lng') || '') || null)
+  const locationStatus = ref('idle') // idle | loading | granted | denied | error
 
   const isLoggedIn = computed(() => !!token.value)
 
-  async function fetchIPLocation() {
-    try {
-      const coords = await getIPCoords()
-      if (coords) {
-        latitude.value = coords.lat
-        longitude.value = coords.lng
-        localStorage.setItem('lat', String(coords.lat))
-        localStorage.setItem('lng', String(coords.lng))
-        await updateLocation({ latitude: coords.lat, longitude: coords.lng })
+  function requestBrowserLocation() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        const err = new Error('浏览器不支持定位')
+        err.code = -1
+        reject(err)
+        return
       }
-    } catch {
-      // location update failed, ignore
-    }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          })
+        },
+        (geoErr) => {
+          let message = '定位失败'
+          switch (geoErr.code) {
+            case geoErr.PERMISSION_DENIED: message = '用户拒绝了定位请求'; break
+            case geoErr.POSITION_UNAVAILABLE: message = '位置信息不可用'; break
+            case geoErr.TIMEOUT: message = '定位请求超时'; break
+          }
+          const err = new Error(message)
+          err.code = geoErr.code
+          reject(err)
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+      )
+    })
   }
 
   async function getIPCoords() {
@@ -51,13 +68,44 @@ export const useAuthStore = defineStore('auth', () => {
     return null
   }
 
+  async function fetchLocation() {
+    locationStatus.value = 'loading'
+    try {
+      const coords = await requestBrowserLocation()
+      latitude.value = coords.lat
+      longitude.value = coords.lng
+      locationStatus.value = 'granted'
+      localStorage.setItem('lat', String(coords.lat))
+      localStorage.setItem('lng', String(coords.lng))
+      await updateLocation({ latitude: coords.lat, longitude: coords.lng })
+      return coords
+    } catch (browserErr) {
+      // browser geolocation failed, try IP fallback
+      try {
+        const coords = await getIPCoords()
+        if (coords) {
+          latitude.value = coords.lat
+          longitude.value = coords.lng
+          locationStatus.value = browserErr.code === 1 ? 'denied' : 'error'
+          localStorage.setItem('lat', String(coords.lat))
+          localStorage.setItem('lng', String(coords.lng))
+          await updateLocation({ latitude: coords.lat, longitude: coords.lng })
+          return coords
+        }
+      } catch {
+        locationStatus.value = 'error'
+      }
+    }
+    return null
+  }
+
   async function doLogin(credentials) {
     const res = await loginApi(credentials)
     token.value = res.data.token
     user.value = res.data.user
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('user', JSON.stringify(res.data.user))
-    fetchIPLocation()
+    fetchLocation()
     return res
   }
 
@@ -67,7 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = res.data.user
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('user', JSON.stringify(res.data.user))
-    fetchIPLocation()
+    fetchLocation()
     return res
   }
 
@@ -79,6 +127,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       latitude.value = null
       longitude.value = null
+      locationStatus.value = 'idle'
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       localStorage.removeItem('lat')
@@ -91,5 +140,9 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('user', JSON.stringify(u))
   }
 
-  return { token, user, latitude, longitude, isLoggedIn, doLogin, doRegister, doLogout, setUser }
+  return {
+    token, user, latitude, longitude, locationStatus, isLoggedIn,
+    doLogin, doRegister, doLogout, setUser,
+    fetchLocation, requestBrowserLocation,
+  }
 })

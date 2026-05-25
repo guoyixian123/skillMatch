@@ -10,7 +10,7 @@ import com.aliyun.oss.common.comm.SignVersion;
 import com.aliyun.oss.model.PutObjectRequest;
 import com.aliyun.oss.model.PutObjectResult;
 import com.aliyuncs.exceptions.ClientException;
-import com.skillmatch.context.BeanContext;
+import com.skillmatch.context.UserContext;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
@@ -20,7 +20,7 @@ import java.util.UUID;
 @Component
 public class OssUtil {
     public static String upload(byte[] bytes,String fileName,String type) throws ClientException {
-        String userId = BeanContext.getUserId();
+        String userId = UserContext.getUserId();
         if(userId == null||userId.isEmpty()){
             throw new RuntimeException("用户不存在");
         }

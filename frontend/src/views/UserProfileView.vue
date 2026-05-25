@@ -20,7 +20,10 @@
               <span><strong>{{ profile.postCount || 0 }}</strong> 帖子</span>
             </div>
           </div>
-          <div style="margin-left:auto;">
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <button class="brutal-btn outline small" @click="handleLikeProfile" :disabled="liking">
+              {{ liking ? '...' : '❤️ 点赞' }}
+            </button>
             <button class="brutal-btn primary small" @click="showSendRequest = true">
               💬 发起交换
             </button>
@@ -123,12 +126,14 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getUserProfile } from '@/api/matching'
 import { createRequest } from '@/api/notification'
+import { likeProfile } from '@/api/user'
 
 const route = useRoute()
 const userId = route.params.userId
 
 const loading = ref(true)
 const profile = ref(null)
+const liking = ref(false)
 
 const showSendRequest = ref(false)
 const requestReason = ref('')
@@ -147,6 +152,19 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+async function handleLikeProfile() {
+  liking.value = true
+  try {
+    await likeProfile(userId)
+    ElMessage.success('点赞成功')
+    if (profile.value) profile.value.likeCount = (profile.value.likeCount || 0) + 1
+  } catch {
+    ElMessage.warning('已经点赞过了')
+  } finally {
+    liking.value = false
+  }
+}
 
 async function handleSendRequest() {
   if (!requestReason.value.trim()) {

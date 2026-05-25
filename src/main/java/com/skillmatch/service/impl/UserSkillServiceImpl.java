@@ -1,12 +1,14 @@
 package com.skillmatch.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.skillmatch.context.BeanContext;
+import com.skillmatch.context.UserContext;
 import com.skillmatch.domain.dto.UserSkillDTO;
 import com.skillmatch.domain.dto.UserSkillListDTO;
 import com.skillmatch.domain.po.UserSkill;
-import com.skillmatch.domain.vo.Skill;
+import com.skillmatch.domain.vo.SkillItemVO;
 import com.skillmatch.domain.vo.SkillVO;
+import com.skillmatch.enums.ErrorCode;
+import com.skillmatch.exceptions.BusinessException;
 import com.skillmatch.mapper.UserSkillMapper;
 import com.skillmatch.service.IUserSkillService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -17,7 +19,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -36,28 +37,30 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
      */
     @Override
     public SkillVO getUserAndSkillInfo() {
-        String userId = BeanContext.getUserId();
-        if (userId == null || userId.isEmpty()) return null;
+        String userId = UserContext.getUserId();
+        //查询用户所有技能
         List<UserSkill> list = lambdaQuery()
                 .eq(UserSkill::getUserId, userId)
                 .list();
-        if (list.isEmpty()) {
+        if (list == null||list.isEmpty()) {
+            //返回空
             return new SkillVO();
         }
+        //根据技能类型分组1:can 2:want
         Map<Integer, List<UserSkill>> skillTypeMap = list.stream().collect(Collectors.groupingBy(UserSkill::getSkillType));
         //用户的所有会的技能
         List<UserSkill> userSkills = skillTypeMap.get(1);
         //封装到vo中
-        List<Skill> canSkills = new ArrayList<>(userSkills.size());
+        List<SkillItemVO> canSkills = new ArrayList<>(userSkills.size());
         for (UserSkill userSkill : userSkills) {
-            Skill skill = BeanUtil.copyProperties(userSkill, Skill.class);
+            SkillItemVO skill = BeanUtil.copyProperties(userSkill, SkillItemVO.class);
             canSkills.add(skill);
         }
         //用户的所有想学的技能
         List<UserSkill> wantSkills = skillTypeMap.get(2);
-        List<Skill> wantSkill = new ArrayList<>(wantSkills.size());
+        List<SkillItemVO> wantSkill = new ArrayList<>(wantSkills.size());
         for (UserSkill userSkill : wantSkills) {
-            Skill skill = BeanUtil.copyProperties(userSkill, Skill.class);
+            SkillItemVO skill = BeanUtil.copyProperties(userSkill, SkillItemVO.class);
             wantSkill.add(skill);
         }
         return new SkillVO(canSkills, wantSkill);
@@ -68,36 +71,29 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
      */
     @Override
     public void addUserSkills(UserSkillDTO skill) {
-        String userId = BeanContext.getUserId();
-        if (userId == null || userId.isEmpty()) {
-            throw new RuntimeException("用户未登录");
+        String userId = UserContext.getUserId();
+        if(skill==null){
+            throw new BusinessException(ErrorCode.PARAM_ERROR);
         }
-        //技能类型转换1: 会 can 2: 想学 want
-        Integer type = null;
-        if (Objects.equals(skill.getSkillType(), "can")) {
-            type = 1;
-        }
-        if (Objects.equals(skill.getSkillType(), "want")) {
-            type = 2;
-        }
-        //查询用户已有的技能数量,并且判断是否超过20个
+
+        //查询用户已有的技能数量,并且判断是否超过10个
         Long count1 = lambdaQuery()
                 .eq(UserSkill::getUserId, userId)
-                .eq(UserSkill::getSkillType, type)
+                .eq(UserSkill::getSkillType, skill.getSkillType())
                 .count();
-        if (count1 > 20) {
-            throw new RuntimeException("技能数量已经超过20个");
+        if (count1 > 10) {
+            throw new BusinessException(ErrorCode.NOT_FOUND,"技能数量已经超过10个");
         }
         Long count2 = lambdaQuery()
                 .eq(UserSkill::getUserId, userId)
-                .eq(UserSkill::getSkillType, type)
+                .eq(UserSkill::getSkillType,skill.getSkillType() )
                 .count();
-        if (count2 > 20) {
-            throw new RuntimeException("技能数量已经超过20个");
+        if (count2 > 10) {
+            throw new RuntimeException("技能数量已经超过10个");
         }
-        //添加技能
+        //添加技能到数据库
         UserSkill userSkill = BeanUtil.copyProperties(skill, UserSkill.class, "skillType");
-        userSkill.setSkillType(type);
+        userSkill.setSkillType(skill.getSkillType());
         userSkill.setUserId(userId);
         userSkill.setCreatedTime(LocalDateTime.now());
         save(userSkill);
@@ -109,44 +105,48 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
     @Transactional//多次修改数据库需要修改添加事务
     @Override
     public void updateUserSkillList(UserSkillListDTO skills) {
-        String userId = BeanContext.getUserId();
-        if (userId == null || userId.isEmpty()) {
-            throw new RuntimeException("用户未登录");
-        }
+        String userId = UserContext.getUserId();
         //判断技能数量是否超过20个
-        if (skills.getCanSkills().size() > 20 || skills.getWantSkills().size() > 20) {
-            throw new RuntimeException("技能数量已经超过20个");
+        if (skills.getCanSkills().size() > 10 || skills.getWantSkills().size() > 10) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR,"技能数量已经超过10个");
         }
         //先删该用户技能
         boolean remove = lambdaUpdate()
                 .eq(UserSkill::getUserId, userId)
                 .remove();
-        if (!remove) {
-            throw new RuntimeException("删除技能失败");
-        }
         // 再添加
         //先封装我会的技能
-        List<UserSkill> canSkills = new ArrayList<>(skills.getCanSkills().size());
+        List<UserSkill> list = new ArrayList<>(skills.getCanSkills().size());
+
         for (String skillName : skills.getCanSkills()) {
             UserSkill userSkill = new UserSkill();
             userSkill.setSkillType(1);
             userSkill.setSkillName(skillName);
             userSkill.setUserId(userId);
             userSkill.setCreatedTime(LocalDateTime.now());
-            canSkills.add(userSkill);
+            list.add(userSkill);
         }
         //再封装想学的技能
-        List<UserSkill> wantSkills = new ArrayList<>(skills.getWantSkills().size());
         for (String skillName : skills.getWantSkills()) {
             UserSkill userSkill = new UserSkill();
             userSkill.setSkillType(2);
             userSkill.setSkillName(skillName);
             userSkill.setUserId(userId);
             userSkill.setCreatedTime(LocalDateTime.now());
-            wantSkills.add(userSkill);
+            list.add(userSkill);
         }
         //批量保存
-        saveBatch(canSkills);
-        saveBatch(wantSkills);
+        saveBatch(list);
+    }
+
+    @Override
+    public void removeUserSkillById(String skillId) {
+        if(skillId==null){
+            throw new BusinessException(ErrorCode.PARAM_ERROR);
+        }
+        boolean b = removeById(skillId);
+        if (!b) {
+            throw new BusinessException(ErrorCode.SERVER_ERROR,"删除技能失败");
+        }
     }
 }

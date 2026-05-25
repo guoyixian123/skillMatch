@@ -3,7 +3,7 @@ package com.skillmatch.context;
 import org.springframework.stereotype.Component;
 
 @Component
-public class BeanContext {
+public class UserContext {
     private static final ThreadLocal<String> tl = new ThreadLocal<>();
     public static String getUserId() {
        return tl.get();

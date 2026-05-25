@@ -2,9 +2,11 @@ package com.skillmatch.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.aliyuncs.exceptions.ClientException;
-import com.skillmatch.context.BeanContext;
+import com.skillmatch.context.UserContext;
 import com.skillmatch.domain.po.UserGallery;
 import com.skillmatch.domain.vo.GalleryVO;
+import com.skillmatch.enums.ErrorCode;
+import com.skillmatch.exceptions.BusinessException;
 import com.skillmatch.mapper.UserGalleryMapper;
 import com.skillmatch.service.IUserGalleryService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -40,8 +42,7 @@ public class UserGalleryServiceImpl extends ServiceImpl<UserGalleryMapper, UserG
      */
     @Override
     public List<GalleryVO> getUserGalleryInfo() {
-        String userId = BeanContext.getUserId();
-        if (userId == null || userId.isEmpty()) throw new RuntimeException("用户未登录");
+        String userId = UserContext.getUserId();
         //查询用户图片
         List<UserGallery> list = lambdaQuery()
                 .eq(UserGallery::getUserId, userId)
@@ -67,11 +68,11 @@ public class UserGalleryServiceImpl extends ServiceImpl<UserGalleryMapper, UserG
         try {
             String userGallery = OssUtil.upload(file.getBytes(), file.getOriginalFilename(), "userGallery");
             //保存到数据库
-            //1 查询表中sort自动中最大值
+            //1 查询表中sort自动中最大值,默认为1
             Integer maxSort = userGalleryMapper.selectMaxSort();
             //2 封装数据,保存到数据库
             UserGallery gallery = new UserGallery();
-            gallery.setUserId(BeanContext.getUserId());
+            gallery.setUserId(UserContext.getUserId());
             gallery.setImageUrl(userGallery);
             gallery.setCreatedAt(LocalDateTime.now());
             gallery.setSortOrder(maxSort == null ? 1 : maxSort + 1);
@@ -83,10 +84,8 @@ public class UserGalleryServiceImpl extends ServiceImpl<UserGalleryMapper, UserG
             galleryVO.setSortOrder(gallery.getSortOrder());
             return galleryVO;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new BusinessException(ErrorCode.SERVER_ERROR, "上传图片失败");
         }
-
-
     }
 
     /**
@@ -95,14 +94,16 @@ public class UserGalleryServiceImpl extends ServiceImpl<UserGalleryMapper, UserG
     @Override
     public void removeImageById(String imageId) {
         String url = userGalleryMapper.selectUrl(imageId);
+        if (url == null || url.isBlank()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "图片不存在");
+        }
         //删除数据库中的图片
         removeById(imageId);
         //删除OSS中的图片文件
         try {
             OssUtil.delete(url);
         } catch (ClientException e) {
-            throw new RuntimeException(e);
+            throw new BusinessException(ErrorCode.SERVER_ERROR, "删除图片失败");
         }
-        log.info("删除用户照片成功");
     }
 }

@@ -40,6 +40,15 @@
     <!-- Results Grid -->
     <div v-if="loading" class="loading-block">⚡ 正在匹配中...</div>
 
+    <div v-else-if="!authStore.latitude && !authStore.longitude" class="empty-block">
+      <div class="icon">📍</div>
+      <div style="font-weight:800;font-size:18px;">需要获取你的位置</div>
+      <div style="color:#888;margin-top:4px;">开启定位以发现附近的技能搭子</div>
+      <button class="brutal-btn primary small" style="margin-top:16px;" @click="enableLocation" :disabled="locating">
+        {{ locating ? '获取中...' : '开启定位' }}
+      </button>
+    </div>
+
     <div v-else-if="users.length === 0" class="empty-block">
       <div class="icon">🔍</div>
       <div style="font-weight:800;font-size:18px;">暂无匹配用户</div>
@@ -192,6 +201,7 @@ import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 const loading = ref(false)
+const locating = ref(false)
 const users = ref([])
 const total = ref(0)
 const page = ref(1)
@@ -223,17 +233,26 @@ async function fetchUsers() {
       keyword: keyword.value,
       page: page.value,
       size: size.value,
-      ...(authStore.latitude && authStore.longitude ? {
-        latitude: authStore.latitude,
-        longitude: authStore.longitude,
-      } : {}),
     })
     users.value = res.data?.list || []
     total.value = res.data?.total || 0
-  } catch {
-    // API may not be implemented yet, show mock
-  } finally {
+  } catch { /* handled */ } finally {
     loading.value = false
+  }
+}
+
+async function enableLocation() {
+  locating.value = true
+  try {
+    await authStore.fetchLocation()
+    if (authStore.latitude && authStore.longitude) {
+      ElMessage.success('位置获取成功')
+      fetchUsers()
+    } else {
+      ElMessage.warning('无法获取位置，请检查定位权限')
+    }
+  } catch { /* handled */ } finally {
+    locating.value = false
   }
 }
 

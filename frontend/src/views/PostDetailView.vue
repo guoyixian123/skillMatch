@@ -15,7 +15,7 @@
             class="brutal-avatar"
           />
           <div>
-            <div class="post-author-name">{{ post.author?.nickname }}</div>
+            <div class="post-author-name">{{ post.author?.name }}</div>
             <div class="post-time">{{ formatTime(post.createdAt) }}</div>
           </div>
         </div>
@@ -28,11 +28,14 @@
         </div>
 
         <div class="post-actions">
-          <button class="brutal-btn small" :class="post.liked ? 'dark' : 'outline'" @click="handleToggleLike">
+          <button class="brutal-btn small" :class="post.isLiked ? 'dark' : 'outline'" @click="handleToggleLike">
             <el-icon><Star /></el-icon>
-            {{ post.liked ? '已赞' : '点赞' }} ({{ post.likeCount || 0 }})
+            {{ post.isLiked ? '已赞' : '点赞' }} ({{ post.likeCount || 0 }})
           </button>
           <span style="color:#888;font-weight:700;">💬 {{ post.commentCount || 0 }} 条评论</span>
+          <button v-if="isPostAuthor" class="brutal-btn danger small" style="margin-left:auto;" @click="handleDeletePost" :disabled="deletingPost">
+            <el-icon><Delete /></el-icon> {{ deletingPost ? '删除中...' : '删除帖子' }}
+          </button>
         </div>
       </div>
 
@@ -72,8 +75,17 @@
               class="brutal-avatar"
               style="width:32px;height:32px;"
             />
-            <span class="comment-author">{{ comment.user?.nickname }}</span>
+            <span class="comment-author">{{ comment.user?.name }}</span>
             <span class="comment-time">{{ formatTime(comment.createdAt) }}</span>
+            <button
+              v-if="canDeleteComment(comment)"
+              class="brutal-btn danger small"
+              style="margin-left:auto;padding:4px 10px;font-size:11px;"
+              @click="handleDeleteComment(comment)"
+              :disabled="deletingCommentId === comment.id"
+            >
+              {{ deletingCommentId === comment.id ? '...' : '删除' }}
+            </button>
           </div>
           <div class="comment-body">{{ comment.body }}</div>
         </div>
@@ -83,13 +95,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { Star } from '@element-plus/icons-vue'
-import { getPostDetail, toggleLike, getComments, createComment } from '@/api/community'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Star, Delete } from '@element-plus/icons-vue'
+import { getPostDetail, togglePostLike, getComments, createComment, deletePost, deleteComment } from '@/api/community'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
 const postId = route.params.postId
 
 const loading = ref(true)
@@ -97,6 +112,16 @@ const post = ref(null)
 const comments = ref([])
 const newComment = ref('')
 const commenting = ref(false)
+const deletingPost = ref(false)
+const deletingCommentId = ref(null)
+
+const currentUserId = computed(() => String(authStore.user?.id || ''))
+const isPostAuthor = computed(() => currentUserId.value && currentUserId.value === String(post.value?.author?.id))
+
+function canDeleteComment(comment) {
+  if (!currentUserId.value) return false
+  return currentUserId.value === String(comment.user?.id) || isPostAuthor.value
+}
 
 function formatTime(dateStr) {
   if (!dateStr) return ''
@@ -124,10 +149,14 @@ async function fetchPost() {
 
 async function handleToggleLike() {
   try {
-    const res = await toggleLike(postId)
-    post.value.liked = res.data.liked
+    const res = await togglePostLike(postId)
+    post.value.isLiked = true
     post.value.likeCount = res.data.likeCount
-  } catch { /* handled */ }
+    ElMessage.success('点赞成功')
+  } catch {
+    // may already be liked — backend returns error on duplicate
+    ElMessage.warning('已经点赞过了')
+  }
 }
 
 async function handleComment() {
@@ -137,15 +166,55 @@ async function handleComment() {
   }
   commenting.value = true
   try {
-    await createComment(postId, { body: newComment.value.trim() })
+    await createComment(postId, newComment.value.trim())
     ElMessage.success('评论成功')
     newComment.value = ''
-    // refresh comments
     const res = await getComments(postId, { page: 1, size: 50 })
     comments.value = res.data?.list || []
     if (post.value) post.value.commentCount = (post.value.commentCount || 0) + 1
   } catch { /* handled */ } finally {
     commenting.value = false
+  }
+}
+
+async function handleDeletePost() {
+  try {
+    await ElMessageBox.confirm('确定要删除这篇帖子吗？删除后不可恢复。', '确认删除', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return // user cancelled
+  }
+  deletingPost.value = true
+  try {
+    await deletePost(postId)
+    ElMessage.success('帖子已删除')
+    router.replace('/community')
+  } catch { /* handled */ } finally {
+    deletingPost.value = false
+  }
+}
+
+async function handleDeleteComment(comment) {
+  try {
+    await ElMessageBox.confirm('确定要删除这条评论吗？', '确认删除', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  deletingCommentId.value = comment.id
+  try {
+    await deleteComment(postId, comment.id)
+    ElMessage.success('评论已删除')
+    comments.value = comments.value.filter(c => c.id !== comment.id)
+    if (post.value) post.value.commentCount = Math.max(0, (post.value.commentCount || 1) - 1)
+  } catch { /* handled */ } finally {
+    deletingCommentId.value = null
   }
 }
 
@@ -189,6 +258,6 @@ onMounted(fetchPost)
   margin-bottom: 8px;
 }
 .comment-author { font-weight: 700; font-size: 14px; }
-.comment-time { font-size: 12px; color: #aaa; margin-left: auto; }
+.comment-time { font-size: 12px; color: #aaa; }
 .comment-body { font-size: 14px; color: #444; line-height: 1.6; }
 </style>

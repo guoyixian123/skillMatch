@@ -13,14 +13,19 @@ public class RESTful<T> {
         this.message = message;
         this.data = data;
     }
-
+    /*
+    * 成功返回结果
+     */
     public static <T> RESTful<T> success(T data) {return new RESTful<>(200, "success", data);}
 
     public static <T> RESTful<T> success(T data, String message) {return new RESTful<>(200, message, data);}
 
     public static <T> RESTful<T> success() {return new RESTful<>(200, "success", null);}
 
-    public static <T> RESTful<T> error(String message) {
-        return new RESTful<>(500, message, null);
+    /*
+    * 失败返回结果
+     */
+    public static <T> RESTful<T> error(int code,String message) {
+        return new RESTful<>(code, message, null);
     }
 }

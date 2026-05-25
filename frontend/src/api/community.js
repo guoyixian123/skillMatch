@@ -20,16 +20,18 @@ export function deletePost(postId) {
   return request.delete(`/community/posts/${postId}`)
 }
 
-export function toggleLike(postId) {
-  return request.post(`/community/posts/${postId}/like`)
+export function togglePostLike(postId) {
+  return request.post('/like', { bizId: String(postId), type: 2 })
 }
 
 export function getComments(postId, params) {
   return request.get(`/community/posts/${postId}/comments`, { params })
 }
 
-export function createComment(postId, data) {
-  return request.post(`/community/posts/${postId}/comments`, data)
+export function createComment(postId, body) {
+  return request.post(`/community/posts/${postId}/comments`, body, {
+    headers: { 'Content-Type': 'text/plain' },
+  })
 }
 
 export function deleteComment(postId, commentId) {

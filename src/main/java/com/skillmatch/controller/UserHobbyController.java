@@ -2,7 +2,6 @@ package com.skillmatch.controller;
 
 
 import com.skillmatch.domain.dto.HobbyDTO;
-import com.skillmatch.domain.vo.HobbyListVO;
 import com.skillmatch.domain.vo.HobbyVO;
 import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.service.IUserHobbyService;
@@ -30,9 +29,9 @@ public class UserHobbyController {
      * 获取用户爱好信息
      */
     @GetMapping("/hobbies")
-    public RESTful<HobbyListVO> getUserHobbies() {
+    public RESTful<List<HobbyVO>> getUserHobbies() {
         log.info("获取用户爱好信息");
-       HobbyListVO hobbyInfo = userHobbyService.getUserHobbyInfo();
+        List<HobbyVO> hobbyInfo = userHobbyService.getUserHobbyInfo();
        return RESTful.success(hobbyInfo);
     }
     /**

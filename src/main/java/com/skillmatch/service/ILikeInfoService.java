@@ -16,4 +16,5 @@ import com.skillmatch.domain.vo.LikeVO;
 public interface ILikeInfoService extends IService<LikeInfo> {
 
     LikeVO saveLikeInfo(LikeDTO likeDTO);
+
 }
