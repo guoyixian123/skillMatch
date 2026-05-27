@@ -24,6 +24,10 @@ export function togglePostLike(postId) {
   return request.post('/like', { bizId: String(postId), type: 2 })
 }
 
+export function unlikePost(postId) {
+  return request.delete('/like', { data: { bizId: String(postId), type: 2 } })
+}
+
 export function getComments(postId, params) {
   return request.get(`/community/posts/${postId}/comments`, { params })
 }

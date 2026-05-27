@@ -1,7 +1,12 @@
 package com.skillmatch.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.SecureUtil;
+import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
+import com.skillmatch.constants.MqConstants;
 import com.skillmatch.context.UserContext;
 import com.skillmatch.domain.dto.LocationDTO;
 import com.skillmatch.domain.dto.PasswordDTO;
@@ -16,12 +21,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.skillmatch.utils.OssUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.geo.Point;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Objects;
 
 import static com.skillmatch.constants.RedisConstant.USER_LOCATION_KEY;
@@ -39,6 +47,9 @@ import static com.skillmatch.constants.RedisConstant.USER_LOCATION_KEY;
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
     private final StringRedisTemplate redisTemplate;
+    private final RabbitTemplate rabbitTemplate;
+    @Value("${gaoDe.key}")
+    private String KEY;
 
     /*
         查询用户信息
@@ -53,7 +64,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         User user = getById(userId);
         //TODO:点赞数,和帖子数目前没有封装,返回
         UserVO userVO = BeanUtil.copyProperties(user, UserVO.class);
-        if (user == null) {
+        if (userVO == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND);
         }
         return userVO;
@@ -70,10 +81,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //更新用户信息
         boolean update = lambdaUpdate()
                 .eq(User::getUserId, userId)
-                .set(User::getName, userInfo.getName())
-                .set(User::getSignature, userInfo.getSignature())
-                .set(User::getBio, userInfo.getBio())
-                .set(User::getContactInfo, userInfo.getContactInfo())
+                .set(StrUtil.isNotEmpty(userInfo.getName()),User::getName, userInfo.getName())
+                .set(StrUtil.isNotEmpty(userInfo.getSignature()),User::getSignature, userInfo.getSignature())
+                .set(StrUtil.isNotEmpty(userInfo.getBio()) ,  User::getBio, userInfo.getBio())
+                .set(StrUtil.isNotEmpty(userInfo.getContactInfo()),User::getContactInfo, userInfo.getContactInfo())
                 .update();
         //判断更新是否成功
         if (!update) {
@@ -81,6 +92,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         log.info("修改用户:id为{}信息成功", userId);
     }
+
     /**
      * 上传用户头像
      */
@@ -90,7 +102,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         try {
             //TODO: 可能存在oss容器中一个用户多个头像的情况,在更新新头像时,先删除旧的头像,日后处理(y)
             //查询数据库中有没有头像的url
-            String url = getById(UserContext.getUserId()).getAvatarUrl();
+            User byId = getById(UserContext.getUserId());
+            if(byId == null ){
+                throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
+            }
+            String url = byId.getAvatarUrl();
             if (url != null) {
                 //删除旧头像
                 OssUtil.delete(url);
@@ -110,6 +126,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             throw new BusinessException(ErrorCode.SERVER_ERROR);
         }
     }
+
     /**
      * 修改用户密码
      */
@@ -127,7 +144,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 .count();
         //TODO: 旧密码错误返回400,现在无法实现(y)
         if (count == 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR,"旧密码错误");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "旧密码错误");
         }
         //密码正确,更新数据库中的密码
         boolean update = lambdaUpdate()
@@ -149,30 +166,76 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //参数校验
         if (location == null) throw new BusinessException(ErrorCode.PARAM_ERROR);
         String userId = UserContext.getUserId();
-        // 在redis中更新用户地理位置
-        String key = USER_LOCATION_KEY;
-        Long add = redisTemplate.opsForGeo().add(key, new Point(location.getLongitude(), location.getLatitude()), userId);
+        String city = resolveCity( location.getLongitude(), location.getLatitude());
 
-        if (add == null) {
-            log.warn("用户地理位置更新失败:{}", userId);
-            throw new RuntimeException("用户地理位置更新失败");
-        }
-
-        if (add == 0L) {
-            //用户位置已经在redis中存在,需要先删除redis中的旧数据
-            redisTemplate.opsForGeo().remove(key, userId);
-            redisTemplate.opsForGeo().add(key, new Point(location.getLongitude(), location.getLatitude()), userId);
-        }
         // 在数据库中更新用户地理位置
         boolean update = lambdaUpdate()
                 .eq(User::getUserId, userId)
                 .set(User::getLatitude, location.getLatitude())
                 .set(User::getLongitude, location.getLongitude())
+                .set(User::getCity, city)//更新城市
                 .update();
+
         //判断更新是否成功
         if (!update) {
             log.warn("用户地理位置更新失败:{}", userId);
             throw new RuntimeException("用户地理位置更新失败");
         }
+
+        // 在redis中更新用户地理位置
+        redisTemplate.opsForGeo().add(USER_LOCATION_KEY, new Point(location.getLongitude(), location.getLatitude()), userId);
+
+    }
+
+    /**
+     * 调用高德逆地理编码，将经纬度转为城市名
+     * city 为 [] → 降级取 province → 都为 [] 返回"未知"
+     */
+    private String resolveCity(Double longitude, Double latitude) {
+        try {
+            // 调用高德逆地理编码 API，3 秒超时
+            String body = HttpUtil.get(StrUtil.format(
+                    "https://restapi.amap.com/v3/geocode/regeo?location={},{}&key={}",
+                    longitude, latitude, KEY), 3000);
+            // 解析 addressComponent，包含 city/province/district
+            JSONObject c = JSONUtil.parseObj(body)
+                    .getByPath("regeocode.addressComponent", JSONObject.class);
+            if (c == null) {
+                return "未知";
+            }
+            // city 正常为字符串，直辖市/郊区为空数组 []，用 instanceof 判断
+            Object raw = c.get("city");
+            String city;
+            if (raw != null && !(raw instanceof cn.hutool.json.JSONArray)) {
+                city = raw.toString();
+            } else {
+                // city 为 []，降级取 province
+                Object p = c.get("province");
+                if (p != null && !(p instanceof cn.hutool.json.JSONArray)) {
+                    city = p.toString();
+                } else {
+                    city = "未知";
+                }
+            }
+            return StrUtil.isBlank(city) ? "未知" : city;
+        } catch (Exception e) {
+            log.warn("逆地理编码失败, lng={}, lat={}", longitude, latitude, e);
+            return "未知";
+        }
+    }
+
+    @Override
+    public void removeUserInfo() {
+        //一键位删除BOT
+        //获取机器人的userid
+        List<String> list = lambdaQuery()
+                .isNull(User::getAvatarUrl)
+                .list()
+                .stream()
+                .map(User::getUserId)
+                .toList();
+        //删除关联的标签技能标签,爱好
+        //删除bot
+        rabbitTemplate.convertAndSend(MqConstants.REMOVE_BOT_EXCHANGE,MqConstants.REMOVE_BOT_ROUTING_KEY,list);
     }
 }

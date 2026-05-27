@@ -115,7 +115,7 @@ async function handleAdd(type) {
   }
   addLoading.value = true
   try {
-    await userStore.doAddSkill({ skillName: name, skillType: type })
+    await userStore.doAddSkill({ skillName: name, skillType: type === 'can' ? 1 : 2 })
     if (type === 'can') newCanSkill.value = ''
     else newWantSkill.value = ''
     ElMessage.success('添加成功')

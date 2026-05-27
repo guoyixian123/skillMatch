@@ -12,7 +12,7 @@
       <div class="section-title"><span class="dot" style="background:var(--color-yellow)"></span> 头像</div>
       <div style="display:flex;align-items:center;gap:20px;">
         <img
-          :src="avatarPreview || authStore.user?.avatarUrl || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"
+          :src="avatarPreview || authStore.user?.avatarUrl || getDefaultAvatar(authStore.user?.userId || authStore.user?.name)"
           class="brutal-avatar xl"
         />
         <div>
@@ -80,6 +80,7 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
+import { getDefaultAvatar } from '@/utils/avatar'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -116,7 +117,7 @@ const avatarPreview = ref(null)
 const avatarUploading = ref(false)
 
 onMounted(async () => {
-  const userId = authStore.user?.id || authStore.user?.userId
+  const userId = authStore.user?.userId
   if (userId) {
     await userStore.fetchProfile(userId)
     if (userStore.profile) {

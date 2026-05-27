@@ -37,17 +37,16 @@
       </div>
     </div>
 
-    <!-- Results Grid -->
-    <div v-if="loading" class="loading-block">⚡ 正在匹配中...</div>
-
-    <div v-else-if="!authStore.latitude && !authStore.longitude" class="empty-block">
-      <div class="icon">📍</div>
-      <div style="font-weight:800;font-size:18px;">需要获取你的位置</div>
-      <div style="color:#888;margin-top:4px;">开启定位以发现附近的技能搭子</div>
-      <button class="brutal-btn primary small" style="margin-top:16px;" @click="enableLocation" :disabled="locating">
+    <!-- Location tip -->
+    <div v-if="!authStore.latitude && !authStore.longitude" class="location-tip brutal-card accent-yellow">
+      <span>📍 尚未获取位置，开启定位以获得更精准的匹配</span>
+      <button class="brutal-btn primary small" @click="enableLocation" :disabled="locating">
         {{ locating ? '获取中...' : '开启定位' }}
       </button>
     </div>
+
+    <!-- Results Grid -->
+    <div v-if="loading" class="loading-block">⚡ 正在匹配中...</div>
 
     <div v-else-if="users.length === 0" class="empty-block">
       <div class="icon">🔍</div>
@@ -55,23 +54,27 @@
       <div style="color:#888;margin-top:4px;">试试扩大搜索范围或添加更多技能标签</div>
     </div>
 
-    <div v-else class="brutal-grid-3">
+    <template v-else>
+      <div class="sort-indicator">按{{ sort === 'score' ? '匹配度' : sort === 'dist' ? '距离' : '活跃度' }}排序 · 共 {{ total }} 人</div>
+      <div class="brutal-grid-3">
       <div
         v-for="user in users"
-        :key="user.id"
+        :key="user.userId"
         class="user-card brutal-card accent-blue"
         @click="showUserCard(user)"
       >
         <div class="card-cover pop-dots"></div>
         <div class="card-body">
           <img
-            :src="user.avatarUrl || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"
+            :src="user.avatarUrl || getDefaultAvatar(user.userId || user.name)"
             class="brutal-avatar lg card-avatar"
           />
-          <h3 class="card-name">{{ user.nickname }}</h3>
-          <div class="card-distance" v-if="user.distance">
+          <h3 class="card-name">{{ user.name }}</h3>
+          <div class="card-location" v-if="user.city || user.distance">
             <el-icon><Location /></el-icon>
-            {{ user.distance }}
+            <span v-if="user.city">{{ user.city }}</span>
+            <span v-if="user.city && user.distance" class="loc-sep">·</span>
+            <span v-if="user.distance">{{ user.distance }}</span>
           </div>
           <div class="card-bio" v-if="user.bio">{{ user.bio }}</div>
 
@@ -97,13 +100,14 @@
           <div class="match-bar" v-if="user.matchScore">
             <div class="match-label">匹配度</div>
             <div class="match-track">
-              <div class="match-fill" :style="{ width: user.matchScore + '%' }"></div>
+              <div class="match-fill" :style="{ width: Math.max(user.matchScore, 8) + '%', background: matchColor(user.matchScore) }"></div>
             </div>
-            <span class="match-num">{{ user.matchScore }}%</span>
+            <span class="match-num" :style="{ color: matchColor(user.matchScore) }">{{ user.matchScore }}%</span>
           </div>
         </div>
       </div>
     </div>
+    </template>
 
     <!-- Pagination -->
     <div class="flex-center" style="margin-top:32px;" v-if="total > size">
@@ -117,17 +121,28 @@
     </div>
 
     <!-- User Card Dialog -->
-    <el-dialog v-model="cardVisible" :title="cardUser?.nickname" width="420px" destroy-on-close>
+    <el-dialog v-model="cardVisible" :title="cardUser?.name" width="420px" destroy-on-close>
       <div v-if="cardUser" class="user-card-detail">
         <div class="detail-header">
           <img
-            :src="cardUser.avatarUrl || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"
+            :src="cardUser.avatarUrl || getDefaultAvatar(cardUser.userId || cardUser.name)"
             class="brutal-avatar xl"
           />
           <div>
-            <h2 style="font-weight:900;">{{ cardUser.nickname }}</h2>
-            <div v-if="cardUser.distance" style="color:#888;">
-              <el-icon><Location /></el-icon> {{ cardUser.distance }}
+            <h2 style="font-weight:900;">{{ cardUser.name }}</h2>
+            <div v-if="cardUser.signature" style="color:#666;font-size:13px;margin-top:2px;">
+              {{ cardUser.signature }}
+            </div>
+            <div v-if="cardUser.city || cardUser.distance" style="color:#888;font-size:13px;margin-top:4px;">
+              <el-icon><Location /></el-icon>
+              <span v-if="cardUser.city">{{ cardUser.city }}</span>
+              <span v-if="cardUser.city && cardUser.distance"> · </span>
+              <span v-if="cardUser.distance">{{ cardUser.distance }}</span>
+            </div>
+            <div v-if="cardUser.likeCount || cardUser.postCount" style="color:#888;font-size:12px;margin-top:4px;">
+              <span v-if="cardUser.likeCount">❤ {{ cardUser.likeCount }}</span>
+              <span v-if="cardUser.likeCount && cardUser.postCount"> · </span>
+              <span v-if="cardUser.postCount">📝 {{ cardUser.postCount }}</span>
             </div>
           </div>
         </div>
@@ -154,16 +169,19 @@
         <div v-if="cardUser.matchScore" class="match-bar" style="margin-top:16px;">
           <div class="match-label">匹配度</div>
           <div class="match-track">
-            <div class="match-fill" :style="{ width: cardUser.matchScore + '%' }"></div>
+            <div class="match-fill" :style="{ width: Math.max(cardUser.matchScore, 8) + '%', background: matchColor(cardUser.matchScore) }"></div>
           </div>
-          <span class="match-num">{{ cardUser.matchScore }}%</span>
+          <span class="match-num" :style="{ color: matchColor(cardUser.matchScore) }">{{ cardUser.matchScore }}%</span>
         </div>
 
         <div class="detail-actions" style="margin-top:20px;display:flex;gap:12px;">
-          <button class="brutal-btn primary small" @click="sendRequest(cardUser)">
+          <button v-if="cardUser.hasPendingRequest" class="brutal-btn outline small" disabled>
+            ⏳ 已发送请求
+          </button>
+          <button v-else class="brutal-btn primary small" @click="sendRequest(cardUser)">
             💬 发起交换
           </button>
-          <button class="brutal-btn outline small" @click="$router.push(`/user/${cardUser.id}`)">
+          <button class="brutal-btn outline small" @click="$router.push(`/user/${cardUser.userId}`)">
             查看主页
           </button>
         </div>
@@ -195,8 +213,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Location } from '@element-plus/icons-vue'
-import { getRecommendedUsers } from '@/api/matching'
+import { getRecommendedUsers, getUserCard } from '@/api/matching'
 import { createRequest } from '@/api/notification'
+import { getDefaultAvatar } from '@/utils/avatar'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -223,6 +242,13 @@ const activeTags = computed(() => {
   if (sort.value !== 'score') tags.push(sort.value === 'dist' ? '距离近' : '活跃度')
   return tags
 })
+
+function matchColor(score) {
+  if (score >= 70) return '#22c55e'
+  if (score >= 40) return '#eab308'
+  if (score >= 20) return '#f97316'
+  return '#94a3b8'
+}
 
 async function fetchUsers() {
   loading.value = true
@@ -262,9 +288,17 @@ function clearTag(tag) {
   fetchUsers()
 }
 
-function showUserCard(user) {
-  cardUser.value = user
+async function showUserCard(user) {
+  // 先用列表数据立即展示
+  cardUser.value = { ...user }
   cardVisible.value = true
+  // 再调接口获取完整名片（签名、发帖数、是否已发请求）
+  try {
+    const res = await getUserCard(user.userId)
+    if (res.data) {
+      cardUser.value = { ...user, ...res.data }
+    }
+  } catch { /* 降级：列表数据已展示 */ }
 }
 
 function sendRequest(user) {
@@ -280,7 +314,7 @@ async function confirmRequest() {
     return
   }
   try {
-    await createRequest({ toUserId: requestTarget.value.id, reason: requestReason.value })
+    await createRequest({ toUserId: requestTarget.value.userId, reason: requestReason.value })
     ElMessage.success('交换请求已发送')
     requestVisible.value = false
   } catch { /* handled */ }
@@ -290,6 +324,16 @@ onMounted(fetchUsers)
 </script>
 
 <style scoped>
+.location-tip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 700;
+}
 .filter-bar {
   margin-bottom: 24px;
   padding: 16px;
@@ -331,7 +375,7 @@ onMounted(fetchUsers)
   font-weight: 900;
   margin: 8px 0 4px;
 }
-.card-distance {
+.card-location {
   font-size: 13px;
   color: #888;
   display: flex;
@@ -339,6 +383,9 @@ onMounted(fetchUsers)
   justify-content: center;
   gap: 4px;
   margin-bottom: 8px;
+}
+.loc-sep {
+  color: #ccc;
 }
 .card-bio {
   font-size: 13px;
@@ -382,8 +429,14 @@ onMounted(fetchUsers)
 }
 .match-fill {
   height: 100%;
-  background: var(--color-yellow);
   transition: width 0.3s;
+}
+.sort-indicator {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #888;
+  margin-bottom: 16px;
 }
 .match-num {
   font-size: 14px;

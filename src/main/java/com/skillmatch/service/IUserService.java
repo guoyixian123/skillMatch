@@ -26,4 +26,6 @@ public interface IUserService extends IService<User> {
     void updatePassword(PasswordDTO password);
 
     void updateLocation(LocationDTO location);
+
+    void removeUserInfo();
 }

@@ -69,10 +69,11 @@ public class UserController {
     }
 
     /**
-     * 注销账号
+     * 一键删除BOT
      */
     @DeleteMapping("/account")
     public RESTful<Object> account() {
+        userService.removeUserInfo();
         return RESTful.success(null);
     }
 

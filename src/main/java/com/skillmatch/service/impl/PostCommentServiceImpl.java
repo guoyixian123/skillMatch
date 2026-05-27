@@ -52,7 +52,7 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
         Set<String> userIds = new HashSet<>();
         records.forEach(record -> userIds.add(record.getUserId()));
         if (userIds.isEmpty()) {
-            return null;
+            return new PageVO<CommentVO>(0L,  Integer.valueOf(0),  Integer.valueOf(0), Collections.emptyList());
         }
         Map<String, CommentVO.User> userMap = userMapper.selectByIds(userIds).stream()
                 .map(user -> new CommentVO.User(user.getUserId(), user.getName(), user.getAvatarUrl()))
@@ -73,7 +73,8 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
         }
         //按照时间倒序
         commentVOS.sort(Comparator.comparing(CommentVO::getCreatedAt).reversed());
-        return new PageVO<>(page.getTotal(), page.getSize(), page.getCurrent(), commentVOS);
+       // return new PageVO<>(page.getTotal(), page.getSize(), page.getCurrent(), commentVOS);
+        return PageVO.of(page, commentVOS);
     }
 
     /**

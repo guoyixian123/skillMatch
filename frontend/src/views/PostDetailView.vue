@@ -11,11 +11,13 @@
       <div class="brutal-card accent-blue">
         <div class="post-author">
           <img
-            :src="post.author?.avatarUrl || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"
+            :src="post.author?.avatarUrl || getDefaultAvatar(post.author?.id || post.author?.name)"
             class="brutal-avatar"
+            style="cursor:pointer;"
+            @click="$router.push(`/user/${post.author?.id}`)"
           />
           <div>
-            <div class="post-author-name">{{ post.author?.name }}</div>
+            <div class="post-author-name link" @click="$router.push(`/user/${post.author?.id}`)">{{ post.author?.name }}</div>
             <div class="post-time">{{ formatTime(post.createdAt) }}</div>
           </div>
         </div>
@@ -28,9 +30,14 @@
         </div>
 
         <div class="post-actions">
-          <button class="brutal-btn small" :class="post.isLiked ? 'dark' : 'outline'" @click="handleToggleLike">
-            <el-icon><Star /></el-icon>
-            {{ post.isLiked ? '已赞' : '点赞' }} ({{ post.likeCount || 0 }})
+          <button
+            class="brutal-btn small like-btn"
+            :class="{ liked: post.liked, animating: likeAnimating }"
+            @click="handleToggleLike"
+          >
+            <el-icon :size="20"><StarFilled v-if="post.liked" /><Star v-else /></el-icon>
+            <span class="like-text">{{ post.liked ? '已赞' : '点赞' }}</span>
+            <span class="like-count">{{ post.likeCount || 0 }}</span>
           </button>
           <span style="color:#888;font-weight:700;">💬 {{ post.commentCount || 0 }} 条评论</span>
           <button v-if="isPostAuthor" class="brutal-btn danger small" style="margin-left:auto;" @click="handleDeletePost" :disabled="deletingPost">
@@ -71,7 +78,7 @@
         <div v-for="comment in comments" :key="comment.id" class="comment-item brutal-card" style="margin-bottom:8px;padding:16px;">
           <div class="comment-header">
             <img
-              :src="comment.user?.avatarUrl || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"
+              :src="comment.user?.avatarUrl || getDefaultAvatar(comment.user?.id || comment.user?.name)"
               class="brutal-avatar"
               style="width:32px;height:32px;"
             />
@@ -98,8 +105,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Star, Delete } from '@element-plus/icons-vue'
-import { getPostDetail, togglePostLike, getComments, createComment, deletePost, deleteComment } from '@/api/community'
+import { Star, StarFilled, Delete } from '@element-plus/icons-vue'
+import { getPostDetail, togglePostLike, unlikePost, getComments, createComment, deletePost, deleteComment } from '@/api/community'
+import { getDefaultAvatar } from '@/utils/avatar'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
@@ -114,13 +122,14 @@ const newComment = ref('')
 const commenting = ref(false)
 const deletingPost = ref(false)
 const deletingCommentId = ref(null)
+const likeAnimating = ref(false)
 
-const currentUserId = computed(() => String(authStore.user?.id || ''))
-const isPostAuthor = computed(() => currentUserId.value && currentUserId.value === String(post.value?.author?.id))
+const currentUserId = computed(() => String(authStore.user?.userId || ''))
+const isPostAuthor = computed(() => currentUserId.value && currentUserId.value === String(post.value?.author?.userId))
 
 function canDeleteComment(comment) {
   if (!currentUserId.value) return false
-  return currentUserId.value === String(comment.user?.id) || isPostAuthor.value
+  return currentUserId.value === String(comment.user?.userId) || isPostAuthor.value
 }
 
 function formatTime(dateStr) {
@@ -148,14 +157,31 @@ async function fetchPost() {
 }
 
 async function handleToggleLike() {
+  if (!post.value) return
+  const wasLiked = post.value.liked
+
+  // trigger animation
+  likeAnimating.value = true
+  setTimeout(() => likeAnimating.value = false, 500)
+
+  // optimistic update
+  post.value.liked = !wasLiked
+  post.value.likeCount = Math.max(0, (post.value.likeCount || 0) + (wasLiked ? -1 : 1))
+
   try {
-    const res = await togglePostLike(postId)
-    post.value.isLiked = true
-    post.value.likeCount = res.data.likeCount
-    ElMessage.success('点赞成功')
+    if (wasLiked) {
+      await unlikePost(postId)
+      ElMessage.success('已取消点赞')
+    } else {
+      const res = await togglePostLike(postId)
+      post.value.likeCount = res.data?.likeCount ?? post.value.likeCount
+      ElMessage.success('点赞成功')
+    }
   } catch {
-    // may already be liked — backend returns error on duplicate
-    ElMessage.warning('已经点赞过了')
+    // rollback on failure
+    post.value.liked = wasLiked
+    post.value.likeCount = Math.max(0, (post.value.likeCount || 0) + (wasLiked ? 1 : -1))
+    ElMessage.warning('操作失败，请重试')
   }
 }
 
@@ -229,6 +255,8 @@ onMounted(fetchPost)
   margin-bottom: 16px;
 }
 .post-author-name { font-weight: 700; font-size: 15px; }
+.post-author-name.link { cursor: pointer; }
+.post-author-name.link:hover { text-decoration: underline; }
 .post-time { font-size: 12px; color: #aaa; }
 .post-title {
   font-size: 24px;
@@ -248,6 +276,55 @@ onMounted(fetchPost)
   margin-top: 16px;
   padding-top: 16px;
   border-top: 2px solid #eee;
+}
+
+/* Like button */
+.like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.like-btn.liked {
+  background: #FFD700;
+  border-color: #1A1A1A;
+  color: #1A1A1A;
+}
+.like-btn.liked .el-icon {
+  filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.15));
+}
+.like-btn .el-icon {
+  transition: transform 0.15s ease;
+}
+.like-btn .like-count {
+  font-weight: 900;
+  margin-left: 2px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* Bounce animation on click */
+.like-btn.animating .el-icon {
+  animation: likeBounce 0.5s ease;
+}
+.like-btn.animating.liked {
+  animation: likePop 0.4s ease;
+}
+
+@keyframes likeBounce {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.4); }
+  40%  { transform: scale(0.85); }
+  60%  { transform: scale(1.15); }
+  80%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes likePop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
 .comment-item {}

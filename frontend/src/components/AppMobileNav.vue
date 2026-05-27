@@ -22,18 +22,28 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getUnreadCount } from '@/api/notification'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { getUnreadCount, getLikeUnreadCount } from '@/api/notification'
 import { Compass, ChatDotRound, Bell, UserFilled } from '@element-plus/icons-vue'
 
+const route = useRoute()
 const unreadCount = ref(0)
 
-onMounted(async () => {
+async function fetchUnread() {
   try {
-    const res = await getUnreadCount()
-    unreadCount.value = res.data?.pendingRequestCount || 0
+    const [contactRes, likeRes] = await Promise.all([
+      getUnreadCount(),
+      getLikeUnreadCount(),
+    ])
+    const contactCount = (typeof contactRes.data === 'number') ? contactRes.data : (contactRes.data?.pendingRequestCount || 0)
+    const likeCount = (typeof likeRes.data === 'number') ? likeRes.data : 0
+    unreadCount.value = contactCount + likeCount
   } catch { /* ignore */ }
-})
+}
+
+onMounted(fetchUnread)
+watch(() => route.path, fetchUnread)
 </script>
 
 <style scoped>

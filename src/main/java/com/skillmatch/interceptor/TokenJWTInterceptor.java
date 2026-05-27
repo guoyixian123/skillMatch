@@ -21,6 +21,7 @@ public class TokenJWTInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull Object handler) throws Exception {
         // 获取请求头中的token
         String token = request.getHeader("user_info");
+        System.out.println("token:"+token);
         if (token == null || token.isEmpty()) {
             response.setStatus(401);
             return false;

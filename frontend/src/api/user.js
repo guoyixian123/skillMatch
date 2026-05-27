@@ -8,6 +8,10 @@ export function likeProfile(userId) {
   return request.post('/like', { bizId: String(userId), type: 1 })
 }
 
+export function unlikeProfile(userId) {
+  return request.delete('/like', { data: { bizId: String(userId), type: 1 } })
+}
+
 export function updateProfile(data) {
   return request.put('/user/profile', data)
 }

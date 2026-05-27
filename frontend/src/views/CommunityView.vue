@@ -47,10 +47,11 @@
       >
         <div class="post-author">
           <img
-            :src="post.author?.avatarUrl || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"
+            :src="post.author?.avatarUrl || getDefaultAvatar(post.author?.id || post.author?.name)"
             class="brutal-avatar"
+            @click.stop="$router.push(`/user/${post.author?.id}`)"
           />
-          <span class="post-author-name">{{ post.author?.name }}</span>
+          <span class="post-author-name" @click.stop="$router.push(`/user/${post.author?.id}`)">{{ post.author?.name }}</span>
           <span class="post-time">{{ formatTime(post.createdAt) }}</span>
         </div>
 
@@ -62,10 +63,19 @@
         </div>
 
         <div class="post-meta">
-          <span class="meta-item">
-            <el-icon><Star /></el-icon> {{ post.likeCount || 0 }}
-          </span>
-          <span class="meta-item">
+          <button
+            class="card-like-btn"
+            :class="{ liked: post.isLiked, animating: post._animating }"
+            @click.stop="handleCardLike(post)"
+          >
+            <span class="like-icon-wrap">
+              <el-icon :size="16"><StarFilled v-if="post.isLiked" /><Star v-else /></el-icon>
+              <span v-if="post._showPlus" class="float-plus">+1</span>
+            </span>
+            <span class="like-label">{{ post.isLiked ? '已赞' : '点赞' }}</span>
+            <span class="like-count">{{ formatCount(post.likeCount) }}</span>
+          </button>
+          <span class="meta-item comment-meta">
             <el-icon><ChatDotRound /></el-icon> {{ post.commentCount || 0 }}
           </span>
         </div>
@@ -116,8 +126,9 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Plus, Search, Star, ChatDotRound } from '@element-plus/icons-vue'
-import { getPosts, createPost } from '@/api/community'
+import { Plus, Search, Star, StarFilled, ChatDotRound } from '@element-plus/icons-vue'
+import { getDefaultAvatar } from '@/utils/avatar'
+import { getPosts, createPost, togglePostLike, unlikePost } from '@/api/community'
 
 const router = useRouter()
 const loading = ref(false)
@@ -170,6 +181,40 @@ async function fetchPosts() {
     total.value = res.data?.total || 0
   } catch { /* API may not be implemented yet */ } finally {
     loading.value = false
+  }
+}
+
+function formatCount(n) {
+  if (!n) return '0'
+  return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n)
+}
+
+async function handleCardLike(post) {
+  const wasLiked = post.isLiked
+
+  // 点赞时触发动画
+  if (!wasLiked) {
+    post._animating = true
+    post._showPlus = true
+    setTimeout(() => { post._animating = false }, 500)
+    setTimeout(() => { post._showPlus = false }, 800)
+  }
+
+  // optimistic update
+  post.isLiked = !wasLiked
+  post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? -1 : 1))
+
+  try {
+    if (wasLiked) {
+      await unlikePost(post.id)
+    } else {
+      const res = await togglePostLike(post.id)
+      post.likeCount = res.data?.likeCount ?? post.likeCount
+    }
+  } catch {
+    // rollback
+    post.isLiked = wasLiked
+    post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? 1 : -1))
   }
 }
 
@@ -227,7 +272,11 @@ onMounted(fetchPosts)
 .post-author-name {
   font-weight: 700;
   font-size: 14px;
+  cursor: pointer;
 }
+.post-author-name:hover { text-decoration: underline; }
+.post-author .brutal-avatar { cursor: pointer; }
+.post-author .brutal-avatar:hover { opacity: 0.85; }
 .post-time {
   font-size: 12px;
   color: #aaa;
@@ -247,16 +296,129 @@ onMounted(fetchPosts)
 .post-tags { margin-bottom: 10px; }
 .post-meta {
   display: flex;
-  gap: 20px;
+  gap: 16px;
+  align-items: center;
   padding-top: 12px;
   border-top: 2px solid #eee;
 }
-.meta-item {
+
+/* 评论数 */
+.comment-meta {
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 13px;
   font-weight: 700;
   color: #888;
+  margin-left: auto;
+}
+
+/* ========= 卡片点赞按钮 - 粗野主义风格 ========= */
+.card-like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px 6px 10px;
+  border: 2px solid #ddd;
+  border-radius: 99px;
+  background: #fafafa;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #888;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  user-select: none;
+  position: relative;
+  overflow: visible;
+}
+
+.card-like-btn:hover {
+  border-color: #FFD700;
+  background: #FFFBE6;
+  color: #E6A800;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+}
+
+.card-like-btn:active {
+  transform: scale(0.96);
+}
+
+/* 已赞态 */
+.card-like-btn.liked {
+  border-color: #1A1A1A;
+  background: #FFD700;
+  color: #5C3D00;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.15);
+}
+
+.card-like-btn.liked .el-icon {
+  color: #D4A017;
+}
+
+.card-like-btn.liked:hover {
+  background: #FFE44D;
+  border-color: #1A1A1A;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+}
+
+/* 图标容器 */
+.like-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* +1 浮动动画 */
+.float-plus {
+  position: absolute;
+  top: -8px;
+  right: -14px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #FFD700;
+  pointer-events: none;
+  animation: floatUp 0.8s ease-out forwards;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+}
+
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  40%  { opacity: 1; transform: translateY(-14px) scale(1.25); }
+  100% { opacity: 0; transform: translateY(-24px) scale(0.8); }
+}
+
+.like-label {
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.like-count {
+  font-weight: 900;
+  font-size: 13px;
+  min-width: 20px;
+  text-align: center;
+  background: rgba(0,0,0,0.06);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.card-like-btn.liked .like-count {
+  background: rgba(0,0,0,0.12);
+}
+
+/* 点击回弹动画 */
+.card-like-btn.animating .like-icon-wrap {
+  animation: likePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes likePop {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.45); }
+  50%  { transform: scale(0.8); }
+  75%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
 }
 </style>

@@ -31,7 +31,7 @@
         <el-dropdown trigger="click">
           <div class="user-chip">
             <img
-              :src="authStore.user?.avatarUrl || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"
+              :src="authStore.user?.avatarUrl || getDefaultAvatar(authStore.user?.userId || authStore.user?.name)"
               class="user-chip-avatar"
               alt="avatar"
             />
@@ -60,23 +60,30 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { getUnreadCount } from '@/api/notification'
+import { getDefaultAvatar } from '@/utils/avatar'
+import { getUnreadCount, getLikeUnreadCount } from '@/api/notification'
 import {
   Compass, ChatDotRound, Bell, UserFilled,
   Edit, SetUp, SwitchButton,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const unreadCount = ref(0)
 
 async function fetchUnread() {
   try {
-    const res = await getUnreadCount()
-    unreadCount.value = res.data?.pendingRequestCount || 0
+    const [contactRes, likeRes] = await Promise.all([
+      getUnreadCount(),
+      getLikeUnreadCount(),
+    ])
+    const contactCount = (typeof contactRes.data === 'number') ? contactRes.data : (contactRes.data?.pendingRequestCount || 0)
+    const likeCount = (typeof likeRes.data === 'number') ? likeRes.data : 0
+    unreadCount.value = contactCount + likeCount
   } catch { /* ignore */ }
 }
 
@@ -86,6 +93,7 @@ async function handleLogout() {
 }
 
 onMounted(fetchUnread)
+watch(() => route.path, fetchUnread)
 </script>
 
 <style scoped>

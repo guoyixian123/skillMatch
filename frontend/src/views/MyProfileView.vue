@@ -6,7 +6,7 @@
       <!-- Avatar -->
       <div class="profile-top">
         <img
-          :src="authStore.user?.avatarUrl || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"
+          :src="authStore.user?.avatarUrl || getDefaultAvatar(authStore.user?.userId || authStore.user?.name)"
           class="brutal-avatar xl profile-avatar"
         />
         <div class="profile-info">
@@ -78,6 +78,7 @@
 <script setup>
 import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { getDefaultAvatar } from '@/utils/avatar'
 import { useUserStore } from '@/stores/user'
 import { Edit, Phone } from '@element-plus/icons-vue'
 
@@ -90,7 +91,7 @@ const hobbies = computed(() => userStore.hobbies)
 const gallery = computed(() => userStore.gallery)
 
 onMounted(async () => {
-  const userId = authStore.user?.id || authStore.user?.userId
+  const userId = authStore.user?.userId
   if (userId) {
     await Promise.all([
       userStore.fetchProfile(userId),

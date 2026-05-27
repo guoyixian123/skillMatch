@@ -11,6 +11,12 @@ spring:
     url: jdbc:mysql://localhost:3306/skill_match
     username: root
     password: g091600jiof
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
 mybatis-plus:
   mapper-locations: classpath*:mapper/*.xml
   type-aliases-package: com.skillmatch.domain.po
@@ -21,3 +27,5 @@ logging:
   level:
     root: info
     com.skillmatch: debug
+gaoDe:
+  key: ef38dd2c2cb2f91f4e3364e97ce78aef

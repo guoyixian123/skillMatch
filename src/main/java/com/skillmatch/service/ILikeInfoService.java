@@ -17,4 +17,6 @@ public interface ILikeInfoService extends IService<LikeInfo> {
 
     LikeVO saveLikeInfo(LikeDTO likeDTO);
 
+    LikeVO removeLikeInfo(LikeDTO likeDTO);
+
 }

@@ -67,12 +67,12 @@ public class User implements Serializable {
     /**
      * 纬度
      */
-    private BigDecimal latitude;
+    private double latitude;
 
     /**
      * 经度
      */
-    private BigDecimal longitude;
+    private double longitude;
 
     /**
      * 点赞数
@@ -98,6 +98,10 @@ public class User implements Serializable {
      * 最后登录时间
      */
     private LocalDateTime lastLoginAt;
+    /**
+     * 城市名称
+     */
+    private String city;
 
 
 }

@@ -37,6 +37,13 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         if(register == null){
            throw new BusinessException( ErrorCode.PARAM_ERROR,"用户信息不能为空");
         }
+        //判断账号是否重复
+        Long count = lambdaQuery()
+                .eq(User::getUserId, register.getUserId())
+                .count();
+                if(count > 0){
+                    throw new BusinessException(ErrorCode.PARAM_ERROR,"用户已存在");
+                }
         //md5加密处理
         String md5Password = SecureUtil.md5(register.getPassword());
         //重新修改用户传递的密码
@@ -59,7 +66,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
     public Map<String, Object> login(RegisterAndLoginDTO login) {
         //登录信息不能为空
         if(login == null){
-            throw new RuntimeException("用户信息不能为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户信息不能为空");
         }
         //md5加密处理
         String md5Password = SecureUtil.md5(login.getPassword());
@@ -70,7 +77,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
                 .one();
         //没有查找到数据
         if(one == null){
-            return null;
+            throw  new BusinessException(ErrorCode.PARAM_ERROR,"用户名或密码错误");
         }
         //设置最后登录时间
         lambdaUpdate()
@@ -94,7 +101,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         Map<String, Object> map = new HashMap<>();
         map.put("token", token);
         Map<String, String> mapInfo = new HashMap<>();
-        mapInfo.put("id", user.getUserId());
+        mapInfo.put("userId", user.getUserId());
         mapInfo.put("name", user.getName());
         //TODO:封装头像信息(y)
         mapInfo.put("avatarUrl", user.getAvatarUrl());
@@ -113,6 +120,10 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         log.info("用户id:{} 刷新token", userId);
         //获取redis中的token信息
         String token = redisTemplate.opsForValue().get(LOGIN_TOKEN_KEY+userId);
+        if (token == null) {
+            log.warn("用户id:{} 的token已过期", userId);
+            return null;
+        }
         Map<String, String> info = JwtUtil.parseToken(token);
         String id = info.get("userId");
         String name = info.get("name");

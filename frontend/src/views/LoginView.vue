@@ -86,8 +86,7 @@ async function handleLogin() {
   if (!valid) return
   loading.value = true
   try {
-    // backend uses userId field, matching the actual DTO
-    await authStore.doLogin({ userId: form.username, name: form.username, password: form.password })
+    await authStore.doLogin({ userId: form.username, password: form.password })
     ElMessage.success('登录成功')
     router.push('/discover')
   } catch {

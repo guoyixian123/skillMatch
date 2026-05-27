@@ -28,7 +28,19 @@ public class LikeInfoController {
     public RESTful<LikeVO> like(@RequestBody LikeDTO likeDTO) {
         log.info("用户:{}点赞了:{}", UserContext.getUserId(), likeDTO.getBizId());
         LikeVO likeVO = likeInfoService.saveLikeInfo(likeDTO);
-        return RESTful.success(likeVO,"点赞成功");
+        return RESTful.success(likeVO, "点赞成功");
+    }
+
+    /**
+     * 取消点赞
+     * 删除点赞记录、点赞数 -1、同时删除对应的通知记录
+     * 与点赞接口使用同一路径 /api/like，通过 HTTP 方法区分（POST=点赞，DELETE=取消）
+     */
+    @DeleteMapping("/like")
+    public RESTful<LikeVO> unlike(@RequestBody LikeDTO likeDTO) {
+        log.info("用户:{}取消点赞:{}", UserContext.getUserId(), likeDTO.getBizId());
+        LikeVO likeVO = likeInfoService.removeLikeInfo(likeDTO);
+        return RESTful.success(likeVO, "已取消点赞");
     }
 
 }
