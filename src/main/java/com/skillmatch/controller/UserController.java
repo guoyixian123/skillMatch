@@ -52,10 +52,10 @@ public class UserController {
      * 更新用户头像
      */
     @PutMapping("/avatar")
-    public RESTful<Object> uploadAvatar(@RequestParam MultipartFile avatarUrl) {
+    public RESTful<String> uploadAvatar(@RequestParam MultipartFile avatarUrl) {
         log.info("更新用户id:{}的头像", UserContext.getUserId());
-        userService.uploadAvatar(avatarUrl);
-        return RESTful.success(null, "头像已经更新");
+        String url = userService.uploadAvatar(avatarUrl);
+        return RESTful.success(url, "头像已经更新");
     }
 
     /**

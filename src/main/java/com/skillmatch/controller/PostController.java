@@ -9,6 +9,7 @@ import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.service.IPostService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -39,7 +40,7 @@ public class PostController {
      * 创建帖子
      */
     @PostMapping("/posts")
-    public RESTful<String> createPost(@RequestBody PostDTO postDTO) {
+    public RESTful<String> createPost(@RequestBody @Validated PostDTO postDTO) {
         log.info("创建帖子");
         postService.createPost(postDTO);
         return RESTful.success("发布帖子成功");
@@ -59,7 +60,7 @@ public class PostController {
      * 编辑帖子
      */
     @PutMapping("/posts/{postId}")
-    public RESTful<String> updatePost(@PathVariable String postId, @RequestBody PostDTO postDTO) {
+    public RESTful<String> updatePost(@PathVariable String postId, @RequestBody @Validated PostDTO postDTO) {
         log.info("更新帖子");
         postService.updatePost(postId, postDTO);
         return RESTful.success("更新帖子成功");

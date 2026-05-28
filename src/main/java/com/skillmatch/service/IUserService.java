@@ -21,7 +21,7 @@ public interface IUserService extends IService<User> {
 
     void updateUser(UserDTO userInfo);
 
-    void uploadAvatar(MultipartFile avatarUrl);
+    String uploadAvatar(MultipartFile avatarUrl);
 
     void updatePassword(PasswordDTO password);
 

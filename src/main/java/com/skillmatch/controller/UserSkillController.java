@@ -40,7 +40,7 @@ public class UserSkillController {
     public RESTful<Object> addUserSkills(@RequestBody UserSkillDTO skill) {
         log.info("添加用户技能信息:{}", skill);
         userSkillService.addUserSkills(skill);
-        return RESTful.success(null);
+        return RESTful.success(null, "添加成功");
     }
     /**
      * 删除用户技能
@@ -49,7 +49,7 @@ public class UserSkillController {
     public RESTful<Object> deleteUserSkills(@PathVariable String skillId) {
         log.info("删除用户技能信息:技能id=>{}", skillId);
         userSkillService.removeUserSkillById(skillId);
-        return RESTful.success(null);
+        return RESTful.success(null, "已移除");
     }
     /**
      * 批量修改用户技能
@@ -58,7 +58,7 @@ public class UserSkillController {
     public RESTful<Object> updateUserSkills(@RequestBody UserSkillListDTO  skills) {
         log.info("批量修改用户技能信息:{}", skills);
         userSkillService.updateUserSkillList(skills);
-        return RESTful.success(null);
+        return RESTful.success(null, "保存成功");
     }
 
 }

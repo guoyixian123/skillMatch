@@ -1,15 +1,16 @@
 import request from '@/utils/request'
+import { LIKE_TYPE } from '@/constants/like'
 
 export function getProfile(userId) {
   return request.get(`/user/profile/${userId}`)
 }
 
 export function likeProfile(userId) {
-  return request.post('/like', { bizId: String(userId), type: 1 })
+  return request.post('/like', { bizId: String(userId), type: LIKE_TYPE.PROFILE })
 }
 
 export function unlikeProfile(userId) {
-  return request.delete('/like', { data: { bizId: String(userId), type: 1 } })
+  return request.delete('/like', { data: { bizId: String(userId), type: LIKE_TYPE.PROFILE } })
 }
 
 export function updateProfile(data) {

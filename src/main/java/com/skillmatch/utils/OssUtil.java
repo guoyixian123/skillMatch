@@ -11,13 +11,14 @@ import com.aliyun.oss.model.PutObjectRequest;
 import com.aliyun.oss.model.PutObjectResult;
 import com.aliyuncs.exceptions.ClientException;
 import com.skillmatch.context.UserContext;
-import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
-@Component
+
+@Slf4j
 public class OssUtil {
     public static String upload(byte[] bytes,String fileName,String type) throws ClientException {
         String userId = UserContext.getUserId();
@@ -58,12 +59,8 @@ public class OssUtil {
             // 创建PutObject请求。
             PutObjectResult result = ossClient.putObject(putObjectRequest);
         } catch (OSSException oe) {
-            System.out.println("Caught an OSSException, which means your request made it to OSS, "
-                    + "but was rejected with an error response for some reason.");
-            System.out.println("Error Message:" + oe.getErrorMessage());
-            System.out.println("Error Code:" + oe.getErrorCode());
-            System.out.println("Request ID:" + oe.getRequestId());
-            System.out.println("Host ID:" + oe.getHostId());
+            log.error("OSS upload failed: ErrorMessage={}, ErrorCode={}, RequestId={}, HostId={}",
+                    oe.getErrorMessage(), oe.getErrorCode(), oe.getRequestId(), oe.getHostId());
         } finally {
             ossClient.shutdown();
         }

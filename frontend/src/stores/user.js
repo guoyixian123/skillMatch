@@ -25,16 +25,24 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function doUpdateProfile(data) {
-    await updateProfile(data)
+    const res = await updateProfile(data)
     if (profile.value) {
       Object.assign(profile.value, data)
     }
+    return res
   }
 
   async function doUploadAvatar(file) {
     const res = await uploadAvatar(file)
+    const newUrl = res.data
     if (profile.value) {
-      profile.value.avatarUrl = res.data
+      profile.value.avatarUrl = newUrl
+    }
+    // 同步更新 authStore 中的头像，导航栏和 localStorage 都需要
+    const { useAuthStore } = await import('@/stores/auth')
+    const authStore = useAuthStore()
+    if (newUrl && authStore.user) {
+      authStore.setUser({ ...authStore.user, avatarUrl: newUrl })
     }
     return res
   }
@@ -49,18 +57,21 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function doAddSkill(data) {
-    await addSkill(data)
+    const res = await addSkill(data)
     await fetchSkills()
+    return res
   }
 
   async function doUpdateSkillList(data) {
-    await updateSkillList(data)
+    const res = await updateSkillList(data)
     await fetchSkills()
+    return res
   }
 
   async function doDeleteSkill(skillId) {
-    await deleteSkill(skillId)
+    const res = await deleteSkill(skillId)
     await fetchSkills()
+    return res
   }
 
   async function fetchHobbies() {
@@ -69,13 +80,15 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function doAddHobby(data) {
-    await addHobby(data)
+    const res = await addHobby(data)
     await fetchHobbies()
+    return res
   }
 
   async function doDeleteHobby(hobbyId) {
-    await deleteHobby(hobbyId)
+    const res = await deleteHobby(hobbyId)
     await fetchHobbies()
+    return res
   }
 
   async function fetchGallery() {
@@ -84,13 +97,15 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function doUploadGallery(file) {
-    await uploadGallery(file)
+    const res = await uploadGallery(file)
     await fetchGallery()
+    return res
   }
 
   async function doDeleteGalleryImage(imageId) {
-    await deleteGalleryImage(imageId)
+    const res = await deleteGalleryImage(imageId)
     await fetchGallery()
+    return res
   }
 
   return {

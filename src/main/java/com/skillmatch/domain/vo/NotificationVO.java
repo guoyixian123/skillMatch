@@ -9,5 +9,5 @@ public class NotificationVO {
     private UserBasicVO fromUser;
     private String reason;
     private byte status;//1:待处理 2:已经同意 3:已经拒绝
-    private LocalDateTime createAt;
+    private LocalDateTime createdAt;
 }

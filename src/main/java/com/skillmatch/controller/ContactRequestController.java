@@ -26,13 +26,13 @@ import java.util.List;
 public class ContactRequestController {
     private final IContactRequestService contactRequestService;
     @GetMapping("/requests/received")
-    public RESTful<List<NotificationVO>> getReceivedRequests(@RequestParam Integer status) {
+    public RESTful<List<NotificationVO>> getReceivedRequests(@RequestParam(required = false) Integer status) {
         log.info("收到交换请求");
         List<NotificationVO> vo=contactRequestService.getNotification(status);
         return RESTful.success(vo);
     }
     @GetMapping("/requests/sent")
-    public RESTful<List<NotificationVO>> getSentRequests(@RequestParam Integer status) {
+    public RESTful<List<NotificationVO>> getSentRequests(@RequestParam(required = false) Integer status) {
         log.info("获取已发送的交换请求");
         List<NotificationVO> vo=contactRequestService.getSentNotification(status);
         return RESTful.success(vo);
@@ -41,19 +41,19 @@ public class ContactRequestController {
     public RESTful<Object> sendRequest(@RequestBody NotificationDTO notificationDTO) {
         log.info("发送交换请求");
         contactRequestService.sendNotification(notificationDTO);
-        return RESTful.success();
+        return RESTful.success(null, "请求已发送");
     }
     @PostMapping("/requests/{requestId}/accept")
     public RESTful<String> acceptRequest(@PathVariable String requestId) {
         log.info("接受交换请求");
         String result =contactRequestService.acceptRequest(requestId);
-        return RESTful.success(result);
+        return RESTful.success(result, "已同意交换请求");
     }
     @PostMapping("/requests/{requestId}/decline")
     public RESTful<Void> declineRequest(@PathVariable String requestId) {
         log.info("拒绝交换请求");
         contactRequestService.declineRequest(requestId);
-        return RESTful.success();
+        return RESTful.success(null, "已拒绝交换请求");
     }
     /**
      * 获取未处理的通知

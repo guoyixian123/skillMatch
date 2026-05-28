@@ -11,6 +11,7 @@ public class PostVO {
     private UserBasicVO author;
     private String body;
     private List<String> tags;
+    private String title;
     private Integer likeCount;
     private Integer commentCount;
     private Boolean isLiked;

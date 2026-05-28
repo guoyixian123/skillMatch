@@ -11,4 +11,5 @@ public class PostQuery extends PageQuery{
     private String tag;
     private String sort="latest";
     private String keyword;
+    private String authorId;
 }

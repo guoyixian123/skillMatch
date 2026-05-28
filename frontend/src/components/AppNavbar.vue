@@ -15,6 +15,12 @@
           <el-icon><ChatDotRound /></el-icon>
           <span>社区</span>
         </router-link>
+        <router-link to="/friends" class="nav-link" active-class="active">
+          <el-badge :value="chatStore.totalUnread" :hidden="!chatStore.totalUnread" class="badge-wrap">
+            <el-icon><ChatLineRound /></el-icon>
+          </el-badge>
+          <span>好友</span>
+        </router-link>
         <router-link to="/notifications" class="nav-link" active-class="active">
           <el-badge :value="unreadCount" :hidden="!unreadCount" class="badge-wrap">
             <el-icon><Bell /></el-icon>
@@ -35,7 +41,7 @@
               class="user-chip-avatar"
               alt="avatar"
             />
-            <span class="user-chip-name">{{ authStore.user?.name || authStore.user?.nickname || '用户' }}</span>
+            <span class="user-chip-name">{{ authStore.user?.name || '用户' }}</span>
           </div>
           <template #dropdown>
             <el-dropdown-menu>
@@ -63,16 +69,18 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
 import { getDefaultAvatar } from '@/utils/avatar'
 import { getUnreadCount, getLikeUnreadCount } from '@/api/notification'
 import {
-  Compass, ChatDotRound, Bell, UserFilled,
+  Compass, ChatDotRound, ChatLineRound, Bell, UserFilled,
   Edit, SetUp, SwitchButton,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const chatStore = useChatStore()
 const unreadCount = ref(0)
 
 async function fetchUnread() {
@@ -81,6 +89,7 @@ async function fetchUnread() {
       getUnreadCount(),
       getLikeUnreadCount(),
     ])
+    chatStore.fetchUnreadCount()
     const contactCount = (typeof contactRes.data === 'number') ? contactRes.data : (contactRes.data?.pendingRequestCount || 0)
     const likeCount = (typeof likeRes.data === 'number') ? likeRes.data : 0
     unreadCount.value = contactCount + likeCount

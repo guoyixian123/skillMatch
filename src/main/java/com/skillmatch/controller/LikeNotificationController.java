@@ -47,7 +47,7 @@ public class LikeNotificationController {
     @PutMapping("/{id}/read")
     public RESTful<Void> markRead(@PathVariable Long id) {
         notificationService.markRead(id);
-        return RESTful.success(null);
+        return RESTful.success(null, "已标记已读");
     }
 
     /**
@@ -56,6 +56,6 @@ public class LikeNotificationController {
     @PutMapping("/read-all")
     public RESTful<Void> markAllRead() {
         notificationService.markAllRead();
-        return RESTful.success(null);
+        return RESTful.success(null, "全部已读");
     }
 }

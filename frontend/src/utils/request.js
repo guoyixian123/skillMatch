@@ -2,8 +2,8 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
 const request = axios.create({
-  baseURL: '/api',
-  timeout: 15000,
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 15000,
 })
 
 request.interceptors.request.use(
@@ -21,7 +21,9 @@ request.interceptors.response.use(
   (response) => {
     const res = response.data
     if (res.code !== 200) {
-      ElMessage.error(res.message || '请求失败')
+      if (!response.config.noError) {
+        ElMessage.error(res.message || '请求失败')
+      }
       if (res.code === 401) {
         localStorage.removeItem('token')
         localStorage.removeItem('user')
@@ -38,7 +40,9 @@ request.interceptors.response.use(
       window.location.href = '/login'
       return Promise.reject(error)
     }
-    ElMessage.error(error.message || '网络错误')
+    if (!error.config?.noError) {
+      ElMessage.error(error.message || '网络错误')
+    }
     return Promise.reject(error)
   }
 )

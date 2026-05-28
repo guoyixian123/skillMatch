@@ -2,7 +2,7 @@
   <div class="page-container">
     <header class="page-header flex-between">
       <div>
-        <h1 class="page-title">💬 社区</h1>
+        <h1 class="page-title"><el-icon><ChatDotRound /></el-icon> 社区</h1>
         <p class="page-subtitle">技能搭子交流广场</p>
       </div>
       <button class="brutal-btn primary" @click="showCreateDialog = true">
@@ -30,10 +30,10 @@
     </div>
 
     <!-- Posts -->
-    <div v-if="loading" class="loading-block">⚡ 加载中...</div>
+    <div v-if="loading" class="loading-block"><el-icon class="is-loading"><Loading /></el-icon> 加载中...</div>
 
     <div v-else-if="posts.length === 0" class="empty-block">
-      <div class="icon">📝</div>
+      <div class="icon"><el-icon :size="48"><Document /></el-icon></div>
       <div style="font-weight:800;font-size:18px;">暂无帖子</div>
       <div style="color:#888;">发布第一个帖子吧</div>
     </div>
@@ -93,7 +93,7 @@
     </div>
 
     <!-- Create Post Dialog -->
-    <el-dialog v-model="showCreateDialog" title="发布帖子" width="560px" destroy-on-close>
+    <el-dialog v-model="showCreateDialog" title="发布帖子" width="560px" @open="() => createFormRef?.clearValidate()">
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-position="top">
         <el-form-item label="标题" prop="title">
           <el-input v-model="createForm.title" placeholder="帖子标题" maxlength="64" show-word-limit />
@@ -108,12 +108,13 @@
             show-word-limit
           />
         </el-form-item>
-        <el-form-item label="标签 (逗号分隔, 最多5个)">
-          <el-input v-model="createForm.tagsStr" placeholder="Python, 找搭子, 刷题" />
+        <el-form-item label="标签 (可选, 逗号分隔, 最多5个)">
+          <el-input v-model="createForm.tagsStr" placeholder="输入标签, 如: #Python, #找搭子" maxlength="60" show-word-limit />
+          <div class="tag-hint">标签以 # 开头, 长度 2-10, 只能包含中文/字母/数字</div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <button class="brutal-btn outline small" @click="showCreateDialog = false">取消</button>
+        <button class="brutal-btn outline small" @click="handleCancelCreate">取消</button>
         <button class="brutal-btn primary small" @click="handleCreate" :disabled="creating">
           {{ creating ? '发布中...' : '发布' }}
         </button>
@@ -126,7 +127,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Plus, Search, Star, StarFilled, ChatDotRound } from '@element-plus/icons-vue'
+import { Plus, Search, Star, StarFilled, ChatDotRound, Loading, Document } from '@element-plus/icons-vue'
 import { getDefaultAvatar } from '@/utils/avatar'
 import { getPosts, createPost, togglePostLike, unlikePost } from '@/api/community'
 
@@ -218,26 +219,53 @@ async function handleCardLike(post) {
   }
 }
 
+function handleCancelCreate() {
+  showCreateDialog.value = false
+  createForm.value = { title: '', body: '', tagsStr: '' }
+  createFormRef.value?.clearValidate()
+}
+
 async function handleCreate() {
-  const valid = await createFormRef.value.validate().catch(() => false)
-  if (!valid) return
+  // 兜底验证：确保必填字段不为空
+  if (!createForm.value.title?.trim()) {
+    ElMessage.warning('请输入标题')
+    return
+  }
+  if (!createForm.value.body?.trim()) {
+    ElMessage.warning('请输入正文')
+    return
+  }
+  // Element Plus 表单验证
+  try {
+    await createFormRef.value?.validate()
+  } catch {
+    return
+  }
   creating.value = true
   try {
-    const tags = createForm.value.tagsStr
-      .split(',')
-      .map(t => t.trim())
-      .filter(Boolean)
-      .slice(0, 5)
-    await createPost({
+    const tagRe = /^#[一-龥a-zA-Z0-9]{1,9}$/
+    const tagsStr = createForm.value.tagsStr.trim()
+    let tags = []
+    if (tagsStr) {
+      tags = tagsStr.split(',').map(t => t.trim()).filter(Boolean).slice(0, 5)
+      const invalid = tags.filter(t => !tagRe.test(t))
+      if (invalid.length) {
+        ElMessage.warning('标签格式错误: ' + invalid.join(', '))
+        return
+      }
+    }
+    const res = await createPost({
       title: createForm.value.title,
       body: createForm.value.body,
       tags,
     })
-    ElMessage.success('发布成功')
+    ElMessage.success(res.message || '发布成功')
     showCreateDialog.value = false
     createForm.value = { title: '', body: '', tagsStr: '' }
     fetchPosts()
-  } catch { /* handled */ } finally {
+  } catch (err) {
+    ElMessage.error(err?.response?.data?.message || err?.message || '发布失败')
+  } finally {
     creating.value = false
   }
 }
@@ -313,6 +341,14 @@ onMounted(fetchPosts)
   margin-left: auto;
 }
 
+/* 标签提示 */
+.tag-hint {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
 /* ========= 卡片点赞按钮 - 粗野主义风格 ========= */
 .card-like-btn {
   display: inline-flex;
@@ -348,19 +384,20 @@ onMounted(fetchPosts)
 /* 已赞态 */
 .card-like-btn.liked {
   border-color: #1A1A1A;
-  background: #FFD700;
-  color: #5C3D00;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.15);
+  background: linear-gradient(135deg, #F5A623, #FFD700);
+  color: #fff;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.15), 0 0 12px rgba(245,166,35,0.3);
 }
 
 .card-like-btn.liked .el-icon {
-  color: #D4A017;
+  color: #FFE4B5;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
 }
 
 .card-like-btn.liked:hover {
-  background: #FFE44D;
+  background: linear-gradient(135deg, #FFB830, #FFE44D);
   border-color: #1A1A1A;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.2), 0 0 16px rgba(245,166,35,0.45);
 }
 
 /* 图标容器 */
@@ -406,7 +443,7 @@ onMounted(fetchPosts)
 }
 
 .card-like-btn.liked .like-count {
-  background: rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.25);
 }
 
 /* 点击回弹动画 */

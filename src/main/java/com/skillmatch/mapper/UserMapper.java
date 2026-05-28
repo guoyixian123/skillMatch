@@ -41,4 +41,16 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @Select("select like_count from user where user_id = #{bizId}")
     Integer selectLikeCount(String bizId);
+
+    /**
+     * 用户帖子数 +1
+     */
+    @Update("update user set post_count = post_count + 1 where user_id = #{userId}")
+    void incrPostCount(String userId);
+
+    /**
+     * 用户帖子数 -1（使用 GREATEST 防止并发导致负数）
+     */
+    @Update("update user set post_count = greatest(post_count - 1, 0) where user_id = #{userId}")
+    void decrPostCount(String userId);
 }

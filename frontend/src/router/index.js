@@ -43,6 +43,18 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/friends',
+    name: 'Friends',
+    component: () => import('@/views/FriendsView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/chat/:friendId',
+    name: 'Chat',
+    component: () => import('@/views/ChatView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/profile',
     name: 'MyProfile',
     component: () => import('@/views/MyProfileView.vue'),
@@ -83,6 +95,11 @@ const routes = [
     name: 'UserProfile',
     component: () => import('@/views/UserProfileView.vue'),
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/views/NotFoundView.vue'),
   },
 ]
 

@@ -6,22 +6,21 @@ import cn.hutool.crypto.SecureUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.skillmatch.constants.MqConstants;
 import com.skillmatch.context.UserContext;
 import com.skillmatch.domain.dto.LocationDTO;
 import com.skillmatch.domain.dto.PasswordDTO;
 import com.skillmatch.domain.dto.UserDTO;
-import com.skillmatch.domain.po.User;
+import com.skillmatch.domain.po.*;
 import com.skillmatch.domain.vo.UserVO;
 import com.skillmatch.enums.ErrorCode;
 import com.skillmatch.exceptions.BusinessException;
+import com.skillmatch.mapper.NotificationMapper;
 import com.skillmatch.mapper.UserMapper;
-import com.skillmatch.service.IUserService;
+import com.skillmatch.service.*;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.skillmatch.utils.OssUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.geo.Point;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -32,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Objects;
 
+import static com.skillmatch.constants.RedisConstant.LOGIN_TOKEN_KEY;
 import static com.skillmatch.constants.RedisConstant.USER_LOCATION_KEY;
 
 /**
@@ -47,7 +47,16 @@ import static com.skillmatch.constants.RedisConstant.USER_LOCATION_KEY;
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
     private final StringRedisTemplate redisTemplate;
-    private final RabbitTemplate rabbitTemplate;
+    private final IPostService postService;
+    private final IPostCommentService postCommentService;
+    private final IPostTagService postTagService;
+    private final ILikeInfoService likeInfoService;
+    private final IContactRequestService contactRequestService;
+    private final IUserSkillService userSkillService;
+    private final IUserHobbyService userHobbyService;
+    private final IUserGalleryService userGalleryService;
+    private final INotificationService notificationService;
+    private final NotificationMapper notificationMapper;
     @Value("${gaoDe.key}")
     private String KEY;
 
@@ -97,7 +106,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
      * 上传用户头像
      */
     @Override
-    public void uploadAvatar(MultipartFile avatarUrl) {
+    public String uploadAvatar(MultipartFile avatarUrl) {
         //上传用户头像
         try {
             //TODO: 可能存在oss容器中一个用户多个头像的情况,在更新新头像时,先删除旧的头像,日后处理(y)
@@ -122,6 +131,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 throw new BusinessException(ErrorCode.SERVER_ERROR, "修改用户头像失败");
             }
             log.info("用户头像更新头像成功:{}", avatarNewUrl);
+            return avatarNewUrl;
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SERVER_ERROR);
         }
@@ -225,17 +235,61 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
     @Override
+    @Transactional
     public void removeUserInfo() {
-        //一键位删除BOT
-        //获取机器人的userid
-        List<String> list = lambdaQuery()
+        // 1. 获取所有机器人ID (avatarUrl 为空的用户)
+        List<String> botIds = lambdaQuery()
                 .isNull(User::getAvatarUrl)
                 .list()
                 .stream()
                 .map(User::getUserId)
                 .toList();
-        //删除关联的标签技能标签,爱好
-        //删除bot
-        rabbitTemplate.convertAndSend(MqConstants.REMOVE_BOT_EXCHANGE,MqConstants.REMOVE_BOT_ROUTING_KEY,list);
+
+        if (botIds.isEmpty()) {
+            log.info("没有需要清理的BOT用户");
+            return;
+        }
+
+        // 2. 查询这些用户的所有帖子 ID
+        List<String> postIds = postService.lambdaQuery()
+                .in(Post::getAuthorId, botIds)
+                .list()
+                .stream()
+                .map(Post::getId)
+                .toList();
+
+        // 3. 级联删除帖子子表（post_tag、post_comment、like_info 中关联这些帖子的记录）
+        if (!postIds.isEmpty()) {
+            postTagService.lambdaUpdate().in(PostTag::getPostId, postIds).remove();
+            postCommentService.lambdaUpdate().in(PostComment::getPostId, postIds).remove();
+            likeInfoService.lambdaUpdate().in(LikeInfo::getBizId, postIds).remove();
+        }
+
+        // 4. 删除帖子主表
+        postService.lambdaUpdate().in(Post::getAuthorId, botIds).remove();
+
+        // 5. 删除用户维度的关联数据
+        postCommentService.lambdaUpdate().in(PostComment::getUserId, botIds).remove();
+        likeInfoService.lambdaUpdate().in(LikeInfo::getUserId, botIds).remove();
+        notificationMapper.delete(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Notification>()
+                .in(Notification::getActorId, botIds)
+                .or()
+                .in(Notification::getReceiverId, botIds));
+        contactRequestService.lambdaUpdate().in(ContactRequest::getFromUserId, botIds).remove();
+        contactRequestService.lambdaUpdate().in(ContactRequest::getToUserId, botIds).remove();
+        userSkillService.lambdaUpdate().in(UserSkill::getUserId, botIds).remove();
+        userHobbyService.lambdaUpdate().in(UserHobby::getUserId, botIds).remove();
+        userGalleryService.lambdaUpdate().in(UserGallery::getUserId, botIds).remove();
+
+        // 6. 删除 user 主表
+        lambdaUpdate().in(User::getUserId, botIds).remove();
+
+        // 7. 清理 Redis（GEO 位置 + login token）
+        for (String botId : botIds) {
+            redisTemplate.opsForGeo().remove(USER_LOCATION_KEY, botId);
+            redisTemplate.delete(LOGIN_TOKEN_KEY + botId);
+        }
+
+        log.info("已清理 {} 个BOT用户及所有关联数据, botIds={}", botIds.size(), botIds);
     }
 }

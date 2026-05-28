@@ -1,14 +1,14 @@
 <template>
   <div class="page-container">
     <header class="page-header">
-      <h1 class="page-title">🔔 通知</h1>
+      <h1 class="page-title"><el-icon><Bell /></el-icon> 通知</h1>
       <p class="page-subtitle">技能交换请求</p>
     </header>
 
     <el-tabs v-model="activeTab" @tab-change="fetchData">
       <el-tab-pane label="技能交换" name="received" />
       <el-tab-pane label="已发送" name="sent" />
-      <el-tab-pane label="点赞" name="likes" />
+      <el-tab-pane label="互动" name="likes" />
     </el-tabs>
 
     <!-- Filter for exchange request tabs -->
@@ -24,12 +24,12 @@
       </button>
     </div>
 
-    <div v-if="loading" class="loading-block">⚡ 加载中...</div>
+    <div v-if="loading" class="loading-block"><el-icon class="is-loading"><Loading /></el-icon> 加载中...</div>
 
     <!-- Exchange Request Cards -->
     <template v-else-if="activeTab !== 'likes'">
       <div v-if="requests.length === 0" class="empty-block">
-        <div class="icon">📭</div>
+        <div class="icon"><el-icon :size="48"><FolderOpened /></el-icon></div>
         <div style="font-weight:800;font-size:18px;">暂无请求</div>
       </div>
 
@@ -37,15 +37,15 @@
         <div v-for="req in requests" :key="req.id" class="request-card brutal-card">
           <div class="request-header">
             <img
-              :src="((activeTab === 'received' ? req.fromUser : req.toUser)?.avatarUrl) || getDefaultAvatar((activeTab === 'received' ? req.fromUser?.id : req.toUser?.id) || (activeTab === 'received' ? req.fromUser?.name : req.toUser?.name))"
+              :src="req.fromUser?.avatarUrl || getDefaultAvatar(req.fromUser?.id || req.fromUser?.name)"
               class="brutal-avatar"
             />
             <div class="request-info">
               <div class="request-user">
-                {{ activeTab === 'received' ? req.fromUser?.name : req.toUser?.name }}
+                {{ req.fromUser?.name }}
               </div>
               <div class="request-reason">"{{ req.reason }}"</div>
-              <div class="request-time">{{ formatTime(req.createdAt) }}</div>
+              <div class="request-time">{{ formatTime(req.createAt) }}</div>
             </div>
             <div class="request-status-tag" :class="'status-' + req.status">
               {{ statusMap[req.status] || req.status }}
@@ -67,7 +67,7 @@
     <!-- Like Notification Cards -->
     <template v-else>
       <div v-if="likeItems.length === 0" class="empty-block">
-        <div class="icon">💛</div>
+        <div class="icon"><el-icon :size="48"><Star /></el-icon></div>
         <div style="font-weight:800;font-size:18px;">暂无点赞通知</div>
       </div>
 
@@ -108,6 +108,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDefaultAvatar } from '@/utils/avatar'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Bell, Loading, FolderOpened, Star } from '@element-plus/icons-vue'
 import {
   getReceivedRequests,
   getSentRequests,
@@ -160,9 +161,11 @@ async function fetchData() {
 }
 
 async function fetchLikes() {
-  const res = await getLikeNotifications({ page: likePage.value, size: 20 })
-  likeItems.value = res.data?.list || []
-  likeTotal.value = res.data?.total || 0
+  try {
+    const res = await getLikeNotifications({ page: likePage.value, size: 20 })
+    likeItems.value = res.data?.list || []
+    likeTotal.value = res.data?.total || 0
+  } catch { /* handled */ }
 }
 
 async function handleLikeClick(item) {
@@ -170,7 +173,7 @@ async function handleLikeClick(item) {
     try { await markLikeRead(item.id) } catch { /* ignore */ }
     item.isRead = true
   }
-  if (item.type === 2 && item.bizId) {
+  if ((item.type === 2 || item.type === 3) && item.bizId) {
     router.push(`/community/${item.bizId}`)
   } else {
     router.push(`/user/${item.actor?.id}`)
@@ -179,39 +182,40 @@ async function handleLikeClick(item) {
 
 async function handleMarkAllRead() {
   try {
-    await markLikeAllRead()
+    const res = await markLikeAllRead()
     likeItems.value.forEach(i => i.isRead = true)
-    ElMessage.success('全部已读')
+    ElMessage.success(res.message || '全部已读')
   } catch { /* ignore */ }
 }
 
 async function handleAccept(req) {
-  await ElMessageBox.confirm(
-    `同意后双方可查看联系方式，确定同意 ${req.fromUser?.name} 的交换请求吗？`,
-    '确认',
-    { confirmButtonText: '同意', cancelButtonText: '取消', type: 'info' }
-  )
   try {
+    await ElMessageBox.confirm(
+      `同意后你们将成为好友，确定同意 ${req.fromUser?.name} 的交换请求吗？`,
+      '确认',
+      { confirmButtonText: '同意', cancelButtonText: '取消', type: 'info', showClose: false }
+    )
     const res = await acceptRequest(req.id)
-    ElMessage.success('已同意交换请求')
+    ElMessage.success(res.message || '已同意交换请求，你们已成为好友')
     if (res.data) {
       ElMessage.info('对方联系方式：' + res.data)
     }
     fetchData()
-  } catch { /* handled */ }
+  } catch { /* cancel or error */ }
 }
 
 async function handleDecline(req) {
-  await ElMessageBox.confirm('确定拒绝该请求吗？', '确认', {
-    confirmButtonText: '拒绝',
-    cancelButtonText: '取消',
-    type: 'warning',
-  })
   try {
-    await declineRequest(req.id)
-    ElMessage.success('已拒绝')
+    await ElMessageBox.confirm('确定拒绝该请求吗？', '确认', {
+      confirmButtonText: '拒绝',
+      cancelButtonText: '取消',
+      type: 'warning',
+      showClose: false,
+    })
+    const res = await declineRequest(req.id)
+    ElMessage.success(res.message || '已拒绝')
     fetchData()
-  } catch { /* handled */ }
+  } catch { /* cancel or error */ }
 }
 
 onMounted(fetchData)

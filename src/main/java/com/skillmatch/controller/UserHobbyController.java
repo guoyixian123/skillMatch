@@ -41,7 +41,7 @@ public class UserHobbyController {
     public RESTful<Void> addUserHobbies(@RequestBody HobbyDTO hobby) {
         log.info("添加用户爱好:{}", hobby);
         userHobbyService.addUserHobbies(hobby);
-        return RESTful.success();
+        return RESTful.success(null, "添加成功");
     }
     /**
      * 删除用户爱好
@@ -50,6 +50,6 @@ public class UserHobbyController {
     public RESTful<Void> deleteUserHobbies(@PathVariable String hobbyId) {
         log.info("删除用户爱好:爱好id=>{}", hobbyId);
         userHobbyService.removeHobbyById(hobbyId);
-        return RESTful.success();
+        return RESTful.success(null, "已移除");
     }
 }

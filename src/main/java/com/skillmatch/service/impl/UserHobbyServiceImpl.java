@@ -8,8 +8,10 @@ import com.skillmatch.domain.vo.HobbyVO;
 import com.skillmatch.enums.ErrorCode;
 import com.skillmatch.exceptions.BusinessException;
 import com.skillmatch.mapper.UserHobbyMapper;
+import com.skillmatch.service.ITagService;
 import com.skillmatch.service.IUserHobbyService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,6 +28,9 @@ import java.util.List;
  */
 @Service
 public class UserHobbyServiceImpl extends ServiceImpl<UserHobbyMapper, UserHobby> implements IUserHobbyService {
+
+    @Autowired
+    private ITagService tagService;
     /**
      * 获取用户爱好信息
      */
@@ -49,10 +54,14 @@ public class UserHobbyServiceImpl extends ServiceImpl<UserHobbyMapper, UserHobby
     @Override
     public void addUserHobbies(HobbyDTO hobby) {
         if(hobby == null) throw new BusinessException(ErrorCode.PARAM_ERROR);
+        if (!tagService.isValidHobbyName(hobby.getHobbyName())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无效的爱好标签");
+        }
         String userId = UserContext.getUserId();
         //封装
         UserHobby userHobby = BeanUtil.copyProperties(hobby, UserHobby.class);
         userHobby.setUserId(userId);
+        userHobby.setIcon(tagService.getHobbyIcon(hobby.getHobbyName()));
         userHobby.setCreateAt(LocalDateTime.now());
         save(userHobby);
     }

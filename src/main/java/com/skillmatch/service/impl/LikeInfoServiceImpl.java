@@ -12,6 +12,7 @@ import com.skillmatch.service.INotificationService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * <p>
@@ -29,6 +30,7 @@ public class LikeInfoServiceImpl extends ServiceImpl<LikeInfoMapper, LikeInfo> i
     private final INotificationService notificationService;
 
     @Override
+    @Transactional
     public LikeVO saveLikeInfo(LikeDTO likeDTO) {
         String userId = UserContext.getUserId();
         //判断是否重复点赞,查询记录信息->点赞数据库
@@ -69,6 +71,7 @@ public class LikeInfoServiceImpl extends ServiceImpl<LikeInfoMapper, LikeInfo> i
     }
 
     @Override
+    @Transactional
     public LikeVO removeLikeInfo(LikeDTO likeDTO) {
         String userId = UserContext.getUserId();
         // 查点赞记录

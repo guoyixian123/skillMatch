@@ -64,14 +64,15 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         //获取帖子列表id
         Page<Post> page = lambdaQuery()
                 .in(postIds != null, Post::getId, postIds)//批量查询
-                .like(postDTO.getTag() != null, Post::getTitle, postDTO.getKeyword())//文字模糊查询
-                .orderByAsc(postDTO.getSort().equals("latest"), Post::getCreatedAt)//最新排序
-                .orderByAsc(postDTO.getSort().equals("host"), Post::getLikeCount)//最热排序(点赞数)
+                .eq(postDTO.getAuthorId() != null, Post::getAuthorId, postDTO.getAuthorId())//按作者筛选
+                .like(postDTO.getKeyword() != null, Post::getTitle, postDTO.getKeyword())//文字模糊查询
+                .orderByDesc(postDTO.getSort().equals("latest"), Post::getCreatedAt)//最新排序
+                .orderByDesc(postDTO.getSort().equals("hot"), Post::getLikeCount)//最热排序(点赞数)
                 .page(new Page<>(postDTO.getPage(), postDTO.getSize()));
         //获取帖子信息
         List<Post> records = page.getRecords();
         if (records.isEmpty()) {
-            return null;
+            return new PageVO<>(0, 0, List.of());
         }
         //开始封装vo
         //获取作者信息,头像,id,姓名
@@ -95,14 +96,15 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         //每人每小时 5 篇上限，超限返回 429。
         Long count = lambdaQuery()
                 .eq(Post::getAuthorId, userId)
-                .ge(Post::getCreatedAt, LocalDateTime.now().minusHours(5))
+                .ge(Post::getCreatedAt, LocalDateTime.now().minusHours(1))
                 .count();
         if (count >= 5) {
             throw new RuntimeException("您已发布文章过多，请稍后再试");
         }
-        //TODO:创建帖子后用户帖子数+1
         //创建帖子
         extracted(postDTO);
+        //用户帖子数+1
+        userMapper.incrPostCount(userId);
     }
 
     private @NonNull PostVO getPostVO(Post p, String userId) {
@@ -135,6 +137,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
     private void extracted(PostDTO postDTO) {
         //保存帖子信息
         String userId = UserContext.getUserId();
+        List<String> tags = postDTO.getTags();
         //拷贝帖子信息
         Post post = BeanUtil.copyProperties(postDTO, Post.class);
         post.setAuthorId(userId);
@@ -142,15 +145,15 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         post.setUpdatedAt(LocalDateTime.now());
         save(post);
         String id = post.getId();
-        //保存标签信息
-        List<String> tags = postDTO.getTags();
         //批量保存标签信息
         List<PostTag> postTags = new ArrayList<>();
-        for (String tag : tags) {
-            PostTag postTag = new PostTag();
-            postTag.setPostId(id);
-            postTag.setTagName(tag);
-            postTags.add(postTag);
+        if (tags != null) {
+            for (String tag : tags) {
+                PostTag postTag = new PostTag();
+                postTag.setPostId(id);
+                postTag.setTagName(tag);
+                postTags.add(postTag);
+            }
         }
         //批量保存帖子标签
         postTagService.saveBatch(postTags);
@@ -177,16 +180,37 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
     @Override
     @Transactional
     public void updatePost(String postId, PostDTO postDTO) {
-        if(postId == null|| postDTO == null){
+        if (postId == null || postDTO == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR);
         }
-        //先删除旧数据
-        boolean remove = remove(lambdaQuery().eq(Post::getId, postId));
-        if (!remove) {
-            throw new RuntimeException("删除失败");
+        String userId = UserContext.getUserId();
+        Post existing = getById(postId);
+        if (existing == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND);
         }
-        //保存新数据
-        extracted(postDTO);
+        if (!existing.getAuthorId().equals(userId)) {
+            throw new BusinessException(ErrorCode.NOT_AUTH);
+        }
+        // 更新帖子基本信息
+        lambdaUpdate()
+                .eq(Post::getId, postId)
+                .set(Post::getTitle, postDTO.getTitle())
+                .set(Post::getBody, postDTO.getBody())
+                .set(Post::getUpdatedAt, LocalDateTime.now())
+                .update();
+        // 更新标签：先删旧再插新
+        postTagService.lambdaUpdate().eq(PostTag::getPostId, postId).remove();
+        List<String> tags = postDTO.getTags();
+        if (tags != null && !tags.isEmpty()) {
+            List<PostTag> postTags = new ArrayList<>();
+            for (String tag : tags) {
+                PostTag postTag = new PostTag();
+                postTag.setPostId(postId);
+                postTag.setTagName(tag);
+                postTags.add(postTag);
+            }
+            postTagService.saveBatch(postTags);
+        }
     }
 
     /**
@@ -195,13 +219,22 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
     @Override
     @Transactional
     public void removePostById(String postId) {
-        if(postId == null){
+        if (postId == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR);
+        }
+        String userId = UserContext.getUserId();
+        Post existing = getById(postId);
+        if (existing == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND);
+        }
+        if (!existing.getAuthorId().equals(userId)) {
+            throw new BusinessException(ErrorCode.NOT_AUTH);
         }
         //删除帖子要删除标签和点赞信息以及评论信息
         //删除帖子
         removeById(postId);
-        //TODO:后期换成异步,删除帖子后用户帖子数-1
+        //用户帖子数-1
+        userMapper.decrPostCount(userId);
         //删除标签
         postTagService.lambdaUpdate()
                 .eq(PostTag::getPostId, postId)

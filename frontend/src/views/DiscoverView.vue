@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <header class="page-header">
-      <h1 class="page-title">🔍 发现技能搭子</h1>
+      <h1 class="page-title"><el-icon><Search /></el-icon> 发现技能搭子</h1>
       <p class="page-subtitle">找到与你技能互补的人</p>
     </header>
 
@@ -16,12 +16,6 @@
           class="filter-search"
           @keyup.enter="fetchUsers"
         />
-        <el-select v-model="filter" class="filter-select">
-          <el-option label="全部" value="all" />
-          <el-option label="技能交换" value="exchange" />
-          <el-option label="找搭子" value="partner" />
-          <el-option label="最近活跃" value="active" />
-        </el-select>
         <el-select v-model="sort" class="filter-select">
           <el-option label="匹配度" value="score" />
           <el-option label="距离近" value="dist" />
@@ -29,27 +23,21 @@
         </el-select>
         <button class="brutal-btn primary small" @click="fetchUsers">筛选</button>
       </div>
-      <div class="filter-tags flex-wrap" v-if="activeTags.length">
-        <span v-for="tag in activeTags" :key="tag" class="brutal-tag">
-          {{ tag }}
-          <span style="cursor:pointer;margin-left:4px;" @click="clearTag(tag)">×</span>
-        </span>
-      </div>
     </div>
 
     <!-- Location tip -->
     <div v-if="!authStore.latitude && !authStore.longitude" class="location-tip brutal-card accent-yellow">
-      <span>📍 尚未获取位置，开启定位以获得更精准的匹配</span>
+      <span><el-icon><Location /></el-icon> 尚未获取位置，开启定位以获得更精准的匹配</span>
       <button class="brutal-btn primary small" @click="enableLocation" :disabled="locating">
         {{ locating ? '获取中...' : '开启定位' }}
       </button>
     </div>
 
     <!-- Results Grid -->
-    <div v-if="loading" class="loading-block">⚡ 正在匹配中...</div>
+    <div v-if="loading" class="loading-block"><el-icon class="is-loading"><Loading /></el-icon> 正在匹配中...</div>
 
     <div v-else-if="users.length === 0" class="empty-block">
-      <div class="icon">🔍</div>
+      <div class="icon"><el-icon :size="48"><Search /></el-icon></div>
       <div style="font-weight:800;font-size:18px;">暂无匹配用户</div>
       <div style="color:#888;margin-top:4px;">试试扩大搜索范围或添加更多技能标签</div>
     </div>
@@ -140,9 +128,9 @@
               <span v-if="cardUser.distance">{{ cardUser.distance }}</span>
             </div>
             <div v-if="cardUser.likeCount || cardUser.postCount" style="color:#888;font-size:12px;margin-top:4px;">
-              <span v-if="cardUser.likeCount">❤ {{ cardUser.likeCount }}</span>
+              <span v-if="cardUser.likeCount"><el-icon><StarFilled /></el-icon> {{ cardUser.likeCount }}</span>
               <span v-if="cardUser.likeCount && cardUser.postCount"> · </span>
-              <span v-if="cardUser.postCount">📝 {{ cardUser.postCount }}</span>
+              <span v-if="cardUser.postCount"><el-icon><Document /></el-icon> {{ cardUser.postCount }}</span>
             </div>
           </div>
         </div>
@@ -176,10 +164,10 @@
 
         <div class="detail-actions" style="margin-top:20px;display:flex;gap:12px;">
           <button v-if="cardUser.hasPendingRequest" class="brutal-btn outline small" disabled>
-            ⏳ 已发送请求
+            <el-icon><Clock /></el-icon> 已发送请求
           </button>
           <button v-else class="brutal-btn primary small" @click="sendRequest(cardUser)">
-            💬 发起交换
+            <el-icon><ChatDotRound /></el-icon> 发起交换
           </button>
           <button class="brutal-btn outline small" @click="$router.push(`/user/${cardUser.userId}`)">
             查看主页
@@ -210,9 +198,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Location } from '@element-plus/icons-vue'
+import { Search, Location, Loading, StarFilled, Document, Clock, ChatDotRound } from '@element-plus/icons-vue'
 import { getRecommendedUsers, getUserCard } from '@/api/matching'
 import { createRequest } from '@/api/notification'
 import { getDefaultAvatar } from '@/utils/avatar'
@@ -226,7 +214,6 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(12)
 const keyword = ref('')
-const filter = ref('all')
 const sort = ref('score')
 
 const cardVisible = ref(false)
@@ -235,13 +222,6 @@ const cardUser = ref(null)
 const requestVisible = ref(false)
 const requestTarget = ref(null)
 const requestReason = ref('')
-
-const activeTags = computed(() => {
-  const tags = []
-  if (filter.value !== 'all') tags.push(filter.value === 'exchange' ? '技能交换' : filter.value === 'partner' ? '找搭子' : '最近活跃')
-  if (sort.value !== 'score') tags.push(sort.value === 'dist' ? '距离近' : '活跃度')
-  return tags
-})
 
 function matchColor(score) {
   if (score >= 70) return '#22c55e'
@@ -254,7 +234,6 @@ async function fetchUsers() {
   loading.value = true
   try {
     const res = await getRecommendedUsers({
-      filter: filter.value,
       sort: sort.value,
       keyword: keyword.value,
       page: page.value,
@@ -280,12 +259,6 @@ async function enableLocation() {
   } catch { /* handled */ } finally {
     locating.value = false
   }
-}
-
-function clearTag(tag) {
-  if (tag === '技能交换' || tag === '找搭子' || tag === '最近活跃') filter.value = 'all'
-  if (tag === '距离近' || tag === '活跃度') sort.value = 'score'
-  fetchUsers()
 }
 
 async function showUserCard(user) {
@@ -314,8 +287,8 @@ async function confirmRequest() {
     return
   }
   try {
-    await createRequest({ toUserId: requestTarget.value.userId, reason: requestReason.value })
-    ElMessage.success('交换请求已发送')
+    const res = await createRequest({ toUserId: requestTarget.value.userId, reason: requestReason.value })
+    ElMessage.success(res.message || '交换请求已发送')
     requestVisible.value = false
   } catch { /* handled */ }
 }

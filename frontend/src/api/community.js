@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { LIKE_TYPE } from '@/constants/like'
 
 export function getPosts(params) {
   return request.get('/community/posts', { params })
@@ -21,11 +22,11 @@ export function deletePost(postId) {
 }
 
 export function togglePostLike(postId) {
-  return request.post('/like', { bizId: String(postId), type: 2 })
+  return request.post('/like', { bizId: String(postId), type: LIKE_TYPE.POST })
 }
 
 export function unlikePost(postId) {
-  return request.delete('/like', { data: { bizId: String(postId), type: 2 } })
+  return request.delete('/like', { data: { bizId: String(postId), type: LIKE_TYPE.POST } })
 }
 
 export function getComments(postId, params) {

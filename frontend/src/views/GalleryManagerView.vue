@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <header class="page-header">
-      <button class="brutal-btn outline small" @click="$router.back()" style="margin-bottom:12px;">← 返回</button>
+      <button class="brutal-btn outline small" @click="$router.back()" style="margin-bottom:12px;"><el-icon><ArrowLeft /></el-icon> 返回</button>
       <h1 class="page-title">个人相册</h1>
       <p class="page-subtitle">上传照片展示你的生活</p>
     </header>
@@ -17,7 +17,7 @@
         drag
       >
         <div class="upload-area">
-          <div style="font-size:40px;">📸</div>
+          <div style="font-size:40px;"><el-icon :size="40"><Camera /></el-icon></div>
           <div style="font-weight:700;margin-top:8px;">点击或拖拽上传</div>
           <div style="font-size:12px;color:#888;">JPG/PNG/WebP, ≤10MB</div>
         </div>
@@ -41,7 +41,7 @@
     </div>
 
     <div v-if="!gallery.length && !uploading" class="empty-block" style="margin-top:20px;">
-      <div class="icon">🖼️</div>
+      <div class="icon"><el-icon :size="48"><Picture /></el-icon></div>
       <div style="font-weight:800;">相册为空</div>
       <div style="color:#888;">上传你的第一张照片吧</div>
     </div>
@@ -52,6 +52,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowLeft, Camera, Picture } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
 const gallery = computed(() => userStore.gallery)
@@ -69,8 +70,8 @@ async function doUpload() {
   if (!pendingFile.value) return
   uploading.value = true
   try {
-    await userStore.doUploadGallery(pendingFile.value)
-    ElMessage.success('上传成功')
+    const res = await userStore.doUploadGallery(pendingFile.value)
+    ElMessage.success(res.message || '上传成功')
     pendingFile.value = null
   } catch { /* handled */ } finally {
     uploading.value = false
@@ -78,13 +79,16 @@ async function doUpload() {
 }
 
 async function handleDelete(imageId) {
-  await ElMessageBox.confirm('确定删除这张图片吗？', '确认', {
-    confirmButtonText: '删除',
-    cancelButtonText: '取消',
-    type: 'warning',
-  })
-  await userStore.doDeleteGalleryImage(imageId)
-  ElMessage.success('已删除')
+  try {
+    await ElMessageBox.confirm('确定删除这张图片吗？', '确认', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+      showClose: false,
+    })
+    const res = await userStore.doDeleteGalleryImage(imageId)
+    ElMessage.success(res.message || '已删除')
+  } catch { /* cancel or error */ }
 }
 </script>
 

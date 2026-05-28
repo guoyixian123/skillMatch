@@ -14,9 +14,12 @@ import com.skillmatch.mapper.PostCommentMapper;
 import com.skillmatch.mapper.UserMapper;
 import com.skillmatch.service.IPostCommentService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.skillmatch.service.INotificationService;
 import com.skillmatch.service.IPostService;
+import com.skillmatch.mapper.PostMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -35,6 +38,8 @@ import java.util.stream.Collectors;
 public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostComment> implements IPostCommentService {
     private final UserMapper userMapper;
     private final IPostService postService;
+    private final INotificationService notificationService;
+    private final PostMapper postMapper;
 
     /**
      * 获取帖子评论列表
@@ -81,10 +86,12 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
      * 创建帖子评论
      */
     @Override
+    @Transactional
     public void createPostComment(String postId, String body) {
         //创建帖子评论
+        String userId = UserContext.getUserId();
         PostComment postComment = new PostComment();
-        postComment.setUserId(UserContext.getUserId());
+        postComment.setUserId(userId);
         postComment.setPostId(postId);
         postComment.setBody(body);
         postComment.setCreatedAt(LocalDateTime.now());
@@ -94,13 +101,18 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
                 .eq(Post::getId, postId)
                 .setSql("comment_count = comment_count + 1")
                 .update();
-
+        //发送评论通知给帖子作者
+        String authorId = postMapper.selectAuthorId(postId);
+        if (authorId != null && !authorId.equals(userId)) {
+            notificationService.save(userId, authorId, 3, postId);
+        }
     }
 
     /**
      * 删除帖子评论
      */
     @Override
+    @Transactional
     public void removePostCommentById(String postId, String commentId) {
         if(commentId == null|| commentId.isEmpty()|| postId == null|| postId.isEmpty()){
             throw new BusinessException(ErrorCode.PARAM_ERROR);

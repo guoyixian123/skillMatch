@@ -43,7 +43,7 @@ public class UserGalleryController {
     public RESTful<GalleryVO> addUserGallery(@RequestParam MultipartFile file) {
         log.info("添加用户照片");
         GalleryVO galleryVO=userGalleryService.uploadUserGallery(file);
-        return RESTful.success(galleryVO);
+        return RESTful.success(galleryVO, "上传成功");
     }
     /**
      * 删除用户照片
@@ -52,6 +52,6 @@ public class UserGalleryController {
     public RESTful<Void> deleteUserGallery(@PathVariable String imageId) {
         log.info("删除用户照片");
         userGalleryService.removeImageById(imageId);
-        return RESTful.success();
+        return RESTful.success(null, "已删除");
     }
 }

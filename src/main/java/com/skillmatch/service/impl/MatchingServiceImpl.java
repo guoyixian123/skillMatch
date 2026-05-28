@@ -57,7 +57,7 @@ public class MatchingServiceImpl implements IMatchingService {
         double latitude = one.getLatitude();
         double longitude = one.getLongitude();
         //1.2根据经纬度查询附近用户
-        Circle circle = new Circle(new Point(longitude, latitude), new Distance(1000000, Metrics.KILOMETERS));
+        Circle circle = new Circle(new Point(longitude, latitude), new Distance(query.getRadius(), Metrics.KILOMETERS));
         //1.3查询附近用户,以当前用户为圆心、radius 公里的圆, Redis GEO SEARCH 获取附近用户（COUNT 200）
         GeoResults<RedisGeoCommands.GeoLocation<String>> results = redisTemplate.opsForGeo()
                 .radius(USER_LOCATION_KEY,
@@ -139,6 +139,27 @@ public class MatchingServiceImpl implements IMatchingService {
                 .list()
                 .stream()
                 .collect(Collectors.toMap(User::getUserId, u -> u));
+
+        // 5.5 关键词搜索过滤（昵称、技能名、爱好名模糊匹配）
+        if (query.getKeyword() != null && !query.getKeyword().isBlank()) {
+            String kw = query.getKeyword().trim().toLowerCase();
+            userIds = userIds.stream()
+                    .filter(uid -> {
+                        User u = userMap.get(uid);
+                        if (u == null) return false;
+                        if (u.getName() != null && u.getName().toLowerCase().contains(kw)) return true;
+                        List<String> can = canMap.getOrDefault(uid, List.of());
+                        List<String> want = wantMap.getOrDefault(uid, List.of());
+                        if (can.stream().anyMatch(s -> s.toLowerCase().contains(kw))) return true;
+                        if (want.stream().anyMatch(s -> s.toLowerCase().contains(kw))) return true;
+                        List<String> hobbies = hobbyMap.getOrDefault(uid, List.of());
+                        return hobbies.stream().anyMatch(h -> h.toLowerCase().contains(kw));
+                    })
+                    .collect(Collectors.toList());
+            if (userIds.isEmpty()) {
+                return new PageVO<>(0L, query.getPage(), query.getSize(), null);
+            }
+        }
 
         // 5.4 批量查询当前用户已点赞过的候选用户ID集合
         // 只查 type=1（个人主页点赞），用于批量设置卡片 isLiked 字段

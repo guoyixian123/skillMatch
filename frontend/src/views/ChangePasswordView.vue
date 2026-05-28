@@ -94,11 +94,11 @@ async function handleSubmit() {
   if (!valid) return
   submitting.value = true
   try {
-    await userStore.doChangePassword({
+    const res = await userStore.doChangePassword({
       oldPassword: form.oldPassword,
       newPassword: form.newPassword,
     })
-    ElMessage.success('密码已修改，请重新登录')
+    ElMessage.success(res.message || '密码已修改，请重新登录')
     router.push('/login')
   } catch { /* handled */ } finally {
     submitting.value = false

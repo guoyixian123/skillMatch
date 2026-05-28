@@ -13,6 +13,7 @@ import com.skillmatch.exceptions.BusinessException;
 import com.skillmatch.mapper.ContactRequestMapper;
 import com.skillmatch.mapper.UserMapper;
 import com.skillmatch.service.IContactRequestService;
+import com.skillmatch.service.IFriendService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.Nullable;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ContactRequestServiceImpl extends ServiceImpl<ContactRequestMapper, ContactRequest> implements IContactRequestService {
     private final UserMapper userMapper;
+    private final IFriendService friendService;
 
     /**
      * 获取收到的通知
@@ -108,8 +110,12 @@ public class ContactRequestServiceImpl extends ServiceImpl<ContactRequestMapper,
      * 接受通知
      */
     @Override
+    @Transactional
     public String acceptRequest(String requestId) {
         String to_user_id = checkToUser(requestId);
+        //获取请求信息
+        ContactRequest request = getById(requestId);
+        String from_user_id = request.getFromUserId();
         //获取用户信息
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUserId, to_user_id));
         //更新通知状态为2
@@ -118,6 +124,9 @@ public class ContactRequestServiceImpl extends ServiceImpl<ContactRequestMapper,
                 .set(ContactRequest::getStatus, 2)
                 .set(ContactRequest::getUpdatedAt, LocalDateTime.now())
                 .update();
+
+        // 创建双向好友关系
+        friendService.addFriend(from_user_id, to_user_id);
 
         //返回联系方式
         return user.getContactInfo();

@@ -10,8 +10,11 @@ import com.skillmatch.domain.vo.SkillVO;
 import com.skillmatch.enums.ErrorCode;
 import com.skillmatch.exceptions.BusinessException;
 import com.skillmatch.mapper.UserSkillMapper;
+import com.skillmatch.service.ITagService;
 import com.skillmatch.service.IUserSkillService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.Setter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,9 @@ import java.util.stream.Collectors;
 @Service
 public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill> implements IUserSkillService {
 
+    @Autowired
+    private ITagService tagService;
+
     /**
      * 获取用户技能信息
      */
@@ -49,7 +55,7 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
         //根据技能类型分组1:can 2:want
         Map<Integer, List<UserSkill>> skillTypeMap = list.stream().collect(Collectors.groupingBy(UserSkill::getSkillType));
         //用户的所有会的技能
-        List<UserSkill> userSkills = skillTypeMap.get(1);
+        List<UserSkill> userSkills = skillTypeMap.getOrDefault(1, List.of());
         //封装到vo中
         List<SkillItemVO> canSkills = new ArrayList<>(userSkills.size());
         for (UserSkill userSkill : userSkills) {
@@ -57,7 +63,7 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
             canSkills.add(skill);
         }
         //用户的所有想学的技能
-        List<UserSkill> wantSkills = skillTypeMap.get(2);
+        List<UserSkill> wantSkills = skillTypeMap.getOrDefault(2, List.of());
         List<SkillItemVO> wantSkill = new ArrayList<>(wantSkills.size());
         for (UserSkill userSkill : wantSkills) {
             SkillItemVO skill = BeanUtil.copyProperties(userSkill, SkillItemVO.class);
@@ -75,21 +81,17 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
         if(skill==null){
             throw new BusinessException(ErrorCode.PARAM_ERROR);
         }
+        if (!tagService.isValidSkillName(skill.getSkillName())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无效的技能标签");
+        }
 
         //查询用户已有的技能数量,并且判断是否超过10个
-        Long count1 = lambdaQuery()
+        Long count = lambdaQuery()
                 .eq(UserSkill::getUserId, userId)
                 .eq(UserSkill::getSkillType, skill.getSkillType())
                 .count();
-        if (count1 > 10) {
-            throw new BusinessException(ErrorCode.NOT_FOUND,"技能数量已经超过10个");
-        }
-        Long count2 = lambdaQuery()
-                .eq(UserSkill::getUserId, userId)
-                .eq(UserSkill::getSkillType,skill.getSkillType() )
-                .count();
-        if (count2 > 10) {
-            throw new RuntimeException("技能数量已经超过10个");
+        if (count > 10) {
+            throw new BusinessException(ErrorCode.EXCEED_LIMIT, "技能数量已经超过10个");
         }
         //添加技能到数据库
         UserSkill userSkill = BeanUtil.copyProperties(skill, UserSkill.class, "skillType");

@@ -43,7 +43,7 @@ public class PostCommentController {
     public RESTful<Void> createPostComment(@PathVariable String postId, @RequestBody String body) {
         log.info("创建帖子评论");
         postCommentService.createPostComment(postId,body);
-        return RESTful.success();
+        return RESTful.success(null, "评论成功");
     }
     /**
      * 删除帖子评论
@@ -52,7 +52,7 @@ public class PostCommentController {
     public RESTful<Void> deletePostComment(@PathVariable String postId, @PathVariable String commentId) {
         log.info("删除帖子id:{}评论", postId);
         postCommentService.removePostCommentById(postId,commentId);
-        return RESTful.success();
+        return RESTful.success(null, "评论已删除");
     }
 
 

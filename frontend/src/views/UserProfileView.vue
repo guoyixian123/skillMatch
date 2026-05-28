@@ -1,7 +1,7 @@
 <template>
   <div class="page-container" v-loading="loading">
     <button class="brutal-btn outline small" @click="$router.back()" style="margin-bottom:16px;">
-      ← 返回
+      <el-icon><ArrowLeft /></el-icon> 返回
     </button>
 
     <template v-if="profile">
@@ -36,8 +36,11 @@
               </svg>
               <span>{{ profileLiked ? '已赞' : '点赞' }}</span>
             </button>
-            <button class="brutal-btn primary small" @click="showSendRequest = true">
-              💬 发起交换
+            <button v-if="isFriend" class="brutal-btn primary small" @click="$router.push(`/chat/${userId}`)">
+              <el-icon><ChatDotRound /></el-icon> 发消息
+            </button>
+            <button v-else class="brutal-btn primary small" @click="showSendRequest = true">
+              <el-icon><ChatDotRound /></el-icon> 发起交换
             </button>
           </div>
         </div>
@@ -81,7 +84,7 @@
       <div class="brutal-card accent-purple" style="margin-top:16px;" v-if="profile.hobbies?.length">
         <div class="section-title"><span class="dot" style="background:var(--color-purple)"></span> 兴趣爱好</div>
         <div class="flex-wrap">
-          <span v-for="h in profile.hobbies" :key="h.name" class="brutal-tag hobby" style="font-size:15px;padding:6px 16px;">
+          <span v-for="h in profile.hobbies" :key="h.id" class="brutal-tag hobby" style="font-size:15px;padding:6px 16px;">
             {{ h.icon }} {{ h.hobbyName }}
           </span>
         </div>
@@ -95,10 +98,46 @@
         </div>
       </div>
 
+      <!-- Posts -->
+      <div class="brutal-card accent-blue" style="margin-top:16px;" v-if="posts.length">
+        <div class="section-title"><span class="dot" style="background:var(--color-blue)"></span> Ta 的帖子</div>
+        <div class="post-list">
+          <div
+            v-for="post in posts"
+            :key="post.id"
+            class="post-item"
+            @click="$router.push(`/community/${post.id}`)"
+          >
+            <h3 class="post-item-title">{{ post.title }}</h3>
+            <p class="post-item-body">{{ post.body?.slice(0, 100) }}{{ post.body?.length > 100 ? '...' : '' }}</p>
+            <div class="post-item-tags flex-wrap" v-if="post.tags?.length">
+              <span v-for="tag in post.tags" :key="tag" class="brutal-tag">{{ tag }}</span>
+            </div>
+            <div class="post-item-meta">
+              <button
+                class="card-like-btn"
+                :class="{ liked: post.isLiked, animating: post._animating }"
+                @click.stop="handlePostLike(post)"
+              >
+                <span class="like-icon-wrap">
+                  <el-icon :size="14" :color="post.isLiked ? '#FFE4B5' : ''"><StarFilled v-if="post.isLiked" /><Star v-else /></el-icon>
+                  <span v-if="post._showPlus" class="float-plus">+1</span>
+                </span>
+                <span class="like-count">{{ formatCount(post.likeCount) }}</span>
+              </button>
+              <span class="comment-meta">
+                <el-icon><ChatDotRound /></el-icon> {{ post.commentCount || 0 }}
+              </span>
+              <span class="post-item-time">{{ formatTime(post.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Activities -->
       <div class="brutal-card" style="margin-top:16px;" v-if="profile.activities?.length">
         <div class="section-title"><span class="dot" style="background:var(--color-blue)"></span> 最近动态</div>
-        <div v-for="act in profile.activities" :key="act.id" class="activity-item">
+        <div v-for="(act, idx) in profile.activities" :key="idx" class="activity-item">
           <span class="activity-type">{{ act.type }}</span>
           <span class="activity-content">{{ act.content }}</span>
           <span class="activity-time">{{ formatTime(act.createdAt) }}</span>
@@ -133,36 +172,88 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getDefaultAvatar } from '@/utils/avatar'
 import { ElMessage } from 'element-plus'
+import { ArrowLeft, ChatDotRound, Star, StarFilled } from '@element-plus/icons-vue'
 import { getUserProfile } from '@/api/matching'
 import { createRequest } from '@/api/notification'
 import { likeProfile, unlikeProfile } from '@/api/user'
+import { getPosts, togglePostLike, unlikePost } from '@/api/community'
+import { getFriends } from '@/api/friend'
 
 const route = useRoute()
-const userId = route.params.userId
+const userId = computed(() => route.params.userId)
 
 const loading = ref(true)
 const profile = ref(null)
 const liking = ref(false)
 const profileLiked = ref(false)
+const posts = ref([])
 
+const isFriend = ref(false)
 const showSendRequest = ref(false)
 const requestReason = ref('')
 const sending = ref(false)
 
 function formatTime(dateStr) {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('zh-CN')
+  const d = new Date(dateStr)
+  const now = new Date()
+  const diff = now - d
+  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
+  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
+  return d.toLocaleDateString('zh-CN')
+}
+
+function formatCount(n) {
+  if (!n) return '0'
+  return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n)
+}
+
+async function handlePostLike(post) {
+  const wasLiked = post.isLiked
+  if (!wasLiked) {
+    post._animating = true
+    post._showPlus = true
+    setTimeout(() => { post._animating = false }, 500)
+    setTimeout(() => { post._showPlus = false }, 800)
+  }
+  post.isLiked = !wasLiked
+  post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? -1 : 1))
+  try {
+    if (wasLiked) {
+      await unlikePost(post.id)
+    } else {
+      const res = await togglePostLike(post.id)
+      post.likeCount = res.data?.likeCount ?? post.likeCount
+    }
+  } catch {
+    post.isLiked = wasLiked
+    post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? 1 : -1))
+  }
 }
 
 onMounted(async () => {
   try {
-    const res = await getUserProfile(userId)
-    profile.value = res.data
-    profileLiked.value = res.data?.isLiked ?? false
+    const [profileRes, postsRes] = await Promise.all([
+      getUserProfile(userId.value),
+      getPosts({ authorId: userId.value, page: 1, size: 10 }),
+    ])
+    profile.value = profileRes.data
+    profileLiked.value = profileRes.data?.isLiked ?? false
+    isFriend.value = profileRes.data?.isFriend ?? false
+    posts.value = postsRes.data?.list || []
+
+    // Fallback: check friends list if backend doesn't return isFriend
+    if (!isFriend.value) {
+      try {
+        const friendsRes = await getFriends()
+        const list = Array.isArray(friendsRes.data) ? friendsRes.data : []
+        isFriend.value = list.some(f => f.userId === userId.value)
+      } catch { /* ignore */ }
+    }
   } catch { /* handled */ } finally {
     loading.value = false
   }
@@ -180,11 +271,11 @@ async function handleLikeProfile() {
 
   try {
     if (wasLiked) {
-      await unlikeProfile(userId)
-      ElMessage.success('已取消点赞')
+      const res = await unlikeProfile(userId.value)
+      ElMessage.success(res.message || '已取消点赞')
     } else {
-      await likeProfile(userId)
-      ElMessage.success('点赞成功')
+      const res = await likeProfile(userId.value)
+      ElMessage.success(res.message || '点赞成功')
     }
   } catch {
     // rollback
@@ -203,8 +294,8 @@ async function handleSendRequest() {
   }
   sending.value = true
   try {
-    await createRequest({ toUserId: String(userId), reason: requestReason.value.trim() })
-    ElMessage.success('交换请求已发送')
+    const res = await createRequest({ toUserId: String(userId.value), reason: requestReason.value.trim() })
+    ElMessage.success(res.message || '交换请求已发送')
     showSendRequest.value = false
   } catch { /* handled */ } finally {
     sending.value = false
@@ -286,5 +377,136 @@ async function handleSendRequest() {
 }
 .like-profile-btn.liked .lp-icon {
   filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.15));
+}
+
+/* Post list */
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.post-item {
+  padding: 14px 16px;
+  border: 2px solid #eee;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.post-item:hover {
+  border-color: var(--color-blue);
+  background: #f8f9ff;
+}
+.post-item-title {
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.post-item-body {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+.post-item-tags {
+  margin-bottom: 8px;
+}
+.post-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #aaa;
+}
+.post-item-time {
+  margin-left: auto;
+}
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 700;
+  color: #888;
+}
+.card-like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1.5px solid #ddd;
+  border-radius: 99px;
+  background: #fafafa;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #888;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: visible;
+}
+.card-like-btn:hover {
+  border-color: #FFD700;
+  background: #FFFBE6;
+  color: #E6A800;
+  transform: translateY(-1px);
+}
+.card-like-btn:active {
+  transform: scale(0.94);
+}
+.card-like-btn.liked {
+  border-color: #1A1A1A;
+  background: linear-gradient(135deg, #F5A623, #FFD700);
+  color: #fff;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.15), 0 0 12px rgba(245,166,35,0.3);
+}
+.card-like-btn.liked:hover {
+  background: linear-gradient(135deg, #FFB830, #FFE44D);
+  border-color: #1A1A1A;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.2), 0 0 16px rgba(245,166,35,0.45);
+}
+.card-like-btn.liked .el-icon {
+  color: #FFE4B5;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+.like-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.like-count {
+  font-weight: 900;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* Bounce animation */
+.card-like-btn.animating .like-icon-wrap {
+  animation: likeBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes likeBounce {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.5); }
+  40%  { transform: scale(0.75); }
+  60%  { transform: scale(1.2); }
+  80%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* +1 float */
+.float-plus {
+  position: absolute;
+  top: -8px;
+  right: -14px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #FFD700;
+  pointer-events: none;
+  animation: floatUp 0.8s ease-out forwards;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+}
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  40%  { opacity: 1; transform: translateY(-14px) scale(1.25); }
+  100% { opacity: 0; transform: translateY(-24px) scale(0.7); }
 }
 </style>

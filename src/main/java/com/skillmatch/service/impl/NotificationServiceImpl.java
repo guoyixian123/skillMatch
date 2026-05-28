@@ -100,7 +100,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
 
         // 3. 批量查询帖子标题（仅 type=2 帖子被赞的通知需要），用于组装 preview 文案
         Set<String> postIds = records.stream()
-                .filter(n -> n.getType() == 2 && n.getBizId() != null)
+                .filter(n -> (n.getType() == 2 || n.getType() == 3) && n.getBizId() != null)
                 .map(Notification::getBizId)
                 .collect(Collectors.toSet());
         Map<String, String> titleMap = postIds.isEmpty()
@@ -180,6 +180,13 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
                         ? title.substring(0, 20) + "..."
                         : title;
                 yield "赞了你的帖子《" + shortTitle + "》";
+            }
+            case 3 -> {
+                String title = titleMap.getOrDefault(bizId, "");
+                String shortTitle = title.length() > 20
+                        ? title.substring(0, 20) + "..."
+                        : title;
+                yield "评论了你的帖子《" + shortTitle + "》";
             }
             default -> "新通知";
         };

@@ -138,9 +138,8 @@ async function uploadAvatar() {
   if (!avatarFile.value) return
   avatarUploading.value = true
   try {
-    await userStore.doUploadAvatar(avatarFile.value)
-    // update auth store avatar too
-    ElMessage.success('头像已更新')
+    const res = await userStore.doUploadAvatar(avatarFile.value)
+    ElMessage.success(res.message || '头像已更新')
     avatarFile.value = null
   } catch { /* handled */ } finally {
     avatarUploading.value = false
@@ -152,15 +151,14 @@ async function handleSubmit() {
   if (!valid) return
   submitting.value = true
   try {
-    await userStore.doUpdateProfile({
+    const res = await userStore.doUpdateProfile({
       name: form.name,
       signature: form.signature,
       bio: form.bio,
       contactInfo: form.contactInfo,
     })
-    // sync to auth store
     authStore.setUser({ ...authStore.user, name: form.name })
-    ElMessage.success('资料已更新')
+    ElMessage.success(res.message || '资料已更新')
     router.back()
   } catch { /* handled */ } finally {
     submitting.value = false

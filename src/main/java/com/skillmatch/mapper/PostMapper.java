@@ -25,7 +25,7 @@ public interface PostMapper extends BaseMapper<Post> {
     void removeLikeCount(String bizId);
 
 @Select("select like_count from post where id = #{bizId}")
-    int selectLikeCount(String bizId);
+    Integer selectLikeCount(String bizId);
 
     /**
      * 查询帖子作者ID，用于点赞通知时确定接收者
