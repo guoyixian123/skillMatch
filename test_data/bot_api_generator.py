@@ -22,24 +22,38 @@ GIVEN_NAMES = [
 ]
 
 CAN_SKILLS = [
-    "Java","Python","吉他","摄影","英语","烹饪","健身","钢琴",
-    "游泳","书法","围棋","插画","视频剪辑","数据分析","UI设计",
-    "前端开发","后端开发","日语","韩语","瑜伽","拳击","Excel",
+    "Python","Java","JavaScript","TypeScript","C++","Go","Rust","PHP","Swift","Kotlin",
+    "Vue.js","React","Angular","HTML/CSS","微信小程序","Spring Boot","Node.js","Django","Flask",
+    "MySQL","Redis","MongoDB",
+    "机器学习","深度学习","数据分析","TensorFlow","PyTorch","NLP自然语言处理",
+    "UI设计","UX设计","Figma","Photoshop","Illustrator","平面设计",
+    "吉他","钢琴","声乐","音乐制作","架子鼓",
+    "英语","日语","韩语","法语","德语",
+    "健身指导","瑜伽","游泳","篮球","羽毛球",
+    "摄影","视频剪辑","写作","演讲","PPT制作",
 ]
 WANT_SKILLS = [
-    "Python","Java","摄影","吉他","英语","健身","烹饪","游泳",
-    "小提琴","油画","机器学习","3D建模","投资理财","舞蹈",
-    "法语","德语","攀岩","滑雪","陶艺","茶艺","演讲",
+    "Python","Java","JavaScript","TypeScript","C++","Go","Rust","PHP","Swift","Kotlin",
+    "Vue.js","React","Angular","HTML/CSS","微信小程序","Spring Boot","Node.js","Django","Flask",
+    "MySQL","Redis","MongoDB",
+    "机器学习","深度学习","数据分析","TensorFlow","PyTorch","NLP自然语言处理",
+    "UI设计","UX设计","Figma","Photoshop","Illustrator","平面设计",
+    "吉他","钢琴","声乐","音乐制作","架子鼓",
+    "英语","日语","韩语","法语","德语",
+    "健身指导","瑜伽","游泳","篮球","羽毛球",
+    "摄影","视频剪辑","写作","演讲","PPT制作",
 ]
 HOBBY_NAMES = [
-    "跑步","阅读","旅行","电影","音乐","美食","篮球","足球",
-    "羽毛球","徒步","骑行","桌游","电竞","动漫","追剧",
-    "养宠物","种植","手账","咖啡","调酒","露营","天文",
+    "篮球","足球","羽毛球","游泳","跑步","健身","瑜伽","乒乓球",
+    "摄影","绘画","书法","手工","吉他","钢琴","唱歌","架子鼓",
+    "编程","机器人","电子制作","3D打印","烹饪","烘焙","旅行",
+    "阅读","电影","游戏","宠物","数学","物理","天文","历史",
 ]
 HOBBY_ICONS = [
-    "🏃","📖","✈️","🎬","🎵","🍜","🏀","⚽",
-    "🏸","🥾","🚴","🎲","🎮","📺","📺",
-    "🐕","🌱","📒","☕","🍸","⛺","🔭",
+    "🏀","⚽","🏸","🏊","🏃","💪","🧘","🏓",
+    "📷","🎨","✒️","✂️","🎸","🎹","🎤","🥁",
+    "💻","🤖","🔧","🖨️","🍳","🍰","✈️",
+    "📖","🎬","🎮","🐕","🔢","⚛️","🔭","📜",
 ]
 
 CITIES = [
@@ -118,7 +132,7 @@ def generate(count: int):
     for i in range(1, count + 1):
         bot_id = random_bot_id()
         name = random_name()
-        password = "123456"
+        password = "123321"
         city, base_lat, base_lng = random.choice(CITIES)
         lat = base_lat + random.uniform(-0.3, 0.3)
         lng = base_lng + random.uniform(-0.3, 0.3)
@@ -174,9 +188,10 @@ def generate(count: int):
                 "longitude": lng, "latitude": lat,
             }, headers=headers))
 
-            # ===== 6. 批量保存技能 =====
+            # ===== 6. 批量保存技能（can 和 want 不重复）=====
             can = pick(CAN_SKILLS, 2, 4)
-            want = pick(WANT_SKILLS, 2, 3)
+            want_pool = [s for s in WANT_SKILLS if s not in can]
+            want = pick(want_pool, 2, 3) if len(want_pool) >= 2 else want_pool
             ok(session.put(f"{base}/api/user/skills", json={
                 "canSkills": can, "wantSkills": want,
             }, headers=headers))
@@ -290,5 +305,5 @@ def generate(count: int):
 
 
 if __name__ == "__main__":
-    n = int(sys.argv[1]) if len(sys.argv) > 1 else 10
+    n = int(sys.argv[1]) if len(sys.argv) > 1 else 1000
     generate(n)

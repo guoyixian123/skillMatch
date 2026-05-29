@@ -105,7 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = res.data.user
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('user', JSON.stringify(res.data.user))
-    await fetchLocation()
+    fetchLocation() // 不阻塞登录流程
     return res
   }
 
@@ -115,7 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = res.data.user
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('user', JSON.stringify(res.data.user))
-    await fetchLocation()
+    fetchLocation() // 不阻塞注册流程
     return res
   }
 
