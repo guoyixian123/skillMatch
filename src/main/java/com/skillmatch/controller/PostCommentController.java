@@ -7,6 +7,7 @@ import com.skillmatch.domain.vo.CommentVO;
 import com.skillmatch.domain.vo.PageVO;
 import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.service.IPostCommentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +41,7 @@ public class PostCommentController {
      * 创建帖子评论
      */
     @PostMapping("/posts/{postId}/comments")
-    public RESTful<Void> createPostComment(@PathVariable String postId, @RequestBody String body) {
+    public RESTful<Void> createPostComment(@PathVariable String postId,@Valid @RequestBody String body) {
         log.info("创建帖子评论");
         postCommentService.createPostComment(postId,body);
         return RESTful.success(null, "评论成功");

@@ -8,6 +8,7 @@ public enum ErrorCode {
     NOT_LOGIN(401, "未登录"),
     NOT_AUTH(403, "未授权"),
     NOT_FOUND(404, "资源不存在"),
+    DUPLICATE(409, "重复操作"),
     EXCEED_LIMIT(429, "操作过于频繁"),
     SERVER_ERROR(500, "服务器异常");
 

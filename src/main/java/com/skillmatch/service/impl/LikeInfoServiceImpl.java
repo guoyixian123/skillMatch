@@ -7,6 +7,8 @@ import com.skillmatch.domain.vo.LikeVO;
 import com.skillmatch.mapper.LikeInfoMapper;
 import com.skillmatch.mapper.PostMapper;
 import com.skillmatch.mapper.UserMapper;
+import com.skillmatch.enums.ErrorCode;
+import com.skillmatch.exceptions.BusinessException;
 import com.skillmatch.service.ILikeInfoService;
 import com.skillmatch.service.INotificationService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -39,11 +41,11 @@ public class LikeInfoServiceImpl extends ServiceImpl<LikeInfoMapper, LikeInfo> i
                 .eq(LikeInfo::getBizId, likeDTO.getBizId())
                 .count();
         if (count > 0) {
-            throw new RuntimeException("请勿重复点赞");
+            throw new BusinessException(ErrorCode.DUPLICATE, "请勿重复点赞");
         }
         //不能给自己点赞
         if (userId.equals(likeDTO.getBizId())) {
-           throw new RuntimeException("不能给自己点赞");
+           throw new BusinessException(ErrorCode.NOT_AUTH, "不能给自己点赞");
         }
         //保存点赞信息
         LikeInfo likeInfo = new LikeInfo().setBizId(likeDTO.getBizId()).setUserId(userId).setType(likeDTO.getType());
@@ -81,7 +83,7 @@ public class LikeInfoServiceImpl extends ServiceImpl<LikeInfoMapper, LikeInfo> i
                 .eq(LikeInfo::getType, likeDTO.getType())
                 .one();
         if (record == null) {
-            throw new RuntimeException("还未点赞，无法取消");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "还未点赞，无法取消");
         }
         removeById(record.getId());
         //删除对应通知

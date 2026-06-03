@@ -11,3 +11,5 @@ docs
 # 包含真实密钥，仅本地使用
 src/main/resources/application.yaml
 test_data/bot_generator.py
+/admin-frontend/dist/
+/admin-frontend/node_modules/

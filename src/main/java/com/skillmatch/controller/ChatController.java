@@ -4,6 +4,7 @@ import com.skillmatch.domain.dto.SendMessageDTO;
 import com.skillmatch.domain.vo.ChatMessageVO;
 import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.service.IChatService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +29,7 @@ public class ChatController {
     }
 
     @PostMapping("/messages")
-    public RESTful<ChatMessageVO> sendMessage(@RequestBody SendMessageDTO dto) {
+    public RESTful<ChatMessageVO> sendMessage(@Valid @RequestBody SendMessageDTO dto) {
         log.info("发送消息, toUserId={}", dto.getToUserId());
         ChatMessageVO vo = chatService.sendMessage(dto);
         return RESTful.success(vo);

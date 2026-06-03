@@ -99,7 +99,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
                 .ge(Post::getCreatedAt, LocalDateTime.now().minusHours(1))
                 .count();
         if (count >= 5) {
-            throw new RuntimeException("您已发布文章过多，请稍后再试");
+            throw new BusinessException(ErrorCode.EXCEED_LIMIT, "您已发布文章过多，请稍后再试");
         }
         //创建帖子
         extracted(postDTO);
@@ -227,8 +227,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         if (existing == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND);
         }
+        // 判断是否是作者本入
         if (!existing.getAuthorId().equals(userId)) {
-            throw new BusinessException(ErrorCode.NOT_AUTH);
+            throw new BusinessException(ErrorCode.NOT_AUTH,"无权删除他人帖子");
         }
         //删除帖子要删除标签和点赞信息以及评论信息
         //删除帖子

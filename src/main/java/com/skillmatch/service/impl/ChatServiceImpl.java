@@ -36,7 +36,10 @@ public class ChatServiceImpl extends ServiceImpl<ChatMessageMapper, ChatMessage>
         if (!friendService.isFriend(fromUserId, dto.getToUserId())) {
             throw new BusinessException(ErrorCode.NOT_AUTH, "你们还不是好友");
         }
-
+        //不能给自己发消息
+        if (fromUserId.equals(dto.getToUserId())) {
+            throw new BusinessException(ErrorCode.NOT_AUTH, "不能给自己发送消息");
+        }
         ChatMessage msg = new ChatMessage()
                 .setFromUserId(fromUserId)
                 .setToUserId(dto.getToUserId())

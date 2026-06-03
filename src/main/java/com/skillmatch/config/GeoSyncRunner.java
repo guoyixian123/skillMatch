@@ -6,6 +6,7 @@ import com.skillmatch.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.geo.Point;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -24,8 +25,14 @@ public class GeoSyncRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        syncAllUsersToGeo();  // 启动时仍同步一次
+    }
+
+    /** 公开方法：从 MySQL 全量同步用户位置到 Redis GEO */
+    public void syncAllUsersToGeo() {
         List<User> users = userMapper.selectList(
                 new LambdaQueryWrapper<User>()
+                        // 排除无位置数据ne:!=0
                         .ne(User::getLatitude, 0)
                         .ne(User::getLongitude, 0)
         );
@@ -42,4 +49,5 @@ public class GeoSyncRunner implements CommandLineRunner {
         }
         log.info("GeoSync: 已同步 {} 个用户位置到 Redis GEO", users.size());
     }
+
 }

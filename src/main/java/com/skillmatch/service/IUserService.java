@@ -27,5 +27,5 @@ public interface IUserService extends IService<User> {
 
     void updateLocation(LocationDTO location);
 
-    void removeUserInfo();
+    void removeBotInfo();
 }

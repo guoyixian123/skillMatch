@@ -114,8 +114,19 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
     @Override
     @Transactional
     public void removePostCommentById(String postId, String commentId) {
-        if(commentId == null|| commentId.isEmpty()|| postId == null|| postId.isEmpty()){
-            throw new BusinessException(ErrorCode.PARAM_ERROR);
+        // 1. 先判空
+        if (commentId == null || commentId.isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "评论ID不能为空");
+        }
+        // 2. 再查
+        PostComment comment = getById(commentId);
+        if (comment == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "评论不存在");
+        }
+        // 3. 权限校验
+        String userId = UserContext.getUserId();
+        if (!comment.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.NOT_AUTH, "无权删除他人评论");
         }
         //删除帖子评论
         removeById(commentId);

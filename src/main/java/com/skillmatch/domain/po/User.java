@@ -1,5 +1,6 @@
 package com.skillmatch.domain.po;
 
+import java.io.Serial;
 import java.math.BigDecimal;
 
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -25,6 +26,7 @@ import lombok.experimental.Accessors;
 @TableName("user")
 public class User implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**
@@ -102,6 +104,16 @@ public class User implements Serializable {
      * 城市名称
      */
     private String city;
+
+    /**
+     * 是机器人吗
+     */
+    @TableField("is_bot")
+    private Boolean robot;
+    /**
+     * 状态 1=正常 2=冻结
+     */
+    private  Integer status;
 
 
 }

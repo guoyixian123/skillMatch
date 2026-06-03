@@ -5,6 +5,7 @@ import com.skillmatch.domain.dto.NotificationDTO;
 import com.skillmatch.domain.vo.NotificationVO;
 import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.service.IContactRequestService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -38,7 +39,7 @@ public class ContactRequestController {
         return RESTful.success(vo);
     }
     @PostMapping("/requests")
-    public RESTful<Object> sendRequest(@RequestBody NotificationDTO notificationDTO) {
+    public RESTful<Object> sendRequest(@Valid @RequestBody NotificationDTO notificationDTO) {
         log.info("发送交换请求");
         contactRequestService.sendNotification(notificationDTO);
         return RESTful.success(null, "请求已发送");

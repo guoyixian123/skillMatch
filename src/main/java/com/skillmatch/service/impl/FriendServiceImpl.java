@@ -34,6 +34,8 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
                 .eq(Friend::getFriendId, friendId)
                 .exists();
         if (exists) return;
+        //不能自己添加自己
+        if (userId.equals(friendId)) return;
 
         LocalDateTime now = LocalDateTime.now();
         Friend f1 = new Friend().setUserId(userId).setFriendId(friendId).setCreatedAt(now);

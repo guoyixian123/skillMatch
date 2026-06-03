@@ -11,6 +11,8 @@ import com.aliyun.oss.model.PutObjectRequest;
 import com.aliyun.oss.model.PutObjectResult;
 import com.aliyuncs.exceptions.ClientException;
 import com.skillmatch.context.UserContext;
+import com.skillmatch.enums.ErrorCode;
+import com.skillmatch.exceptions.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
@@ -23,7 +25,7 @@ public class OssUtil {
     public static String upload(byte[] bytes,String fileName,String type) throws ClientException {
         String userId = UserContext.getUserId();
         if(userId == null||userId.isEmpty()){
-            throw new RuntimeException("用户不存在");
+            throw new BusinessException(ErrorCode.NOT_LOGIN, "用户不存在");
         }
         // Endpoint以华东1（杭州）为例，其它Region请按实际情况填写。
         String endpoint = "https://oss-cn-beijing.aliyuncs.com";
@@ -36,8 +38,11 @@ public class OssUtil {
         // 填写Object完整路径，完整路径中不能包含Bucket名称，例如exampledir/exampleobject.txt。
         UUID uuid = UUID.randomUUID();
         int lastDotIndex = fileName.lastIndexOf(".");
-        String lastDot = fileName.substring(lastDotIndex);
-        String objectName = userId+"/"+type+"/"+uuid+lastDot;
+        if (lastDotIndex == -1) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "文件名缺少扩展名");
+        }
+        String lastDot = fileName.substring(lastDotIndex+1);
+        String objectName = userId+"/"+type+"/"+uuid+"."+lastDot;
         // 填写Bucket所在地域。以华东1（杭州）为例，Region填写为cn-hangzhou。
         String region = "cn-beijing";
 

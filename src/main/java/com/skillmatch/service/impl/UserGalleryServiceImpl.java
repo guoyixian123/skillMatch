@@ -62,7 +62,7 @@ public class UserGalleryServiceImpl extends ServiceImpl<UserGalleryMapper, UserG
     @Override
     public GalleryVO uploadUserGallery(MultipartFile file) {
         if (file == null) {
-            throw new RuntimeException("找不到文件信息");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择上传文件");
         }
         //上传用户展示照片,获取出照片url
         try {
@@ -93,6 +93,12 @@ public class UserGalleryServiceImpl extends ServiceImpl<UserGalleryMapper, UserG
      */
     @Override
     public void removeImageById(String imageId) {
+        String userId = UserContext.getUserId();
+        UserGallery byId = getById(imageId);
+        //判断图片是否属于当前用户
+        if(!byId.getUserId().equals(userId)){
+            throw new BusinessException(ErrorCode.NOT_AUTH, "不能删除他人的图片");
+        }
         String url = userGalleryMapper.selectUrl(imageId);
         if (url == null || url.isBlank()) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "图片不存在");

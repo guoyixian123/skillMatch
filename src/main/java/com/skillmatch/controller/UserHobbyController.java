@@ -5,6 +5,7 @@ import com.skillmatch.domain.dto.HobbyDTO;
 import com.skillmatch.domain.vo.HobbyVO;
 import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.service.IUserHobbyService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -38,7 +39,7 @@ public class UserHobbyController {
      * 添加用户爱好
      */
     @PostMapping("/hobbies")
-    public RESTful<Void> addUserHobbies(@RequestBody HobbyDTO hobby) {
+    public RESTful<Void> addUserHobbies(@Valid @RequestBody HobbyDTO hobby) {
         log.info("添加用户爱好:{}", hobby);
         userHobbyService.addUserHobbies(hobby);
         return RESTful.success(null, "添加成功");

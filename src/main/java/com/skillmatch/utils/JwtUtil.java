@@ -9,6 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static com.skillmatch.constants.FinalConstant.AUTH_EXPIRE;
 
 public class JwtUtil {
     private static final SecretKey JWT_KEY = Keys.hmacShaKeyFor("SkillMatchXiaoXinLoveJiaHui99!774499".getBytes(StandardCharsets.UTF_8));
@@ -20,7 +23,7 @@ public class JwtUtil {
         String jwtBuilder = Jwts.builder()
                 .claims(claims)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))//1天
+                .expiration(new Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(AUTH_EXPIRE)))//1天
                 .signWith(SignatureAlgorithm.HS256, JWT_KEY)
                 .compact();
         return jwtBuilder;

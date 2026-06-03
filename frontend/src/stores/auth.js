@@ -3,9 +3,18 @@ import { ref, computed } from 'vue'
 import { login as loginApi, register as registerApi, logout as logoutApi } from '@/api/auth'
 import { updateLocation } from '@/api/user'
 
+function safeParseUser() {
+  try {
+    return JSON.parse(localStorage.getItem('user') || 'null')
+  } catch {
+    localStorage.removeItem('user')
+    return null
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
-  const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
+  const user = ref(safeParseUser())
   const latitude = ref(parseFloat(localStorage.getItem('lat') || '') || null)
   const longitude = ref(parseFloat(localStorage.getItem('lng') || '') || null)
   const locationStatus = ref('idle') // idle | loading | granted | denied | error
@@ -105,7 +114,8 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = res.data.user
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('user', JSON.stringify(res.data.user))
-    fetchLocation() // 不阻塞登录流程
+    // 等待位置获取完成，确保后续页面请求时后端已有位置数据
+    await fetchLocation()
     return res
   }
 
@@ -115,7 +125,8 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = res.data.user
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('user', JSON.stringify(res.data.user))
-    fetchLocation() // 不阻塞注册流程
+    // 等待位置获取完成，确保后续页面请求时后端已有位置数据
+    await fetchLocation()
     return res
   }
 

@@ -93,10 +93,12 @@ public class ContactRequestServiceImpl extends ServiceImpl<ContactRequestMapper,
     @Transactional
     public void sendNotification(NotificationDTO notificationDTO) {
         if (notificationDTO == null) {
-            throw new RuntimeException("通知信息不能为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "通知信息不能为空");
         }
         String from_user_id = UserContext.getUserId();
-
+        if (from_user_id.equals(notificationDTO.getToUserId())) {
+            throw new BusinessException(ErrorCode.NOT_AUTH, "不能给自己发送技能交换请求");
+        }
         //创建通知
         ContactRequest contactRequest = BeanUtil.copyProperties(notificationDTO, ContactRequest.class);
         contactRequest.setFromUserId(from_user_id);
@@ -139,12 +141,12 @@ public class ContactRequestServiceImpl extends ServiceImpl<ContactRequestMapper,
         //参数校验,只有接收的用户可以接受
         String userId = UserContext.getUserId();
         if (requestId == null) {
-            throw new RuntimeException("请求id不能为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请求id不能为空");
         }
         //获取用户联系信息
         ContactRequest contactRequest = getById(requestId);
         if (contactRequest == null) {
-            throw new RuntimeException("请求不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "请求不存在");
         }
         //获取用户id
         String to_user_id = contactRequest.getToUserId();

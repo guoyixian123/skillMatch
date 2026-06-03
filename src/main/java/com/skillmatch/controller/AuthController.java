@@ -4,6 +4,7 @@ import com.skillmatch.context.UserContext;
 import com.skillmatch.domain.dto.RegisterAndLoginDTO;
 import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.service.IAuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +21,7 @@ public class AuthController {
      * 用户注册
      */
     @PostMapping("/register")
-    public RESTful<Object> register(@RequestBody RegisterAndLoginDTO register) {
+    public RESTful<Object> register(@Valid @RequestBody RegisterAndLoginDTO register) {
         log.info("用户注册: {}", register);
         Map<String, Object> map = IAuthService.register(register);
         return RESTful.success(map);
@@ -30,7 +31,7 @@ public class AuthController {
      * 用户登录
      */
     @PostMapping("/login")
-    public RESTful<Object> login(@RequestBody RegisterAndLoginDTO login) {
+    public RESTful<Object> login(@Valid @RequestBody RegisterAndLoginDTO login) {
         log.info("用户登录: {}", login);
         Map<String, Object> map = IAuthService.login(login);
         return RESTful.success(map);

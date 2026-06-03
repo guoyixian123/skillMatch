@@ -6,6 +6,7 @@ import com.skillmatch.domain.dto.UserSkillListDTO;
 import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.domain.vo.SkillVO;
 import com.skillmatch.service.IUserSkillService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +38,7 @@ public class UserSkillController {
      * 添加用户技能
      */
     @PostMapping("/skills")
-    public RESTful<Object> addUserSkills(@RequestBody UserSkillDTO skill) {
+    public RESTful<Object> addUserSkills(@Valid @RequestBody UserSkillDTO skill) {
         log.info("添加用户技能信息:{}", skill);
         userSkillService.addUserSkills(skill);
         return RESTful.success(null, "添加成功");
@@ -55,7 +56,7 @@ public class UserSkillController {
      * 批量修改用户技能
      */
     @PutMapping("/skills")
-    public RESTful<Object> updateUserSkills(@RequestBody UserSkillListDTO  skills) {
+    public RESTful<Object> updateUserSkills(@Valid @RequestBody UserSkillListDTO  skills) {
         log.info("批量修改用户技能信息:{}", skills);
         userSkillService.updateUserSkillList(skills);
         return RESTful.success(null, "保存成功");

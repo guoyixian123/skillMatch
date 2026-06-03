@@ -1,7 +1,7 @@
 <template>
-  <div class="page-container" v-loading="loading">
+  <div class="page-container">
     <button class="brutal-btn outline small" @click="$router.back()" style="margin-bottom:16px;">
-      <el-icon><ArrowLeft /></el-icon> 返回
+      <i class="pi pi-arrow-left"></i> 返回
     </button>
 
     <template v-if="profile">
@@ -9,10 +9,7 @@
       <div class="brutal-card" style="padding:0;overflow:hidden;">
         <div class="profile-cover pop-stripes"></div>
         <div class="profile-top">
-          <img
-            :src="profile.avatarUrl || getDefaultAvatar(profile.userId || profile.name)"
-            class="brutal-avatar xl profile-avatar"
-          />
+          <img :src="profile.avatarUrl || getDefaultAvatar(profile.userId || profile.name)" class="brutal-avatar xl profile-avatar" />
           <div>
             <h1 class="profile-name">{{ profile.name }}</h1>
             <div class="profile-stats">
@@ -21,492 +18,186 @@
             </div>
           </div>
           <div style="margin-left:auto;display:flex;gap:8px;">
-            <button
-              class="brutal-btn small like-profile-btn"
-              :class="{ liked: profileLiked }"
-              @click="handleLikeProfile"
-              :disabled="liking"
-            >
-              <svg class="lp-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  :fill="profileLiked ? '#FF6B6B' : 'none'"
-                  :stroke="profileLiked ? '#1A1A1A' : '#888'"
-                  stroke-width="2.5"
-                />
-              </svg>
+            <button v-if="!isOwnProfile" class="brutal-btn small like-profile-btn" :class="{ liked: profileLiked }" @click="handleLikeProfile" :disabled="liking">
+              <svg class="lp-icon" width="18" height="18" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" :fill="profileLiked ? '#FF6B6B' : 'none'" :stroke="profileLiked ? '#1A1A1A' : '#888'" stroke-width="2.5"/></svg>
               <span>{{ profileLiked ? '已赞' : '点赞' }}</span>
             </button>
-            <button v-if="isFriend" class="brutal-btn primary small" @click="$router.push(`/chat/${userId}`)">
-              <el-icon><ChatDotRound /></el-icon> 发消息
-            </button>
-            <button v-else class="brutal-btn primary small" @click="showSendRequest = true">
-              <el-icon><ChatDotRound /></el-icon> 发起交换
-            </button>
+            <button v-if="isFriend" class="brutal-btn primary small" @click="$router.push(`/chat/${userId}`)"><i class="pi pi-comment"></i> 发消息</button>
+            <button v-else-if="!isOwnProfile" class="brutal-btn primary small" @click="showSendRequest = true"><i class="pi pi-send"></i> 发起交换</button>
           </div>
         </div>
       </div>
 
       <!-- Bio -->
-      <div class="brutal-card accent-yellow" style="margin-top:16px;" v-if="profile.signature || profile.bio">
-        <div v-if="profile.signature" class="signature">"{{ profile.signature }}"</div>
-        <div v-if="profile.bio" class="bio-text">{{ profile.bio }}</div>
+      <div class="brutal-card accent-yellow" style="margin-top:20px;" v-if="profile.signature || profile.bio">
+        <div v-if="profile.signature" class="profile-signature">"{{ profile.signature }}"</div>
+        <div v-if="profile.bio" class="profile-bio">{{ profile.bio }}</div>
       </div>
 
       <!-- Contact (only if exchange accepted) -->
-      <div v-if="profile.contactInfo" class="brutal-card accent-green" style="margin-top:16px;">
+      <div v-if="profile.contactInfo" class="brutal-card accent-green" style="margin-top:20px;">
         <div class="section-title"><span class="dot" style="background:var(--color-green)"></span> 联系方式</div>
-        <div style="font-weight:700;">{{ profile.contactInfo }}</div>
+        <div style="font-size:15px;font-weight:700;">{{ profile.contactInfo }}</div>
       </div>
 
       <!-- Skills -->
-      <div class="brutal-grid-2" style="margin-top:16px;">
+      <div class="brutal-grid-2" style="margin-top:20px;">
         <div class="brutal-card accent-cyan">
-          <div class="section-title">
-            <span class="dot" style="background:var(--color-cyan)"></span> 我会的
-          </div>
+          <div class="section-title"><span class="dot" style="background:var(--color-cyan)"></span> 我会的</div>
           <div class="flex-wrap">
             <span v-for="s in profile.canSkills" :key="s" class="brutal-tag can">{{ s }}</span>
-            <span v-if="!profile.canSkills?.length" style="color:#888;">暂无</span>
+            <span v-if="!profile.canSkills?.length" style="color:#888;font-size:13px;">暂无</span>
           </div>
         </div>
         <div class="brutal-card accent-pink">
-          <div class="section-title">
-            <span class="dot" style="background:var(--color-pink)"></span> 想学的
-          </div>
+          <div class="section-title"><span class="dot" style="background:var(--color-pink)"></span> 想学的</div>
           <div class="flex-wrap">
             <span v-for="s in profile.wantSkills" :key="s" class="brutal-tag want">{{ s }}</span>
-            <span v-if="!profile.wantSkills?.length" style="color:#888;">暂无</span>
+            <span v-if="!profile.wantSkills?.length" style="color:#888;font-size:13px;">暂无</span>
           </div>
         </div>
       </div>
 
       <!-- Hobbies -->
-      <div class="brutal-card accent-purple" style="margin-top:16px;" v-if="profile.hobbies?.length">
-        <div class="section-title"><span class="dot" style="background:var(--color-purple)"></span> 兴趣爱好</div>
+      <div class="brutal-card" style="margin-top:20px;" v-if="profile.hobbies?.length">
+        <div class="section-title"><span class="dot" style="background:var(--color-yellow)"></span> 兴趣爱好</div>
         <div class="flex-wrap">
-          <span v-for="h in profile.hobbies" :key="h.id" class="brutal-tag hobby" style="font-size:15px;padding:6px 16px;">
-            {{ h.icon }} {{ h.hobbyName }}
-          </span>
+          <span v-for="h in profile.hobbies" :key="h" class="brutal-tag hobby">{{ h }}</span>
         </div>
       </div>
 
       <!-- Gallery -->
-      <div class="brutal-card" style="margin-top:16px;" v-if="profile.gallery?.length">
-        <div class="section-title"><span class="dot" style="background:var(--color-yellow)"></span> 相册</div>
-        <div class="brutal-grid-3">
-          <img v-for="(url, i) in profile.gallery" :key="i" :src="url" class="gallery-img" />
+      <div class="brutal-card" style="margin-top:20px;" v-if="profile.gallery?.length">
+        <div class="section-title"><span class="dot" style="background:var(--color-purple)"></span> 相册</div>
+        <div class="brutal-grid-3" style="gap:12px;">
+          <img v-for="img in profile.gallery" :key="img.id || img" :src="img.imageUrl || img" class="gallery-img" />
         </div>
       </div>
 
       <!-- Posts -->
-      <div class="brutal-card accent-blue" style="margin-top:16px;" v-if="posts.length">
-        <div class="section-title"><span class="dot" style="background:var(--color-blue)"></span> Ta 的帖子</div>
+      <div class="brutal-card accent-blue" style="margin-top:20px;" v-if="profile.posts?.length">
+        <div class="section-title"><span class="dot" style="background:var(--color-blue)"></span> 他的帖子</div>
         <div class="post-list">
-          <div
-            v-for="post in posts"
-            :key="post.id"
-            class="post-item"
-            @click="$router.push(`/community/${post.id}`)"
-          >
-            <h3 class="post-item-title">{{ post.title }}</h3>
-            <p class="post-item-body">{{ post.body?.slice(0, 100) }}{{ post.body?.length > 100 ? '...' : '' }}</p>
-            <div class="post-item-tags flex-wrap" v-if="post.tags?.length">
-              <span v-for="tag in post.tags" :key="tag" class="brutal-tag">{{ tag }}</span>
-            </div>
-            <div class="post-item-meta">
-              <button
-                class="card-like-btn"
-                :class="{ liked: post.isLiked, animating: post._animating }"
-                @click.stop="handlePostLike(post)"
-              >
-                <span class="like-icon-wrap">
-                  <el-icon :size="14" :color="post.isLiked ? '#FFE4B5' : ''"><StarFilled v-if="post.isLiked" /><Star v-else /></el-icon>
-                  <span v-if="post._showPlus" class="float-plus">+1</span>
-                </span>
-                <span class="like-count">{{ formatCount(post.likeCount) }}</span>
-              </button>
-              <span class="comment-meta">
-                <el-icon><ChatDotRound /></el-icon> {{ post.commentCount || 0 }}
-              </span>
-              <span class="post-item-time">{{ formatTime(post.createdAt) }}</span>
-            </div>
+          <div v-for="post in profile.posts" :key="post.id" class="post-item" @click="$router.push(`/community/${post.id}`)">
+            <h3>{{ post.title }}</h3>
+            <p>{{ post.body?.slice(0, 80) }}{{ post.body?.length > 80 ? '...' : '' }}</p>
+            <div style="color:#888;font-size:12px;margin-top:4px;"><i class="pi pi-star"></i> {{ post.likeCount || 0 }} · <i class="pi pi-comments"></i> {{ post.commentCount || 0 }}</div>
           </div>
-        </div>
-      </div>
-
-      <!-- Activities -->
-      <div class="brutal-card" style="margin-top:16px;" v-if="profile.activities?.length">
-        <div class="section-title"><span class="dot" style="background:var(--color-blue)"></span> 最近动态</div>
-        <div v-for="(act, idx) in profile.activities" :key="idx" class="activity-item">
-          <span class="activity-type">{{ act.type }}</span>
-          <span class="activity-content">{{ act.content }}</span>
-          <span class="activity-time">{{ formatTime(act.createdAt) }}</span>
         </div>
       </div>
     </template>
 
+    <!-- 无数据 -->
+    <div v-else-if="!loading" class="empty-block">
+      <div class="icon"><i class="pi pi-user" style="font-size:48px;"></i></div>
+      <div style="font-weight:800;font-size:18px;">用户不存在</div>
+    </div>
+
     <!-- Send Request Dialog -->
-    <el-dialog v-model="showSendRequest" title="发起技能交换请求" width="420px">
-      <el-form @submit.prevent="handleSendRequest">
-        <el-form-item label="交换理由">
-          <el-input
-            v-model="requestReason"
-            type="textarea"
-            :rows="3"
-            placeholder="你好，想和你交流一下..."
-            maxlength="150"
-            show-word-limit
-          />
-        </el-form-item>
-        <button
-          type="submit"
-          class="brutal-btn primary"
-          style="width:100%;justify-content:center;"
-          :disabled="sending"
-        >
-          {{ sending ? '发送中...' : '发送请求' }}
-        </button>
-      </el-form>
-    </el-dialog>
+    <Dialog v-model:visible="showSendRequest" header="发起技能交换请求" :modal="true" :style="{ width: '420px' }">
+      <div class="request-form">
+        <label class="field-label">交换理由</label>
+        <textarea v-model="requestReason" class="brutal-input" rows="3" placeholder="你好，想和你交流一下..." maxlength="150"></textarea>
+        <div class="field-count">{{ requestReason.length }}/150</div>
+        <button class="brutal-btn primary" style="width:100%;justify-content:center;margin-top:12px;" @click="handleSendRequest">发送请求</button>
+      </div>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useToast } from 'primevue/usetoast'
+import Dialog from 'primevue/dialog'
+import { useAuthStore } from '@/stores/auth'
 import { getDefaultAvatar } from '@/utils/avatar'
-import { ElMessage } from 'element-plus'
-import { ArrowLeft, ChatDotRound, Star, StarFilled } from '@element-plus/icons-vue'
-import { getUserProfile } from '@/api/matching'
+import { getUserProfile, getUserCard } from '@/api/matching'
 import { createRequest } from '@/api/notification'
-import { likeProfile, unlikeProfile } from '@/api/user'
-import { getPosts, togglePostLike, unlikePost } from '@/api/community'
 import { getFriends } from '@/api/friend'
 
 const route = useRoute()
-const userId = computed(() => route.params.userId)
+const router = useRouter()
+const toast = useToast()
+const authStore = useAuthStore()
 
+const userId = route.params.userId
 const loading = ref(true)
 const profile = ref(null)
-const liking = ref(false)
 const profileLiked = ref(false)
-const posts = ref([])
-
+const liking = ref(false)
 const isFriend = ref(false)
 const showSendRequest = ref(false)
 const requestReason = ref('')
-const sending = ref(false)
 
-function formatTime(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  const now = new Date()
-  const diff = now - d
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
-  return d.toLocaleDateString('zh-CN')
-}
+const isOwnProfile = computed(() => String(authStore.user?.userId) === String(userId))
 
-function formatCount(n) {
-  if (!n) return '0'
-  return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n)
-}
-
-async function handlePostLike(post) {
-  const wasLiked = post.isLiked
-  if (!wasLiked) {
-    post._animating = true
-    post._showPlus = true
-    setTimeout(() => { post._animating = false }, 500)
-    setTimeout(() => { post._showPlus = false }, 800)
-  }
-  post.isLiked = !wasLiked
-  post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? -1 : 1))
+async function loadProfile() {
+  loading.value = true
   try {
-    if (wasLiked) {
-      await unlikePost(post.id)
-    } else {
-      const res = await togglePostLike(post.id)
-      post.likeCount = res.data?.likeCount ?? post.likeCount
-    }
-  } catch {
-    post.isLiked = wasLiked
-    post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? 1 : -1))
-  }
+    const res = await getUserProfile(userId)
+    profile.value = res.data
+    profileLiked.value = res.data?.isLiked || false
+
+    // 检查是否为好友
+    try {
+      const friendsRes = await getFriends()
+      const list = Array.isArray(friendsRes.data) ? friendsRes.data : []
+      isFriend.value = list.some(f => String(f.userId) === String(userId))
+    } catch { /* ignore */ }
+  } catch { profile.value = null } finally { loading.value = false }
 }
-
-onMounted(async () => {
-  try {
-    const [profileRes, postsRes] = await Promise.all([
-      getUserProfile(userId.value),
-      getPosts({ authorId: userId.value, page: 1, size: 10 }),
-    ])
-    profile.value = profileRes.data
-    profileLiked.value = profileRes.data?.isLiked ?? false
-    isFriend.value = profileRes.data?.isFriend ?? false
-    posts.value = postsRes.data?.list || []
-
-    // Fallback: check friends list if backend doesn't return isFriend
-    if (!isFriend.value) {
-      try {
-        const friendsRes = await getFriends()
-        const list = Array.isArray(friendsRes.data) ? friendsRes.data : []
-        isFriend.value = list.some(f => f.userId === userId.value)
-      } catch { /* ignore */ }
-    }
-  } catch { /* handled */ } finally {
-    loading.value = false
-  }
-})
 
 async function handleLikeProfile() {
-  if (!profile.value) return
-  const wasLiked = profileLiked.value
-
+  if (liking.value) return
   liking.value = true
-
-  // optimistic update
+  const wasLiked = profileLiked.value
   profileLiked.value = !wasLiked
-  profile.value.likeCount = Math.max(0, (profile.value.likeCount || 0) + (wasLiked ? -1 : 1))
-
   try {
-    if (wasLiked) {
-      const res = await unlikeProfile(userId.value)
-      ElMessage.success(res.message || '已取消点赞')
-    } else {
-      const res = await likeProfile(userId.value)
-      ElMessage.success(res.message || '点赞成功')
-    }
+    const { likeProfile, unlikeProfile } = await import('@/api/user')
+    if (wasLiked) await unlikeProfile(userId)
+    else await likeProfile(userId)
+    toast.add({ severity: 'success', summary: '成功', detail: wasLiked ? '已取消点赞' : '点赞成功', life: 3000 })
   } catch {
-    // rollback
     profileLiked.value = wasLiked
-    profile.value.likeCount = Math.max(0, (profile.value.likeCount || 0) + (wasLiked ? 1 : -1))
-    ElMessage.warning('操作失败，请重试')
-  } finally {
-    liking.value = false
-  }
+    toast.add({ severity: 'warn', summary: '提示', detail: '操作失败，请重试', life: 3000 })
+  } finally { liking.value = false }
 }
 
 async function handleSendRequest() {
   if (!requestReason.value.trim()) {
-    ElMessage.warning('请输入交换理由')
+    toast.add({ severity: 'warn', summary: '提示', detail: '请输入交换理由', life: 3000 })
     return
   }
-  sending.value = true
   try {
-    const res = await createRequest({ toUserId: String(userId.value), reason: requestReason.value.trim() })
-    ElMessage.success(res.message || '交换请求已发送')
+    const res = await createRequest({ toUserId: userId, reason: requestReason.value })
+    toast.add({ severity: 'success', summary: '成功', detail: res.message || '交换请求已发送', life: 3000 })
     showSendRequest.value = false
-  } catch { /* handled */ } finally {
-    sending.value = false
-  }
+    requestReason.value = ''
+  } catch { /* handled */ }
 }
+
+onMounted(loadProfile)
 </script>
 
 <style scoped>
-.profile-cover { height: 100px; }
-.profile-top {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  padding: 0 24px 20px;
-  margin-top: -48px;
-}
+.profile-cover { height: 140px; background-color: #f0f0f0; }
+.profile-top { display: flex; align-items: flex-end; gap: 16px; padding: 0 24px 20px; margin-top: -48px; }
 .profile-avatar { flex-shrink: 0; background: #fff; }
 .profile-name { font-size: 24px; font-weight: 900; }
-.profile-stats {
-  display: flex;
-  gap: 16px;
-  font-size: 13px;
-  color: #888;
-  margin-top: 4px;
-}
-.profile-stats strong { color: #1A1A1A; }
-.signature {
-  font-size: 16px;
-  font-weight: 700;
-  font-style: italic;
-  margin-bottom: 8px;
-}
-.bio-text {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.7;
-}
-.gallery-img {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border: 2px solid #1A1A1A;
-}
+.profile-stats { display: flex; gap: 16px; margin-top: 4px; font-size: 13px; color: #888; }
+.profile-signature { font-size: 16px; font-weight: 700; font-style: italic; margin-bottom: 8px; }
+.profile-bio { font-size: 14px; color: #555; line-height: 1.7; }
 
-.activity-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
-}
-.activity-type {
-  padding: 2px 8px;
-  border: 1px solid #ccc;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  flex-shrink: 0;
-}
-.activity-content { flex: 1; font-size: 13px; }
-.activity-time { font-size: 12px; color: #aaa; flex-shrink: 0; }
+.gallery-img { width: 100%; aspect-ratio: 1; object-fit: cover; border: 2px solid #1A1A1A; }
+.post-list { display: flex; flex-direction: column; gap: 10px; }
+.post-item { padding: 12px; border: 2px solid #eee; cursor: pointer; }
+.post-item:hover { border-color: var(--color-blue); }
 
-/* Like profile button */
-.like-profile-btn {
-  transition: all 0.2s ease;
-}
-.like-profile-btn.liked {
-  background: #FF6B6B;
-  border-color: #1A1A1A;
-  color: #fff;
-}
-.like-profile-btn .lp-icon {
-  display: inline-block;
-  vertical-align: middle;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.like-profile-btn:not(:disabled):active .lp-icon {
-  transform: scale(1.3);
-}
-.like-profile-btn.liked .lp-icon {
-  filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.15));
-}
+.like-profile-btn.liked { background: var(--color-pink); color: #fff; }
+.like-profile-btn.liked .lp-icon path { fill: #FF6B6B; stroke: #fff; }
 
-/* Post list */
-.post-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.post-item {
-  padding: 14px 16px;
-  border: 2px solid #eee;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-.post-item:hover {
-  border-color: var(--color-blue);
-  background: #f8f9ff;
-}
-.post-item-title {
-  font-size: 16px;
-  font-weight: 800;
-  margin-bottom: 6px;
-}
-.post-item-body {
-  font-size: 13px;
-  color: #666;
-  line-height: 1.6;
-  margin-bottom: 8px;
-}
-.post-item-tags {
-  margin-bottom: 8px;
-}
-.post-item-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 12px;
-  color: #aaa;
-}
-.post-item-time {
-  margin-left: auto;
-}
-.comment-meta {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-weight: 700;
-  color: #888;
-}
-.card-like-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border: 1.5px solid #ddd;
-  border-radius: 99px;
-  background: #fafafa;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: #888;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-  overflow: visible;
-}
-.card-like-btn:hover {
-  border-color: #FFD700;
-  background: #FFFBE6;
-  color: #E6A800;
-  transform: translateY(-1px);
-}
-.card-like-btn:active {
-  transform: scale(0.94);
-}
-.card-like-btn.liked {
-  border-color: #1A1A1A;
-  background: linear-gradient(135deg, #F5A623, #FFD700);
-  color: #fff;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.15), 0 0 12px rgba(245,166,35,0.3);
-}
-.card-like-btn.liked:hover {
-  background: linear-gradient(135deg, #FFB830, #FFE44D);
-  border-color: #1A1A1A;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.2), 0 0 16px rgba(245,166,35,0.45);
-}
-.card-like-btn.liked .el-icon {
-  color: #FFE4B5;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
-}
-.like-icon-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.like-count {
-  font-weight: 900;
-  min-width: 16px;
-  text-align: center;
-}
-
-/* Bounce animation */
-.card-like-btn.animating .like-icon-wrap {
-  animation: likeBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes likeBounce {
-  0%   { transform: scale(1); }
-  20%  { transform: scale(1.5); }
-  40%  { transform: scale(0.75); }
-  60%  { transform: scale(1.2); }
-  80%  { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-
-/* +1 float */
-.float-plus {
-  position: absolute;
-  top: -8px;
-  right: -14px;
-  font-size: 11px;
-  font-weight: 900;
-  color: #FFD700;
-  pointer-events: none;
-  animation: floatUp 0.8s ease-out forwards;
-  text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
-}
-@keyframes floatUp {
-  0%   { opacity: 1; transform: translateY(0) scale(1); }
-  40%  { opacity: 1; transform: translateY(-14px) scale(1.25); }
-  100% { opacity: 0; transform: translateY(-24px) scale(0.7); }
-}
+.request-form { display: flex; flex-direction: column; gap: 8px; }
+.field-label { font-size: 13px; font-weight: 700; text-transform: uppercase; }
+.field-count { text-align: right; font-size: 12px; color: #aaa; }
 </style>

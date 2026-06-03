@@ -143,8 +143,16 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
 
     @Override
     public void removeUserSkillById(String skillId) {
+        //获取用户id
+        String userId = UserContext.getUserId();
+        //获取技能
+        UserSkill skill = getById(skillId);
         if(skillId==null){
             throw new BusinessException(ErrorCode.PARAM_ERROR);
+        }
+        //判断是否是自己的技能,所有权校验
+        if (!skill.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.NOT_AUTH, "无权操作");
         }
         boolean b = removeById(skillId);
         if (!b) {

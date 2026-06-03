@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static com.skillmatch.constants.RedisConstant.LOGIN_TOKEN_KEY;
+import static com.skillmatch.constants.FinalConstant.AUTH_EXPIRE;
 
 @Slf4j
 @Service
@@ -34,8 +35,9 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
     @Override
     public Map<String, Object> register(RegisterAndLoginDTO register) {
         //注册信息不能为空
-        if(register == null){
-           throw new BusinessException( ErrorCode.PARAM_ERROR,"用户信息不能为空");
+        if (register == null || register.getUserId() == null || register.getUserId().isBlank() || register.getPassword() == null || register.getPassword().isBlank())
+        {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "账号和密码不能为空");
         }
         //判断账号是否重复
         Long count = lambdaQuery()
@@ -79,6 +81,10 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         if(one == null){
             throw  new BusinessException(ErrorCode.PARAM_ERROR,"用户名或密码错误");
         }
+        // 检查账号是否被冻结
+        if (one.getStatus() != null && one.getStatus() == 2) {
+            throw new BusinessException(ErrorCode.NOT_AUTH, "账号已被冻结");
+        }
         //设置最后登录时间
         lambdaUpdate()
                 .eq(User::getUserId, login.getUserId())
@@ -96,14 +102,13 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         //生成TOKEN
         String token = JwtUtil.createToken(user.getUserId(), user.getName());
         //保存token到redis中,7天有效
-        redisTemplate.opsForValue().set(LOGIN_TOKEN_KEY+user.getUserId(), token, 7, TimeUnit.DAYS);
+        redisTemplate.opsForValue().set(LOGIN_TOKEN_KEY+user.getUserId(), token, AUTH_EXPIRE, TimeUnit.DAYS);
         //封装返回信息
         Map<String, Object> map = new HashMap<>();
         map.put("token", token);
         Map<String, String> mapInfo = new HashMap<>();
         mapInfo.put("userId", user.getUserId());
         mapInfo.put("name", user.getName());
-        //TODO:封装头像信息(y)
         mapInfo.put("avatarUrl", user.getAvatarUrl());
         map.put("user", mapInfo);
         return map;
@@ -129,7 +134,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         String name = info.get("name");
         //生成新的token
         String s1= JwtUtil.createToken(id, name);
-        redisTemplate.opsForValue().set(LOGIN_TOKEN_KEY+userId, s1, 1, TimeUnit.DAYS);
+        redisTemplate.opsForValue().set(LOGIN_TOKEN_KEY+userId, s1, AUTH_EXPIRE, TimeUnit.DAYS);
         return s1;
     }
     /*

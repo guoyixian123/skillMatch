@@ -2,7 +2,7 @@
   <div class="page-container">
     <header class="page-header">
       <button class="brutal-btn outline small" @click="$router.back()" style="margin-bottom:12px;">
-        <el-icon><ArrowLeft /></el-icon> 返回
+        <i class="pi pi-arrow-left"></i> 返回
       </button>
       <h1 class="page-title">兴趣爱好</h1>
       <p class="page-subtitle">从标签池中选取你的兴趣爱好</p>
@@ -13,12 +13,7 @@
       <div class="selected-label">已选 {{ hobbies.length }} 个</div>
       <div class="selected-tags">
         <TransitionGroup name="tag">
-          <span
-            v-for="hobby in hobbies"
-            :key="hobby.id"
-            class="selected-tag"
-            @click="handleRemove(hobby)"
-          >
+          <span v-for="hobby in hobbies" :key="hobby.id" class="selected-tag" @click="handleRemove(hobby)">
             {{ hobby.icon }} {{ hobby.hobbyName }}
             <span class="tag-x">&times;</span>
           </span>
@@ -28,31 +23,19 @@
     </div>
 
     <!-- Tag Pool -->
-    <div v-if="loading" class="loading-block">
-      <el-icon class="is-loading"><Loading /></el-icon> 加载中...
-    </div>
-
-    <div v-else class="pool-section">
-      <div v-for="(tags, category) in tagPool" :key="category" class="pool-group">
-        <div class="pool-cat">
-          <span class="pool-cat-icon">{{ catIcon(category) }}</span>
-          {{ category }}
-        </div>
-        <div class="pool-grid">
-          <button
-            v-for="tag in tags"
-            :key="tag.name"
-            class="pool-chip"
-            :class="{ picked: isHobbySelected(tag.name) }"
-            @click="handleToggle(tag)"
-          >
-            <span class="chip-icon">{{ tag.icon }}</span>
-            <span class="chip-name">{{ tag.name }}</span>
-            <span class="chip-check" v-if="isHobbySelected(tag.name)">
-              <el-icon><Check /></el-icon>
-            </span>
-          </button>
-        </div>
+    <div v-for="(items, cat) in tagPool" :key="cat" class="tag-category">
+      <div class="cat-title">{{ catIcons[cat] || '' }} {{ cat }}</div>
+      <div class="flex-wrap">
+        <span
+          v-for="item in items"
+          :key="item.id"
+          class="pool-chip"
+          :class="{ picked: isPicked(item.id) }"
+          @click="handleToggle(item)"
+        >
+          {{ item.icon }} {{ item.hobbyName || item.name }}
+          <i v-if="isPicked(item.id)" class="pi pi-check" style="font-size:10px;margin-left:4px;"></i>
+        </span>
       </div>
     </div>
   </div>
@@ -61,171 +44,85 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
-import { ElMessage } from 'element-plus'
-import { ArrowLeft, Loading, Check } from '@element-plus/icons-vue'
+import { useToast } from 'primevue/usetoast'
 import { getHobbyTags } from '@/api/tags'
 
 const userStore = useUserStore()
-const hobbies = computed(() => userStore.hobbies)
-
-const loading = ref(true)
+const toast = useToast()
 const tagPool = ref({})
 
 const catIcons = {
-  '运动': '🏃', '艺术': '🎨', '音乐': '🎵',
-  '科技': '🔬', '生活': '☕', '学术': '📖',
+  '运动': '⚽', '艺术': '🎨', '音乐': '🎵', '科技': '🔬', '生活': '🌟', '学术': '📚',
 }
 
-function catIcon(cat) { return catIcons[cat] || '📂' }
+const hobbies = computed(() => userStore.hobbies || [])
 
-function isHobbySelected(name) {
-  return hobbies.value.some(h => h.hobbyName === name)
+function isPicked(id) {
+  return hobbies.value.some(h => String(h.id) === String(id))
 }
 
-async function handleToggle(tag) {
-  if (isHobbySelected(tag.name)) {
-    const hobby = hobbies.value.find(h => h.hobbyName === tag.name)
-    if (hobby) {
-      try {
-        const res = await userStore.doDeleteHobby(hobby.id)
-        ElMessage.success(res.message || '已移除')
-      } catch { /* handled */ }
-    }
+async function handleToggle(item) {
+  if (isPicked(item.id)) {
+    handleRemove({ id: item.id })
   } else {
     try {
-      const res = await userStore.doAddHobby({ hobbyName: tag.name, icon: tag.icon })
-      ElMessage.success(res.message || '添加成功')
+      await userStore.doAddHobby(item.id)
+      toast.add({ severity: 'success', summary: '成功', detail: '添加成功', life: 2000 })
     } catch { /* handled */ }
   }
 }
 
 async function handleRemove(hobby) {
   try {
-    const res = await userStore.doDeleteHobby(hobby.id)
-    ElMessage.success(res.message || '已移除')
+    await userStore.doDeleteHobby(hobby.id)
+    toast.add({ severity: 'success', summary: '成功', detail: '已移除', life: 2000 })
   } catch { /* handled */ }
 }
 
 onMounted(async () => {
+  await userStore.fetchHobbies()
   try {
-    const [tagsRes] = await Promise.all([getHobbyTags(), userStore.fetchHobbies()])
-    tagPool.value = tagsRes.data || {}
-  } catch { /* handled */ } finally {
-    loading.value = false
-  }
+    const res = await getHobbyTags()
+    const data = res.data || {}
+    if (Array.isArray(data)) {
+      const pool = {}
+      data.forEach(tag => {
+        const cat = tag.category || '生活'
+        if (!pool[cat]) pool[cat] = []
+        pool[cat].push(tag)
+      })
+      tagPool.value = pool
+    } else {
+      tagPool.value = data
+    }
+  } catch { /* handled */ }
 })
 </script>
 
 <style scoped>
-/* ===== Selected Area ===== */
 .selected-area {
-  padding: 16px 20px;
-  border: 2px solid #1A1A1A;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  min-height: 80px;
-  background: linear-gradient(135deg, #FFF8E1, #fff);
-  border-color: var(--color-yellow);
+  padding: 16px; border: 2px dashed #ccc; margin-bottom: 20px; min-height: 60px;
 }
-.selected-label {
-  font-size: 12px;
-  font-weight: 800;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
-}
-.selected-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+.selected-label { font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+.selected-tags { display: flex; flex-wrap: wrap; gap: 8px; }
 .selected-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
-  border: 2px solid #1A1A1A;
-  border-radius: 8px;
-  background: var(--color-yellow);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  user-select: none;
+  padding: 6px 12px; border: 2px solid #1A1A1A; font-weight: 700; font-size: 13px;
+  background: var(--color-yellow); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
 }
-.selected-tag:hover { transform: scale(0.95); opacity: 0.8; }
-.tag-x { font-size: 16px; font-weight: 900; line-height: 1; }
-.empty-hint { font-size: 13px; color: #aaa; font-weight: 600; }
+.tag-x { font-size: 14px; opacity: 0.5; }
+.empty-hint { color: #aaa; font-size: 13px; }
+
+.tag-category { margin-bottom: 20px; }
+.cat-title { font-weight: 900; font-size: 15px; margin-bottom: 10px; }
+.pool-chip {
+  padding: 6px 14px; border: 2px solid #ddd; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center;
+}
+.pool-chip:hover { border-color: #1A1A1A; }
+.pool-chip.picked { border-color: #1A1A1A; background: var(--color-yellow); }
 
 /* TransitionGroup */
-.tag-enter-active { transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.tag-leave-active { transition: all 0.2s ease; }
-.tag-enter-from { opacity: 0; transform: scale(0.6); }
-.tag-leave-to { opacity: 0; transform: scale(0.6); }
-
-/* ===== Tag Pool ===== */
-.pool-section { display: flex; flex-direction: column; gap: 16px; }
-.pool-group {
-  padding: 16px 20px;
-  border: 2px solid #eee;
-  border-radius: 12px;
-  background: #fafafa;
-}
-.pool-cat {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 800;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 12px;
-}
-.pool-cat-icon { font-size: 16px; }
-.pool-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.pool-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 2px solid #ddd;
-  border-radius: 10px;
-  background: #fff;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  color: #444;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  user-select: none;
-  position: relative;
-}
-.pool-chip:hover {
-  border-color: #1A1A1A;
-  transform: translateY(-2px);
-  box-shadow: 3px 3px 0 rgba(0,0,0,0.08);
-}
-.pool-chip:active { transform: scale(0.95); }
-.pool-chip.picked {
-  background: linear-gradient(135deg, #FFF8E1, #FFD700);
-  border-color: #1A1A1A;
-  color: #1A1A1A;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.12);
-}
-.chip-icon { font-size: 18px; }
-.chip-name { line-height: 1; }
-.chip-check {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 2px;
-  color: #16a34a;
-  font-size: 14px;
-  font-weight: 900;
-}
+.tag-enter-active, .tag-leave-active { transition: all 0.2s ease; }
+.tag-enter-from { opacity: 0; transform: scale(0.8); }
+.tag-leave-to { opacity: 0; transform: scale(0.8); }
 </style>

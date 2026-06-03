@@ -34,7 +34,9 @@ public class PageVO<T> {
 
         vo.setTotal(page.getTotal());
 
-        vo.setPage((int)page.getCurrent());
+        vo.setPage((int) page.getCurrent());
+
+        vo.setSize((int) page.getSize());
 
         vo.setList(list);
 

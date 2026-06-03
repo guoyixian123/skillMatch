@@ -15,7 +15,6 @@ public class GlobalExceptionHandler{
      */
     @ExceptionHandler(BusinessException.class)
     public RESTful<Object> handleException(BusinessException b) {
-
         return RESTful.error(
                 b.getCode(),
                 b.getMessage()
