@@ -15,6 +15,10 @@
           <span class="material-symbols-outlined">group</span>
           <span>用户管理</span>
         </router-link>
+        <router-link to="/tags" class="nav-item" active-class="nav-active">
+          <span class="material-symbols-outlined">label</span>
+          <span>标签管理</span>
+        </router-link>
         <router-link to="/admins" class="nav-item" active-class="nav-active">
           <span class="material-symbols-outlined">shield_person</span>
           <span>管理员</span>

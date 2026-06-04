@@ -21,6 +21,16 @@ export function removeAdmin(id)        { return request.delete(`/admin/admins/${
 export function getSkillTags() { return request.get('/tags/skills') }
 export function getHobbyTags() { return request.get('/tags/hobbies') }
 
+// ===== 标签管理 =====
+export function listSkillTags()          { return request.get('/admin/tags/skills') }
+export function createSkillTag(data)     { return request.post('/admin/tags/skills', data) }
+export function updateSkillTag(id, data) { return request.put(`/admin/tags/skills/${id}`, data) }
+export function deleteSkillTag(id)       { return request.delete(`/admin/tags/skills/${id}`) }
+export function listHobbyTags()          { return request.get('/admin/tags/hobbies') }
+export function createHobbyTag(data)     { return request.post('/admin/tags/hobbies', data) }
+export function updateHobbyTag(id, data) { return request.put(`/admin/tags/hobbies/${id}`, data) }
+export function deleteHobbyTag(id)       { return request.delete(`/admin/tags/hobbies/${id}`) }
+
 // 头像上传
 export function uploadAvatar(file) {
   const fd = new FormData(); fd.append('avatarUrl', file)

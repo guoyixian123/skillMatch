@@ -30,6 +30,12 @@ const routes = [
     component: () => import('@/views/AdminManageView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/tags',
+    name: 'Tags',
+    component: () => import('@/views/TagManagerView.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 
 const router = createRouter({
