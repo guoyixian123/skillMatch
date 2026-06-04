@@ -8,44 +8,58 @@
 
       <div class="nav-links">
         <router-link to="/discover" class="nav-link" active-class="active">
-          <i class="pi pi-compass"></i>
+          <el-icon><Compass /></el-icon>
           <span>发现</span>
         </router-link>
         <router-link to="/community" class="nav-link" active-class="active">
-          <i class="pi pi-comments"></i>
+          <el-icon><ChatDotRound /></el-icon>
           <span>社区</span>
         </router-link>
         <router-link to="/friends" class="nav-link" active-class="active">
-          <span class="nav-icon-with-badge">
-            <i class="pi pi-comment"></i>
-            <Badge v-if="chatStore.totalUnread" :value="chatStore.totalUnread" severity="warn" class="nav-badge" />
-          </span>
+          <el-badge :value="chatStore.totalUnread" :hidden="!chatStore.totalUnread" class="badge-wrap">
+            <el-icon><ChatLineRound /></el-icon>
+          </el-badge>
           <span>好友</span>
         </router-link>
         <router-link to="/notifications" class="nav-link" active-class="active">
-          <span class="nav-icon-with-badge">
-            <i class="pi pi-bell"></i>
-            <Badge v-if="unreadCount" :value="unreadCount" severity="danger" class="nav-badge" />
-          </span>
+          <el-badge :value="unreadCount" :hidden="!unreadCount" class="badge-wrap">
+            <el-icon><Bell /></el-icon>
+          </el-badge>
           <span>通知</span>
         </router-link>
         <router-link to="/profile" class="nav-link" active-class="active">
-          <i class="pi pi-user"></i>
+          <el-icon><UserFilled /></el-icon>
           <span>我的</span>
         </router-link>
       </div>
 
       <div class="nav-actions">
-        <div class="user-chip" @click="toggleMenu">
-          <img
-            :src="authStore.user?.avatarUrl || getDefaultAvatar(authStore.user?.userId || authStore.user?.name)"
-            class="user-chip-avatar"
-            alt="avatar"
-          />
-          <span class="user-chip-name">{{ authStore.user?.name || '用户' }}</span>
-          <i class="pi pi-chevron-down" style="font-size:12px;"></i>
-        </div>
-        <Menu ref="menuRef" :model="menuItems" :popup="true" />
+        <el-dropdown trigger="click">
+          <div class="user-chip">
+            <img
+              :src="authStore.user?.avatarUrl || getDefaultAvatar(authStore.user?.userId || authStore.user?.name)"
+              class="user-chip-avatar"
+              alt="avatar"
+            />
+            <span class="user-chip-name">{{ authStore.user?.name || '用户' }}</span>
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="$router.push('/profile')">
+                <el-icon><UserFilled /></el-icon> 我的主页
+              </el-dropdown-item>
+              <el-dropdown-item @click="$router.push('/profile/edit')">
+                <el-icon><Edit /></el-icon> 编辑资料
+              </el-dropdown-item>
+              <el-dropdown-item @click="$router.push('/profile/skills')">
+                <el-icon><SetUp /></el-icon> 技能管理
+              </el-dropdown-item>
+              <el-dropdown-item divided @click="handleLogout">
+                <el-icon><SwitchButton /></el-icon> 退出登录
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </div>
   </nav>
@@ -58,43 +72,16 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { getDefaultAvatar } from '@/utils/avatar'
 import { getUnreadCount, getLikeUnreadCount } from '@/api/notification'
-import Badge from 'primevue/badge'
-import Menu from 'primevue/menu'
+import {
+  Compass, ChatDotRound, ChatLineRound, Bell, UserFilled,
+  Edit, SetUp, SwitchButton,
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 const unreadCount = ref(0)
-const menuRef = ref(null)
-
-const menuItems = ref([
-  {
-    label: '我的主页',
-    icon: 'pi pi-user',
-    command: () => router.push('/profile'),
-  },
-  {
-    label: '编辑资料',
-    icon: 'pi pi-pencil',
-    command: () => router.push('/profile/edit'),
-  },
-  {
-    label: '技能管理',
-    icon: 'pi pi-cog',
-    command: () => router.push('/profile/skills'),
-  },
-  { separator: true },
-  {
-    label: '退出登录',
-    icon: 'pi pi-sign-out',
-    command: () => handleLogout(),
-  },
-])
-
-function toggleMenu(event) {
-  menuRef.value?.toggle(event)
-}
 
 async function fetchUnread() {
   try {
@@ -177,8 +164,7 @@ watch(() => route.path, fetchUnread)
   margin-bottom: -1px;
   background: transparent;
 }
-.nav-link i { font-size: 18px; }
-.nav-actions { flex-shrink: 0; position: relative; }
+.nav-actions { flex-shrink: 0; }
 .user-chip {
   display: flex;
   align-items: center;
@@ -207,23 +193,7 @@ watch(() => route.path, fetchUnread)
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.nav-icon-with-badge {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-.nav-badge {
-  position: absolute;
-  top: -8px;
-  right: -12px;
-  transform: scale(0.75);
-}
-.nav-badge :deep(.p-badge) {
-  min-width: 18px;
-  height: 18px;
-  font-size: 10px;
-  line-height: 18px;
-}
+.badge-wrap { display: flex; align-items: center; }
 
 @media (max-width: 768px) {
   .nav-links { display: none; }

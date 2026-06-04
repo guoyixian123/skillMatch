@@ -95,6 +95,7 @@ public class UserGalleryServiceImpl extends ServiceImpl<UserGalleryMapper, UserG
     public void removeImageById(String imageId) {
         String userId = UserContext.getUserId();
         UserGallery byId = getById(imageId);
+        if (byId == null) throw new BusinessException(ErrorCode.NOT_FOUND, "图片不存在");
         //判断图片是否属于当前用户
         if(!byId.getUserId().equals(userId)){
             throw new BusinessException(ErrorCode.NOT_AUTH, "不能删除他人的图片");

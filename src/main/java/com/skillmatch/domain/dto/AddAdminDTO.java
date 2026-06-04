@@ -14,4 +14,6 @@ public class AddAdminDTO {
 
     @NotBlank(message = "管理员姓名不能为空")
     private String name;
+
+    private String password;
 }

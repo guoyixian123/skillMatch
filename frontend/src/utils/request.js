@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { toast } from '@/utils/toast'
+import { ElMessage } from 'element-plus'
 
 const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -22,7 +22,7 @@ request.interceptors.response.use(
     const res = response.data
     if (res.code !== 200) {
       if (!response.config.noError) {
-        toast.error(res.message || '请求失败')
+        ElMessage.error(res.message || '请求失败')
       }
       if (res.code === 401) {
         localStorage.removeItem('token')
@@ -41,7 +41,7 @@ request.interceptors.response.use(
       return Promise.reject(error)
     }
     if (!error.config?.noError) {
-      toast.error(error.message || '网络错误')
+      ElMessage.error(error.message || '网络错误')
     }
     return Promise.reject(error)
   }

@@ -19,11 +19,11 @@ import java.util.Set;
 public class GeoUtil {
 
     public static final Set<String> KNOWN_CITIES = Set.of(
-            "北京市", "上海市", "广州市", "深圳市", "成都市", "重庆市", "杭州市", "武汉市", "南京市", "天津市",
-            "石家庄市", "太原市", "呼和浩特市", "沈阳市", "长春市", "哈尔滨市", "合肥市", "福州市", "南昌市", "济南市",
-            "郑州市", "长沙市", "南宁市", "海口市", "贵阳市", "昆明市", "拉萨市", "西安市", "兰州市", "西宁市", "银川市", "乌鲁木齐市",
-            "苏州市", "无锡市", "宁波市", "厦门市", "青岛市", "佛山市", "东莞市", "大连市", "温州市",
-            "泉州市", "烟台市", "常州市", "绍兴市", "珠海市", "潍坊市", "惠州市", "中山市", "襄阳市", "洛阳市"
+            "北京", "上海", "广州", "深圳", "成都", "重庆", "杭州", "武汉", "南京", "天津",
+            "石家庄", "太原", "呼和浩特", "沈阳", "长春", "哈尔滨", "合肥", "福州", "南昌", "济南",
+            "郑州", "长沙", "南宁", "海口", "贵阳", "昆明", "拉萨", "西安", "兰州", "西宁", "银川", "乌鲁木齐",
+            "苏州", "无锡", "宁波", "厦门", "青岛", "佛山", "东莞", "大连", "温州",
+            "泉州", "烟台", "常州", "绍兴", "珠海", "潍坊", "惠州", "中山", "襄阳", "洛阳"
     );
 
     @Value("${gaoDe.key}")
@@ -57,6 +57,8 @@ public class GeoUtil {
                     city = fallbackCityByCoords(longitude, latitude);
                 }
             }
+            //去掉市
+            city = city.replace("市", "");
             // 校验返回结果是否为已知城市名（非省份），否则用坐标兜底
             String result = StrUtil.isBlank(city) ? fallbackCityByCoords(longitude, latitude) : city;
             return KNOWN_CITIES.contains(result) ? result : fallbackCityByCoords(longitude, latitude);

@@ -47,6 +47,7 @@
       <form @submit.prevent="handleAdd" class="add-form">
         <div class="gf"><label class="filter-label">用户ID</label><input v-model="form.userId" class="nb-input" required placeholder="输入已有用户的ID" /></div>
         <div class="gf"><label class="filter-label">管理员姓名</label><input v-model="form.name" class="nb-input" required placeholder="显示名称" /></div>
+        <div class="gf"><label class="filter-label">登录密码</label><input v-model="form.password" type="password" class="nb-input" placeholder="留空默认为123456" /></div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
           <button type="button" class="nb-btn" @click="showAdd=false">取消</button>
           <button type="submit" class="nb-btn primary">确认</button>
@@ -75,7 +76,7 @@ const loading = ref(false)
 const admins = ref([])
 const isRoot = ref(false)
 const showAdd = ref(false)
-const form = ref({ userId: '', name: '' })
+const form = ref({ userId: '', name: '', password: '' })
 
 async function fetchAdmins() {
   loading.value = true
@@ -91,9 +92,9 @@ async function handleAdd() {
     toast.add({ severity:'warn', summary:'必填', detail:'请填写完整信息', life:3000 }); return
   }
   try {
-    await addAdmin({ userId: form.value.userId, name: form.value.name })
+    await addAdmin({ userId: form.value.userId, name: form.value.name, password: form.value.password || undefined })
     toast.add({ severity:'success', summary:'完成', detail:'管理员已添加', life:3000 })
-    showAdd.value = false; form.value = { userId:'', name:'' }; fetchAdmins()
+    showAdd.value = false; form.value = { userId:'', name:'', password:'' }; fetchAdmins()
   } catch { /* */ }
 }
 

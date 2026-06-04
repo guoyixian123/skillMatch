@@ -63,15 +63,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     public UserVO getProfile(String profileUserId) {
         String currentUserId = UserContext.getUserId();
         User target = lambdaQuery().eq(User::getUserId, profileUserId).one();
-        if (target == null) return null;
+        if (target == null) throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
 
         UserVO vo = new UserVO();
-        // ... 设置 name, avatarUrl, signature, bio 等公共字段 ...
-        BeanUtil.copyProperties(target, vo);
+        BeanUtil.copyProperties(target, vo, "contactInfo"); // 先排除敏感字段
         // 只有本人或双方已接受交换请求时才返回联系方式
-        boolean isSelf = currentUserId != null && currentUserId.equals(profileUserId);
-        boolean canView = isSelf;
-        if (!isSelf && currentUserId != null) {
+        boolean canView = currentUserId != null && currentUserId.equals(profileUserId);
+        if (!canView && currentUserId != null) {
             Long accepted = contactRequestService.lambdaQuery()
                     .and(w -> w
                             .eq(ContactRequest::getFromUserId, currentUserId)
@@ -79,13 +77,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                             .or()
                             .eq(ContactRequest::getFromUserId, profileUserId)
                             .eq(ContactRequest::getToUserId, currentUserId))
-                    .eq(ContactRequest::getStatus, 2)  // 已接受
+                    .eq(ContactRequest::getStatus, 2)
                     .count();
             canView = accepted > 0;
         }
-        if (canView) {
-            vo.setContactInfo(target.getContactInfo());
-        }
+        if (canView) vo.setContactInfo(target.getContactInfo());
         return vo;
     }
 

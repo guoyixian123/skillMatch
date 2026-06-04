@@ -20,3 +20,9 @@ export function removeAdmin(id)        { return request.delete(`/admin/admins/${
 // 标签数据（供新增用户/机器人下拉选择）
 export function getSkillTags() { return request.get('/tags/skills') }
 export function getHobbyTags() { return request.get('/tags/hobbies') }
+
+// 头像上传
+export function uploadAvatar(file) {
+  const fd = new FormData(); fd.append('avatarUrl', file)
+  return request.put('/user/avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+}

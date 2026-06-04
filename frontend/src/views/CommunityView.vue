@@ -2,42 +2,38 @@
   <div class="page-container">
     <header class="page-header flex-between">
       <div>
-        <h1 class="page-title"><i class="pi pi-comments"></i> 社区</h1>
+        <h1 class="page-title"><el-icon><ChatDotRound /></el-icon> 社区</h1>
         <p class="page-subtitle">技能搭子交流广场</p>
       </div>
       <button class="brutal-btn primary" @click="showCreateDialog = true">
-        <i class="pi pi-plus"></i> 发帖
+        <el-icon><Plus /></el-icon> 发帖
       </button>
     </header>
 
     <!-- Filter -->
     <div class="filter-bar brutal-card accent-yellow" style="margin-bottom:20px;">
       <div class="filter-row">
-        <div class="filter-search-wrap">
-          <i class="pi pi-search filter-search-icon"></i>
-          <input
-            v-model="keyword"
-            class="brutal-input filter-search-input"
-            placeholder="搜索帖子..."
-            @keyup.enter="fetchPosts"
-          />
-        </div>
-        <Select
-          v-model="sort"
-          :options="sortOptions"
-          option-label="label"
-          option-value="value"
-          class="filter-select"
+        <el-input
+          v-model="keyword"
+          placeholder="搜索帖子..."
+          :prefix-icon="Search"
+          clearable
+          class="filter-search"
+          @keyup.enter="fetchPosts"
         />
+        <el-select v-model="sort" class="filter-select">
+          <el-option label="最新" value="latest" />
+          <el-option label="最热" value="hot" />
+        </el-select>
         <button class="brutal-btn primary small" @click="fetchPosts">筛选</button>
       </div>
     </div>
 
     <!-- Posts -->
-    <div v-if="loading" class="loading-block"><i class="pi pi-spinner pi-spin"></i> 加载中...</div>
+    <div v-if="loading" class="loading-block"><el-icon class="is-loading"><Loading /></el-icon> 加载中...</div>
 
     <div v-else-if="posts.length === 0" class="empty-block">
-      <div class="icon"><i class="pi pi-file" style="font-size:48px;"></i></div>
+      <div class="icon"><el-icon :size="48"><Document /></el-icon></div>
       <div style="font-weight:800;font-size:18px;">暂无帖子</div>
       <div style="color:#888;">发布第一个帖子吧</div>
     </div>
@@ -73,97 +69,94 @@
             @click.stop="handleCardLike(post)"
           >
             <span class="like-icon-wrap">
-              <i class="pi" :class="post.isLiked ? 'pi-star-fill' : 'pi-star'" style="font-size:16px;"></i>
+              <el-icon :size="16"><StarFilled v-if="post.isLiked" /><Star v-else /></el-icon>
               <span v-if="post._showPlus" class="float-plus">+1</span>
             </span>
             <span class="like-label">{{ post.isLiked ? '已赞' : '点赞' }}</span>
             <span class="like-count">{{ formatCount(post.likeCount) }}</span>
           </button>
           <span class="meta-item comment-meta">
-            <i class="pi pi-comments"></i> {{ post.commentCount || 0 }}
+            <el-icon><ChatDotRound /></el-icon> {{ post.commentCount || 0 }}
           </span>
         </div>
       </div>
     </div>
 
     <div class="flex-center" style="margin-top:32px;" v-if="total > size">
-      <Paginator
-        v-model:first="first"
-        :rows="size"
-        :total-records="total"
-        :rows-per-page-options="[10]"
-        template="PrevPageLink PageLinks NextPageLink"
-        @page="onPageChange"
+      <el-pagination
+        :current-page="page"
+        :page-size="size"
+        :total="total"
+        layout="prev, pager, next"
+        @current-change="(p) => { page = p; fetchPosts(); }"
       />
     </div>
 
     <!-- Create Post Dialog -->
-    <Dialog v-model:visible="showCreateDialog" header="发布帖子" :modal="true" :style="{ width: '560px' }">
-      <form @submit.prevent="handleCreate" class="create-form">
-        <div class="form-field">
-          <label class="field-label">标题 <span class="required">*</span></label>
-          <input v-model="createForm.title" class="brutal-input" placeholder="帖子标题" maxlength="64" />
-          <span v-if="createErrors.title" class="field-error">{{ createErrors.title }}</span>
-        </div>
-        <div class="form-field">
-          <label class="field-label">正文 <span class="required">*</span></label>
-          <textarea v-model="createForm.body" class="brutal-input" rows="5" placeholder="分享你的想法..." maxlength="5000"></textarea>
-          <span v-if="createErrors.body" class="field-error">{{ createErrors.body }}</span>
-          <div class="field-count">{{ createForm.body.length }}/5000</div>
-        </div>
-        <div class="form-field">
-          <label class="field-label">标签 (可选, 逗号分隔, 最多5个)</label>
-          <input v-model="createForm.tagsStr" class="brutal-input" placeholder="输入标签, 如: #Python, #找搭子" maxlength="60" />
+    <el-dialog v-model="showCreateDialog" title="发布帖子" width="560px" @open="() => createFormRef?.clearValidate()">
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-position="top">
+        <el-form-item label="标题" prop="title">
+          <el-input v-model="createForm.title" placeholder="帖子标题" maxlength="64" show-word-limit />
+        </el-form-item>
+        <el-form-item label="正文" prop="body">
+          <el-input
+            v-model="createForm.body"
+            type="textarea"
+            :rows="5"
+            placeholder="分享你的想法..."
+            maxlength="5000"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item label="标签 (可选, 逗号分隔, 最多5个)">
+          <el-input v-model="createForm.tagsStr" placeholder="输入标签, 如: #Python, #找搭子" maxlength="60" show-word-limit />
           <div class="tag-hint">标签以 # 开头, 长度 2-10, 只能包含中文/字母/数字</div>
-        </div>
-        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px;">
-          <button type="button" class="brutal-btn outline small" @click="handleCancelCreate">取消</button>
-          <button type="submit" class="brutal-btn primary small" :disabled="creating">
-            {{ creating ? '发布中...' : '发布' }}
-          </button>
-        </div>
-      </form>
-    </Dialog>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <button class="brutal-btn outline small" @click="handleCancelCreate">取消</button>
+        <button class="brutal-btn primary small" @click="handleCreate" :disabled="creating">
+          {{ creating ? '发布中...' : '发布' }}
+        </button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
-import Select from 'primevue/select'
-import Dialog from 'primevue/dialog'
-import Paginator from 'primevue/paginator'
+import { ElMessage } from 'element-plus'
+import { Plus, Search, Star, StarFilled, ChatDotRound, Loading, Document } from '@element-plus/icons-vue'
 import { getDefaultAvatar } from '@/utils/avatar'
 import { getPosts, createPost, togglePostLike, unlikePost } from '@/api/community'
 
 const router = useRouter()
-const toast = useToast()
 const loading = ref(false)
 const posts = ref([])
 const total = ref(0)
 const page = ref(1)
-const first = ref(0)
 const size = ref(10)
-
-const likeTimers = []
 const keyword = ref('')
 const sort = ref('latest')
 
-const sortOptions = [
-  { label: '最新', value: 'latest' },
-  { label: '最热', value: 'hot' },
-]
-
 const showCreateDialog = ref(false)
+const createFormRef = ref(null)
 const creating = ref(false)
-const createForm = ref({ title: '', body: '', tagsStr: '' })
-const createErrors = ref({ title: '', body: '' })
-
-function onPageChange(event) {
-  page.value = event.page + 1
-  first.value = event.first
-  fetchPosts()
+const createForm = ref({
+  title: '',
+  body: '',
+  tagsStr: '',
+})
+const createRules = {
+  title: [
+    { required: true, message: '请输入标题', trigger: 'blur' },
+    { min: 1, max: 64, message: '1-64字符', trigger: 'blur' },
+  ],
+  body: [
+    { required: true, message: '请输入正文', trigger: 'blur' },
+    { min: 1, max: 5000, message: '1-5000字符', trigger: 'blur' },
+  ],
 }
 
 function formatTime(dateStr) {
@@ -179,10 +172,17 @@ function formatTime(dateStr) {
 async function fetchPosts() {
   loading.value = true
   try {
-    const res = await getPosts({ sort: sort.value, keyword: keyword.value, page: page.value, size: size.value })
+    const res = await getPosts({
+      sort: sort.value,
+      keyword: keyword.value,
+      page: page.value,
+      size: size.value,
+    })
     posts.value = res.data?.list || []
     total.value = res.data?.total || 0
-  } catch { /* handled */ } finally { loading.value = false }
+  } catch { /* API may not be implemented yet */ } finally {
+    loading.value = false
+  }
 }
 
 function formatCount(n) {
@@ -192,14 +192,19 @@ function formatCount(n) {
 
 async function handleCardLike(post) {
   const wasLiked = post.isLiked
+
+  // 点赞时触发动画
   if (!wasLiked) {
     post._animating = true
     post._showPlus = true
-    likeTimers.push(setTimeout(() => { post._animating = false }, 500))
-    likeTimers.push(setTimeout(() => { post._showPlus = false }, 800))
+    setTimeout(() => { post._animating = false }, 500)
+    setTimeout(() => { post._showPlus = false }, 800)
   }
+
+  // optimistic update
   post.isLiked = !wasLiked
   post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? -1 : 1))
+
   try {
     if (wasLiked) {
       await unlikePost(post.id)
@@ -208,7 +213,7 @@ async function handleCardLike(post) {
       post.likeCount = res.data?.likeCount ?? post.likeCount
     }
   } catch {
-		// 错误已在请求拦截器中提示
+    // rollback
     post.isLiked = wasLiked
     post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? 1 : -1))
   }
@@ -217,16 +222,25 @@ async function handleCardLike(post) {
 function handleCancelCreate() {
   showCreateDialog.value = false
   createForm.value = { title: '', body: '', tagsStr: '' }
-  createErrors.value = { title: '', body: '' }
+  createFormRef.value?.clearValidate()
 }
 
 async function handleCreate() {
-  createErrors.value = { title: '', body: '' }
-  let valid = true
-  if (!createForm.value.title?.trim()) { createErrors.value.title = '请输入标题'; valid = false }
-  if (!createForm.value.body?.trim()) { createErrors.value.body = '请输入正文'; valid = false }
-  if (!valid) return
-
+  // 兜底验证：确保必填字段不为空
+  if (!createForm.value.title?.trim()) {
+    ElMessage.warning('请输入标题')
+    return
+  }
+  if (!createForm.value.body?.trim()) {
+    ElMessage.warning('请输入正文')
+    return
+  }
+  // Element Plus 表单验证
+  try {
+    await createFormRef.value?.validate()
+  } catch {
+    return
+  }
   creating.value = true
   try {
     const tagRe = /^#[一-龥a-zA-Z0-9]{1,9}$/
@@ -236,88 +250,212 @@ async function handleCreate() {
       tags = tagsStr.split(',').map(t => t.trim()).filter(Boolean).slice(0, 5)
       const invalid = tags.filter(t => !tagRe.test(t))
       if (invalid.length) {
-        toast.add({ severity: 'warn', summary: '提示', detail: '标签格式错误: ' + invalid.join(', '), life: 3000 })
+        ElMessage.warning('标签格式错误: ' + invalid.join(', '))
         return
       }
     }
-    const res = await createPost({ title: createForm.value.title, body: createForm.value.body, tags })
-    toast.add({ severity: 'success', summary: '成功', detail: res.message || '发布成功', life: 3000 })
+    const res = await createPost({
+      title: createForm.value.title,
+      body: createForm.value.body,
+      tags,
+    })
+    ElMessage.success(res.message || '发布成功')
     showCreateDialog.value = false
     createForm.value = { title: '', body: '', tagsStr: '' }
     fetchPosts()
-  } catch {
-		// 错误已在请求拦截器中提示
-  } finally { creating.value = false }
+  } catch (err) {
+    ElMessage.error(err?.response?.data?.message || err?.message || '发布失败')
+  } finally {
+    creating.value = false
+  }
 }
 
 onMounted(fetchPosts)
-onUnmounted(() => likeTimers.forEach(clearTimeout))
 </script>
 
 <style scoped>
 .filter-bar { padding: 16px; }
-.filter-row { display: flex; gap: 12px; align-items: center; }
-.filter-search-wrap { flex: 1; position: relative; }
-.filter-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #aaa; z-index: 1; font-size: 16px; }
-.filter-search-input { padding-left: 36px !important; }
+.filter-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.filter-search { flex: 1; }
 .filter-select { width: 120px; flex-shrink: 0; }
 
-.post-list { display: flex; flex-direction: column; gap: 16px; }
-.post-card { cursor: pointer; }
-.post-author { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.post-author-name { font-weight: 700; font-size: 14px; cursor: pointer; }
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.post-card {
+  cursor: pointer;
+}
+.post-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.post-author-name {
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
 .post-author-name:hover { text-decoration: underline; }
 .post-author .brutal-avatar { cursor: pointer; }
 .post-author .brutal-avatar:hover { opacity: 0.85; }
-.post-time { font-size: 12px; color: #aaa; margin-left: auto; }
-.post-title { font-size: 18px; font-weight: 900; margin-bottom: 8px; }
-.post-body { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 10px; }
+.post-time {
+  font-size: 12px;
+  color: #aaa;
+  margin-left: auto;
+}
+.post-title {
+  font-size: 18px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+.post-body {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
 .post-tags { margin-bottom: 10px; }
-.post-meta { display: flex; gap: 16px; align-items: center; padding-top: 12px; border-top: 2px solid #eee; }
+.post-meta {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 2px solid #eee;
+}
 
-.comment-meta { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: #888; margin-left: auto; }
-.tag-hint { font-size: 12px; color: #aaa; margin-top: 4px; }
+/* 评论数 */
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #888;
+  margin-left: auto;
+}
 
-/* Create form */
-.create-form { display: flex; flex-direction: column; gap: 14px; }
-.form-field { display: flex; flex-direction: column; gap: 4px; }
-.field-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #555; }
-.field-label .required { color: var(--color-pink); }
-.field-error { font-size: 12px; font-weight: 700; color: var(--color-pink); }
-.field-count { text-align: right; font-size: 12px; color: #aaa; }
+/* 标签提示 */
+.tag-hint {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 4px;
+  line-height: 1.4;
+}
 
-/* 点赞按钮 */
+/* ========= 卡片点赞按钮 - 粗野主义风格 ========= */
 .card-like-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 14px 6px 10px; border: 2px solid #ddd; border-radius: 99px;
-  background: #fafafa; cursor: pointer; font-family: inherit;
-  font-size: 13px; font-weight: 700; color: #888;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); overflow: visible;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px 6px 10px;
+  border: 2px solid #ddd;
+  border-radius: 99px;
+  background: #fafafa;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #888;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  user-select: none;
+  position: relative;
+  overflow: visible;
 }
-.card-like-btn:hover { border-color: #FFD700; background: #FFFBE6; color: #E6A800; transform: translateY(-1px); box-shadow: 0 2px 0 rgba(0,0,0,0.1); }
-.card-like-btn:active { transform: scale(0.96); }
+
+.card-like-btn:hover {
+  border-color: #FFD700;
+  background: #FFFBE6;
+  color: #E6A800;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+}
+
+.card-like-btn:active {
+  transform: scale(0.96);
+}
+
+/* 已赞态 */
 .card-like-btn.liked {
-  border-color: #1A1A1A; background: linear-gradient(135deg, #F5A623, #FFD700);
-  color: #fff; box-shadow: 2px 2px 0 rgba(0,0,0,0.15), 0 0 12px rgba(245,166,35,0.3);
+  border-color: #1A1A1A;
+  background: linear-gradient(135deg, #F5A623, #FFD700);
+  color: #fff;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.15), 0 0 12px rgba(245,166,35,0.3);
 }
-.card-like-btn.liked:hover { background: linear-gradient(135deg, #FFB830, #FFE44D); }
-.like-icon-wrap { position: relative; display: inline-flex; align-items: center; }
+
+.card-like-btn.liked .el-icon {
+  color: #FFE4B5;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+
+.card-like-btn.liked:hover {
+  background: linear-gradient(135deg, #FFB830, #FFE44D);
+  border-color: #1A1A1A;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.2), 0 0 16px rgba(245,166,35,0.45);
+}
+
+/* 图标容器 */
+.like-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* +1 浮动动画 */
 .float-plus {
-  position: absolute; top: -8px; right: -14px; font-size: 12px; font-weight: 900;
-  color: #FFD700; pointer-events: none; animation: floatUp 0.8s ease-out forwards;
+  position: absolute;
+  top: -8px;
+  right: -14px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #FFD700;
+  pointer-events: none;
+  animation: floatUp 0.8s ease-out forwards;
   text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
 }
+
 @keyframes floatUp {
-  0% { opacity: 1; transform: translateY(0) scale(1); }
-  40% { opacity: 1; transform: translateY(-14px) scale(1.25); }
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  40%  { opacity: 1; transform: translateY(-14px) scale(1.25); }
   100% { opacity: 0; transform: translateY(-24px) scale(0.8); }
 }
-.like-label { font-weight: 800; font-size: 12px; }
-.like-count { font-weight: 900; font-size: 13px; min-width: 20px; text-align: center; background: rgba(0,0,0,0.06); border-radius: 10px; padding: 1px 7px; }
-.card-like-btn.liked .like-count { background: rgba(255,255,255,0.25); }
-.card-like-btn.animating .like-icon-wrap { animation: likePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+.like-label {
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.like-count {
+  font-weight: 900;
+  font-size: 13px;
+  min-width: 20px;
+  text-align: center;
+  background: rgba(0,0,0,0.06);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.card-like-btn.liked .like-count {
+  background: rgba(255,255,255,0.25);
+}
+
+/* 点击回弹动画 */
+.card-like-btn.animating .like-icon-wrap {
+  animation: likePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 @keyframes likePop {
-  0% { transform: scale(1); } 25% { transform: scale(1.45); }
-  50% { transform: scale(0.8); } 75% { transform: scale(1.15); } 100% { transform: scale(1); }
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.45); }
+  50%  { transform: scale(0.8); }
+  75%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
 }
 </style>

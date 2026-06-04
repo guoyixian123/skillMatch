@@ -1,121 +1,115 @@
 <template>
   <div class="page-container">
     <header class="page-header">
-      <h1 class="page-title"><i class="pi pi-compass"></i> 发现技能搭子</h1>
+      <h1 class="page-title"><el-icon><Search /></el-icon> 发现技能搭子</h1>
       <p class="page-subtitle">找到与你技能互补的人</p>
     </header>
 
     <!-- Filters -->
     <div class="filter-bar brutal-card accent-yellow">
       <div class="filter-row">
-        <div class="filter-search-wrap">
-          <i class="pi pi-search filter-search-icon"></i>
-          <input
-            v-model="keyword"
-            class="brutal-input filter-search-input"
-            placeholder="搜索昵称、技能..."
-            autocomplete="off"
-            @keyup.enter="fetchUsers"
-          />
-        </div>
-        <Select
-          v-model="sort"
-          :options="sortOptions"
-          option-label="label"
-          option-value="value"
-          class="filter-select"
+        <el-input
+          v-model="keyword"
+          placeholder="搜索昵称、技能..."
+          :prefix-icon="Search"
+          clearable
+          class="filter-search"
+          @keyup.enter="fetchUsers"
         />
-        <button class="brutal-btn primary small" @click="page = 1; fetchUsers()">筛选</button>
+        <el-select v-model="sort" class="filter-select">
+          <el-option label="匹配度" value="score" />
+          <el-option label="距离近" value="dist" />
+          <el-option label="活跃度" value="active" />
+        </el-select>
+        <button class="brutal-btn primary small" @click="fetchUsers">筛选</button>
       </div>
     </div>
 
     <!-- Location tip -->
     <div v-if="!authStore.latitude && !authStore.longitude" class="location-tip brutal-card accent-yellow">
-      <span><i class="pi pi-map-marker"></i> 尚未获取位置，开启定位以获得更精准的匹配</span>
+      <span><el-icon><Location /></el-icon> 尚未获取位置，开启定位以获得更精准的匹配</span>
       <button class="brutal-btn primary small" @click="enableLocation" :disabled="locating">
         {{ locating ? '获取中...' : '开启定位' }}
       </button>
     </div>
 
-    <!-- 列表视图 -->
-    <div v-if="loading" class="loading-block"><i class="pi pi-spinner pi-spin"></i> 正在匹配中...</div>
+    <!-- Results Grid -->
+    <div v-if="loading" class="loading-block"><el-icon class="is-loading"><Loading /></el-icon> 正在匹配中...</div>
 
     <div v-else-if="users.length === 0" class="empty-block">
-      <div class="icon"><i class="pi pi-compass" style="font-size:48px;"></i></div>
+      <div class="icon"><el-icon :size="48"><Search /></el-icon></div>
       <div style="font-weight:800;font-size:18px;">暂无匹配用户</div>
       <div style="color:#888;margin-top:4px;">试试扩大搜索范围或添加更多技能标签</div>
     </div>
 
     <template v-else>
-      <div class="sort-indicator">按{{ sortLabel }}排序 · 共 {{ total }} 人</div>
+      <div class="sort-indicator">按{{ sort === 'score' ? '匹配度' : sort === 'dist' ? '距离' : '活跃度' }}排序 · 共 {{ total }} 人</div>
       <div class="brutal-grid-3">
-        <div
-          v-for="(user, idx) in users"
-          :key="user.userId"
-          class="user-card brutal-card accent-blue"
-          :style="{ animationDelay: idx * 0.05 + 's' }"
-          @click="showUserCard(user)"
-        >
-          <div class="card-cover pop-dots"></div>
-          <div class="card-body">
-            <img
-              :src="user.avatarUrl || getDefaultAvatar(user.userId || user.name)"
-              class="brutal-avatar lg card-avatar"
-            />
-            <h3 class="card-name">{{ user.name }}</h3>
-            <div class="card-location" v-if="user.city || user.distance">
-              <i class="pi pi-map-marker" style="font-size:13px;"></i>
-              <span v-if="user.city">{{ user.city }}</span>
-              <span v-if="user.city && user.distance" class="loc-sep">·</span>
-              <span v-if="user.distance">{{ user.distance }}</span>
-            </div>
-            <div class="card-bio" v-if="user.bio">{{ user.bio }}</div>
+      <div
+        v-for="user in users"
+        :key="user.userId"
+        class="user-card brutal-card accent-blue"
+        @click="showUserCard(user)"
+      >
+        <div class="card-cover pop-dots"></div>
+        <div class="card-body">
+          <img
+            :src="user.avatarUrl || getDefaultAvatar(user.userId || user.name)"
+            class="brutal-avatar lg card-avatar"
+          />
+          <h3 class="card-name">{{ user.name }}</h3>
+          <div class="card-location" v-if="user.city || user.distance">
+            <el-icon><Location /></el-icon>
+            <span v-if="user.city">{{ user.city }}</span>
+            <span v-if="user.city && user.distance" class="loc-sep">·</span>
+            <span v-if="user.distance">{{ user.distance }}</span>
+          </div>
+          <div class="card-bio" v-if="user.bio">{{ user.bio }}</div>
 
-            <!-- Skills -->
-            <div class="card-skills">
-              <div class="skill-group" v-if="user.canSkills?.length">
-                <div class="skill-label">我会</div>
-                <div class="flex-wrap">
-                  <span v-for="s in user.canSkills.slice(0,3)" :key="s" class="brutal-tag can">{{ s }}</span>
-                  <span v-if="user.canSkills.length > 3" class="brutal-tag">+{{ user.canSkills.length - 3 }}</span>
-                </div>
-              </div>
-              <div class="skill-group" v-if="user.wantSkills?.length">
-                <div class="skill-label">想学</div>
-                <div class="flex-wrap">
-                  <span v-for="s in user.wantSkills.slice(0,3)" :key="s" class="brutal-tag want">{{ s }}</span>
-                  <span v-if="user.wantSkills.length > 3" class="brutal-tag">+{{ user.wantSkills.length - 3 }}</span>
-                </div>
+          <!-- Skills -->
+          <div class="card-skills">
+            <div class="skill-group" v-if="user.canSkills?.length">
+              <div class="skill-label">我会</div>
+              <div class="flex-wrap">
+                <span v-for="s in user.canSkills.slice(0,3)" :key="s" class="brutal-tag can">{{ s }}</span>
+                <span v-if="user.canSkills.length > 3" class="brutal-tag">+{{ user.canSkills.length - 3 }}</span>
               </div>
             </div>
+            <div class="skill-group" v-if="user.wantSkills?.length">
+              <div class="skill-label">想学</div>
+              <div class="flex-wrap">
+                <span v-for="s in user.wantSkills.slice(0,3)" :key="s" class="brutal-tag want">{{ s }}</span>
+                <span v-if="user.wantSkills.length > 3" class="brutal-tag">+{{ user.wantSkills.length - 3 }}</span>
+              </div>
+            </div>
+          </div>
 
-            <!-- Score Bar -->
-            <div class="match-bar" v-if="user.matchScore">
-              <div class="match-label">匹配度</div>
-              <div class="match-track">
-                <div class="match-fill" :style="{ width: Math.max(user.matchScore, 8) + '%', background: matchColor(user.matchScore) }"></div>
-              </div>
-              <span class="match-num" :style="{ color: matchColor(user.matchScore) }">{{ user.matchScore }}%</span>
+          <!-- Score Bar -->
+          <div class="match-bar" v-if="user.matchScore">
+            <div class="match-label">匹配度</div>
+            <div class="match-track">
+              <div class="match-fill" :style="{ width: Math.max(user.matchScore, 8) + '%', background: matchColor(user.matchScore) }"></div>
             </div>
+            <span class="match-num" :style="{ color: matchColor(user.matchScore) }">{{ user.matchScore }}%</span>
           </div>
         </div>
       </div>
+    </div>
     </template>
 
     <!-- Pagination -->
     <div class="flex-center" style="margin-top:32px;" v-if="total > size">
-      <Paginator
-        v-model:first="first"
-        :rows="size"
-        :total-records="total"
-        :rows-per-page-options="[12]"
-        template="PrevPageLink PageLinks NextPageLink"
-        @page="onPageChange"
+      <el-pagination
+        :current-page="page"
+        :page-size="size"
+        :total="total"
+        layout="prev, pager, next"
+        @current-change="(p) => { page = p; fetchUsers(); }"
       />
     </div>
 
     <!-- User Card Dialog -->
-    <Dialog v-model:visible="cardVisible" :header="cardUser?.name" :modal="true" :style="{ width: '420px' }" :pt="{ root: 'brutal-dialog' }">
+    <el-dialog v-model="cardVisible" :title="cardUser?.name" width="420px" destroy-on-close>
       <div v-if="cardUser" class="user-card-detail">
         <div class="detail-header">
           <img
@@ -128,15 +122,15 @@
               {{ cardUser.signature }}
             </div>
             <div v-if="cardUser.city || cardUser.distance" style="color:#888;font-size:13px;margin-top:4px;">
-              <i class="pi pi-map-marker"></i>
+              <el-icon><Location /></el-icon>
               <span v-if="cardUser.city">{{ cardUser.city }}</span>
               <span v-if="cardUser.city && cardUser.distance"> · </span>
               <span v-if="cardUser.distance">{{ cardUser.distance }}</span>
             </div>
             <div v-if="cardUser.likeCount || cardUser.postCount" style="color:#888;font-size:12px;margin-top:4px;">
-              <span v-if="cardUser.likeCount"><i class="pi pi-star-fill"></i> {{ cardUser.likeCount }}</span>
+              <span v-if="cardUser.likeCount"><el-icon><StarFilled /></el-icon> {{ cardUser.likeCount }}</span>
               <span v-if="cardUser.likeCount && cardUser.postCount"> · </span>
-              <span v-if="cardUser.postCount"><i class="pi pi-file"></i> {{ cardUser.postCount }}</span>
+              <span v-if="cardUser.postCount"><el-icon><Document /></el-icon> {{ cardUser.postCount }}</span>
             </div>
           </div>
         </div>
@@ -170,73 +164,57 @@
 
         <div class="detail-actions" style="margin-top:20px;display:flex;gap:12px;">
           <button v-if="cardUser.hasPendingRequest" class="brutal-btn outline small" disabled>
-            <i class="pi pi-clock"></i> 已发送请求
+            <el-icon><Clock /></el-icon> 已发送请求
           </button>
           <button v-else class="brutal-btn primary small" @click="sendRequest(cardUser)">
-            <i class="pi pi-send"></i> 发起交换
+            <el-icon><ChatDotRound /></el-icon> 发起交换
           </button>
-          <button class="brutal-btn outline small" @click="router.push(`/user/${cardUser.userId}`)">
+          <button class="brutal-btn outline small" @click="$router.push(`/user/${cardUser.userId}`)">
             查看主页
           </button>
         </div>
       </div>
-    </Dialog>
+    </el-dialog>
 
     <!-- Send Request Dialog -->
-    <Dialog v-model:visible="requestVisible" header="发起技能交换请求" :modal="true" :style="{ width: '420px' }">
-      <div class="request-form">
-        <label class="field-label">交换理由</label>
-        <textarea
-          v-model="requestReason"
-          class="brutal-input request-textarea"
-          placeholder="你好，想和你交流一下..."
-          maxlength="150"
-          rows="3"
-        ></textarea>
-        <div class="field-count">{{ requestReason.length }}/150</div>
-        <button class="brutal-btn primary" style="width:100%;justify-content:center;margin-top:12px;" @click="confirmRequest">
+    <el-dialog v-model="requestVisible" title="发起技能交换请求" width="420px">
+      <el-form @submit.prevent="confirmRequest">
+        <el-form-item label="交换理由">
+          <el-input
+            v-model="requestReason"
+            type="textarea"
+            :rows="3"
+            placeholder="你好，想和你交流一下..."
+            maxlength="150"
+            show-word-limit
+          />
+        </el-form-item>
+        <button type="submit" class="brutal-btn primary" style="width:100%;justify-content:center;">
           发送请求
         </button>
-      </div>
-    </Dialog>
+      </el-form>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
-import Select from 'primevue/select'
-import Dialog from 'primevue/dialog'
-import Paginator from 'primevue/paginator'
+import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Search, Location, Loading, StarFilled, Document, Clock, ChatDotRound } from '@element-plus/icons-vue'
 import { getRecommendedUsers, getUserCard } from '@/api/matching'
 import { createRequest } from '@/api/notification'
 import { getDefaultAvatar } from '@/utils/avatar'
 import { useAuthStore } from '@/stores/auth'
 
-const router = useRouter()
-const toast = useToast()
 const authStore = useAuthStore()
 const loading = ref(false)
 const locating = ref(false)
 const users = ref([])
 const total = ref(0)
 const page = ref(1)
-const first = ref(0)
 const size = ref(12)
 const keyword = ref('')
 const sort = ref('score')
-
-const sortOptions = [
-  { label: '匹配度', value: 'score' },
-  { label: '距离近', value: 'dist' },
-  { label: '活跃度', value: 'active' },
-]
-
-const sortLabel = computed(() => {
-  const opt = sortOptions.find(o => o.value === sort.value)
-  return opt?.label || '匹配度'
-})
 
 const cardVisible = ref(false)
 const cardUser = ref(null)
@@ -252,12 +230,6 @@ function matchColor(score) {
   return '#94a3b8'
 }
 
-function onPageChange(event) {
-  page.value = event.page + 1
-  first.value = event.first
-  fetchUsers()
-}
-
 async function fetchUsers() {
   loading.value = true
   try {
@@ -269,7 +241,7 @@ async function fetchUsers() {
     })
     users.value = res.data?.list || []
     total.value = res.data?.total || 0
-  } catch { /* handled by interceptor */ } finally {
+  } catch { /* handled */ } finally {
     loading.value = false
   }
 }
@@ -279,11 +251,10 @@ async function enableLocation() {
   try {
     await authStore.fetchLocation()
     if (authStore.latitude && authStore.longitude) {
-      toast.add({ severity: 'success', summary: '成功', detail: '位置获取成功', life: 3000 })
-      await new Promise(r => setTimeout(r, 500))
+      ElMessage.success('位置获取成功')
       fetchUsers()
     } else {
-      toast.add({ severity: 'warn', summary: '提示', detail: '无法获取位置，请检查定位权限', life: 3000 })
+      ElMessage.warning('无法获取位置，请检查定位权限')
     }
   } catch { /* handled */ } finally {
     locating.value = false
@@ -291,21 +262,19 @@ async function enableLocation() {
 }
 
 async function showUserCard(user) {
+  // 先用列表数据立即展示
   cardUser.value = { ...user }
   cardVisible.value = true
+  // 再调接口获取完整名片（签名、发帖数、是否已发请求）
   try {
     const res = await getUserCard(user.userId)
     if (res.data) {
       cardUser.value = { ...user, ...res.data }
     }
-  } catch { /* 降级 */ }
+  } catch { /* 降级：列表数据已展示 */ }
 }
 
 function sendRequest(user) {
-  if (String(authStore.user?.userId) === String(user.userId)) {
-    toast.add({ severity: 'warn', summary: '提示', detail: '不能给自己发送交换请求', life: 3000 })
-    return
-  }
   cardVisible.value = false
   requestTarget.value = user
   requestReason.value = ''
@@ -314,25 +283,17 @@ function sendRequest(user) {
 
 async function confirmRequest() {
   if (!requestReason.value.trim()) {
-    toast.add({ severity: 'warn', summary: '提示', detail: '请输入交换理由', life: 3000 })
+    ElMessage.warning('请输入交换理由')
     return
   }
   try {
     const res = await createRequest({ toUserId: requestTarget.value.userId, reason: requestReason.value })
-    toast.add({ severity: 'success', summary: '成功', detail: res.message || '交换请求已发送', life: 3000 })
+    ElMessage.success(res.message || '交换请求已发送')
     requestVisible.value = false
-  } catch { /* handled by interceptor */ }
+  } catch { /* handled */ }
 }
 
-onMounted(async () => {
-  if (authStore.latitude && authStore.longitude) {
-    fetchUsers()
-  } else {
-    loading.value = true
-    try { await authStore.fetchLocation() } catch { /* ignore */ }
-    fetchUsers()
-  }
-})
+onMounted(fetchUsers)
 </script>
 
 <style scoped>
@@ -346,55 +307,47 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 700;
 }
-.filter-bar { margin-bottom: 24px; padding: 16px; }
+.filter-bar {
+  margin-bottom: 24px;
+  padding: 16px;
+}
 .filter-row {
   display: flex;
   gap: 12px;
   align-items: center;
 }
-.filter-search-wrap {
-  flex: 1;
-  min-width: 180px;
-  position: relative;
-}
-.filter-search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #aaa;
-  z-index: 1;
-  font-size: 16px;
-}
-.filter-search-input {
-  padding-left: 36px !important;
-}
+.filter-search { flex: 1; min-width: 180px; }
 .filter-select { width: 130px; flex-shrink: 0; }
+.filter-tags { margin-top: 12px; }
 
-/* 用户卡片 */
 .user-card {
   padding: 0;
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  animation: cardFadeIn 0.4s ease-out both;
-}
-@keyframes cardFadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 .user-card:hover {
   transform: translate(-3px, -3px);
   box-shadow: 8px 8px 0 #0057FF;
 }
-.card-cover { height: 80px; background-color: #f0f0f0; }
+.card-cover {
+  height: 80px;
+  background-color: #f0f0f0;
+}
 .card-body {
   padding: 0 16px 20px;
   text-align: center;
   margin-top: -24px;
 }
-.card-avatar { display: block; margin: 0 auto; }
-.card-name { font-size: 18px; font-weight: 900; margin: 8px 0 4px; }
+.card-avatar {
+  display: block;
+  margin: 0 auto;
+}
+.card-name {
+  font-size: 18px;
+  font-weight: 900;
+  margin: 8px 0 4px;
+}
 .card-location {
   font-size: 13px;
   color: #888;
@@ -404,7 +357,9 @@ onMounted(async () => {
   gap: 4px;
   margin-bottom: 8px;
 }
-.loc-sep { color: #ccc; }
+.loc-sep {
+  color: #ccc;
+}
 .card-bio {
   font-size: 13px;
   color: #666;
@@ -433,10 +388,22 @@ onMounted(async () => {
   border: 2px solid #1A1A1A;
   background: #fafafa;
 }
-.match-label { font-size: 12px; font-weight: 700; text-transform: uppercase; flex-shrink: 0; }
-.match-track { flex: 1; height: 8px; background: #eee; border: 1px solid #ccc; }
-.match-fill { height: 100%; transition: width 0.3s; }
-.match-num { font-size: 14px; font-weight: 900; flex-shrink: 0; }
+.match-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.match-track {
+  flex: 1;
+  height: 8px;
+  background: #eee;
+  border: 1px solid #ccc;
+}
+.match-fill {
+  height: 100%;
+  transition: width 0.3s;
+}
 .sort-indicator {
   text-align: center;
   font-size: 13px;
@@ -444,36 +411,27 @@ onMounted(async () => {
   color: #888;
   margin-bottom: 16px;
 }
+.match-num {
+  font-size: 14px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
 
 /* Detail */
-.detail-header { display: flex; gap: 16px; align-items: center; margin-bottom: 20px; }
+.user-card-detail {}
+.detail-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+}
 .detail-section { margin-bottom: 16px; }
 
-/* Request form */
-.request-form { display: flex; flex-direction: column; gap: 8px; }
-.field-label {
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #555;
-}
-.request-textarea {
-  width: 100%;
-  resize: vertical;
-  font-family: var(--font-sans);
-  font-size: 15px;
-  padding: 12px 14px;
-}
-.field-count {
-  text-align: right;
-  font-size: 12px;
-  color: #aaa;
-}
-
 @media (max-width: 768px) {
-  .filter-row { flex-wrap: wrap; }
-  .filter-search-wrap { min-width: 100%; }
+  .filter-row {
+    flex-wrap: wrap;
+  }
+  .filter-search { min-width: 100%; }
   .filter-select { flex: 1; min-width: 0; }
 }
 </style>

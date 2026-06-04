@@ -134,7 +134,6 @@ skillMatch/
 | Axios | ^1.7.0 | HTTP 客户端 |
 
 ## 注意事项
-- 现在只修复管理端模块
 - 关键部分需注释,生成代码时请使用中文注释
 - 前端 Vite 开发服务器代理 `/api` 到 `localhost:8080`
 - MyBatis-Plus 分页插件已配置（`MybatisPlusConfig`），使用 `Page<T>` 即可分页

@@ -129,6 +129,7 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
 
     @Override
     public Page<AdminUserVO> listUsers(AdminUserQuery q) {
+        // 检查权限
         AdminUser au = checkAdmin();
         log.info("[ADMIN] LIST_USERS | admin={} role={} | filters={}", au.getUserId(), au.getRole(), q);
 
@@ -139,8 +140,9 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
                 case "all_real" -> w.eq(User::getRobot, false).or().isNull(User::getRobot);
                 case "all_robot" -> w.eq(User::getRobot, true);
                 case "all_frozen" -> w.eq(User::getStatus, 2);
-                case "pending_unfreeze", "no_coords" -> w.and(x -> x.isNull(User::getLatitude).or()
+                case "no_coords" -> w.and(x -> x.isNull(User::getLatitude).or()
                         .isNull(User::getLongitude).or().eq(User::getLatitude, 0.0).or().eq(User::getLongitude, 0.0));
+                case "pending_unfreeze" -> w.eq(User::getStatus, 2);
             }
         }
 
@@ -163,12 +165,21 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
         boolean geoFilter = q.getCenterLat() != null && q.getCenterLng() != null
                 && q.getRadiusKm() != null && q.getRadiusKm() > 0;
 
+        // 地理筛选前先做 SQL 边界框粗筛，减少内存 haversine 计算量
+        if (geoFilter) {
+            double latDelta = q.getRadiusKm() / 111.0;
+            double lngDelta = q.getRadiusKm() / (111.0 * Math.cos(Math.toRadians(q.getCenterLat())));
+            w.between(User::getLatitude, q.getCenterLat() - latDelta, q.getCenterLat() + latDelta)
+             .between(User::getLongitude, q.getCenterLng() - lngDelta, q.getCenterLng() + lngDelta);
+        }
+
         w.orderByDesc(User::getCreatedAt);
         Page<User> page = page(new Page<>(q.getPage(), geoFilter ? 10000 : q.getSize()), w);
 
         List<User> records = page.getRecords();
 
         if (geoFilter) {
+            // 过滤经纬度
             records = records.stream()
                     .filter(u -> haversine(q.getCenterLat(), q.getCenterLng(),
                             u.getLatitude(), u.getLongitude()) <= q.getRadiusKm())
@@ -179,7 +190,16 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
             page = new Page<>(q.getPage(), q.getSize(), records.size());
         }
 
-        List<AdminUserVO> vos = records.stream().map(this::toVO).collect(Collectors.toList());
+        // 批量查询技能/爱好，避免 N+1
+        List<String> ids = records.stream().map(User::getUserId).toList();
+        Map<String, List<UserSkill>> skillMap = ids.isEmpty() ? Map.of()
+                : userSkillMapper.selectList(new LambdaQueryWrapper<UserSkill>().in(UserSkill::getUserId, ids))
+                .stream().collect(Collectors.groupingBy(UserSkill::getUserId));
+        Map<String, List<UserHobby>> hobbyMap = ids.isEmpty() ? Map.of()
+                : userHobbyMapper.selectList(new LambdaQueryWrapper<UserHobby>().in(UserHobby::getUserId, ids))
+                .stream().collect(Collectors.groupingBy(UserHobby::getUserId));
+
+        List<AdminUserVO> vos = records.stream().map(u -> toVO(u, skillMap, hobbyMap)).collect(Collectors.toList());
         Page<AdminUserVO> result = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         result.setRecords(vos);
         return result;
@@ -200,13 +220,11 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    private AdminUserVO toVO(User u) {
+    private AdminUserVO toVO(User u, Map<String, List<UserSkill>> skillMap, Map<String, List<UserHobby>> hobbyMap) {
         AdminUserVO vo = new AdminUserVO();
         BeanUtil.copyProperties(u, vo);
-        List<UserSkill> skills = userSkillMapper.selectList(
-                new LambdaQueryWrapper<UserSkill>().eq(UserSkill::getUserId, u.getUserId()));
-        List<UserHobby> hobbies = userHobbyMapper.selectList(
-                new LambdaQueryWrapper<UserHobby>().eq(UserHobby::getUserId, u.getUserId()));
+        List<UserSkill> skills = skillMap.getOrDefault(u.getUserId(), List.of());
+        List<UserHobby> hobbies = hobbyMap.getOrDefault(u.getUserId(), List.of());
         vo.setSkillTags(skills.stream().map(UserSkill::getSkillName).collect(Collectors.joining(",")));
         vo.setHobbyTags(hobbies.stream().map(UserHobby::getHobbyName).collect(Collectors.joining(",")));
         return vo;
@@ -219,7 +237,11 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
         checkAdmin();
         User u = lambdaQuery().eq(User::getUserId, userId).one();
         if (u == null) throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
-        return toVO(u);
+        var skillMap = Map.of(u.getUserId(), userSkillMapper.selectList(
+                new LambdaQueryWrapper<UserSkill>().eq(UserSkill::getUserId, u.getUserId())));
+        var hobbyMap = Map.of(u.getUserId(), userHobbyMapper.selectList(
+                new LambdaQueryWrapper<UserHobby>().eq(UserHobby::getUserId, u.getUserId())));
+        return toVO(u, skillMap, hobbyMap);
     }
 
     // ==================== 新增/编辑用户 ====================
@@ -251,6 +273,23 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
 
         if (u.getLatitude() != 0.0 && u.getLongitude() != 0.0)
             redisTemplate.opsForGeo().add(USER_LOCATION_KEY, new Point(u.getLongitude(), u.getLatitude()), uid);
+
+        // 写入技能标签：能教=1 想学=2
+        if (dto.getSkillTags() != null) for (String tag : dto.getSkillTags()) {
+            UserSkill s = new UserSkill(); s.setUserId(uid); s.setSkillName(tag);
+            s.setSkillType(1); s.setCreatedTime(LocalDateTime.now()); userSkillMapper.insert(s);
+        }
+        if (dto.getWantSkillTags() != null) for (String tag : dto.getWantSkillTags()) {
+            UserSkill s = new UserSkill(); s.setUserId(uid); s.setSkillName(tag);
+            s.setSkillType(2); s.setCreatedTime(LocalDateTime.now()); userSkillMapper.insert(s);
+        }
+        // 写入兴趣爱好（含 icon）
+        if (dto.getHobbyTags() != null) for (Map<String, String> tag : dto.getHobbyTags()) {
+            UserHobby h = new UserHobby(); h.setUserId(uid);
+            h.setHobbyName(tag.get("name"));
+            h.setIcon(tag.getOrDefault("icon", "interests"));
+            h.setCreateAt(LocalDateTime.now()); userHobbyMapper.insert(h);
+        }
 
         log.info("[ADMIN] CREATE_USER | admin={} role={} | target={} | name={} | robot={}",
                 au.getUserId(), au.getRole(), uid, u.getName(), u.getRobot());
@@ -495,9 +534,9 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
                 if (us.getSkillName().equals(t.getName())) {
                     if (bots.contains(us.getUserId())) bc++; else rc++;
                 }
-            if (rc + bc > 0) r.add(new TagStatsVO(t.getName(), bc, rc, rc + bc));
+            if (rc + bc > 0) r.add(new TagStatsVO(t.getName(), bc, rc, rc + bc, null));
         }
-        r.sort((a, b) -> Long.compare(b.getRobotCount(), a.getRobotCount()));
+        r.sort((a, b) -> Long.compare(b.getTotal(), a.getTotal()));
         return r;
     }
 
@@ -510,7 +549,7 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
             counter.merge(s.getSkillName(), 1L, Long::sum);
         }
         return counter.entrySet().stream()
-                .map(e -> new TagStatsVO(e.getKey(), 0L, e.getValue(), e.getValue()))
+                .map(e -> new TagStatsVO(e.getKey(), 0L, e.getValue(), e.getValue(), null))
                 .sorted(Comparator.comparingLong(TagStatsVO::getTotal).reversed())
                 .limit(8).collect(Collectors.toList());
     }
@@ -519,11 +558,14 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
     private List<TagStatsVO> hobbyDistribution() {
         List<UserHobby> hobbies = userHobbyMapper.selectList(null);
         Map<String, Long> counter = new LinkedHashMap<>();
+        Map<String, String> iconMap = new LinkedHashMap<>();
         for (UserHobby h : hobbies) {
             counter.merge(h.getHobbyName(), 1L, Long::sum);
+            if (h.getIcon() != null) iconMap.putIfAbsent(h.getHobbyName(), h.getIcon());
         }
         return counter.entrySet().stream()
-                .map(e -> new TagStatsVO(e.getKey(), 0L, e.getValue(), e.getValue()))
+                .map(e -> new TagStatsVO(e.getKey(), 0L, e.getValue(), e.getValue(),
+                        iconMap.getOrDefault(e.getKey(), "interests")))
                 .sorted(Comparator.comparingLong(TagStatsVO::getTotal).reversed())
                 .limit(8).collect(Collectors.toList());
     }
@@ -553,9 +595,7 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
     public void addAdmin(AddAdminDTO dto) {
         AdminUser root = checkRootAdmin();
 
-        // 检查 user 是否存在
-        if (!lambdaQuery().eq(User::getUserId, dto.getUserId()).exists())
-            throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
+        // admin_user 与 user 表独立，不校验 user 是否存在
 
         // 检查是否已是管理员
         Long exists = adminUserMapper.selectCount(
@@ -566,6 +606,7 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
         AdminUser au = new AdminUser();
         au.setUserId(dto.getUserId());
         au.setName(dto.getName());
+        au.setPassword(SecureUtil.md5(dto.getPassword() != null ? dto.getPassword() : "123456"));
         au.setRole("ADMIN");
         au.setParentId(root.getId());
         au.setStatus(1);

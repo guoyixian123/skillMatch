@@ -146,7 +146,9 @@ public class UserSkillServiceImpl extends ServiceImpl<UserSkillMapper, UserSkill
         //获取用户id
         String userId = UserContext.getUserId();
         //获取技能
+        if(skillId==null) throw new BusinessException(ErrorCode.PARAM_ERROR);
         UserSkill skill = getById(skillId);
+        if(skill==null) throw new BusinessException(ErrorCode.NOT_FOUND, "技能不存在");
         if(skillId==null){
             throw new BusinessException(ErrorCode.PARAM_ERROR);
         }

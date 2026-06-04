@@ -22,7 +22,7 @@ public class AuthController {
      */
     @PostMapping("/register")
     public RESTful<Object> register(@Valid @RequestBody RegisterAndLoginDTO register) {
-        log.info("用户注册: {}", register);
+        log.info("用户注册: {}", register.getUserId());
         Map<String, Object> map = IAuthService.register(register);
         return RESTful.success(map);
     }
@@ -32,7 +32,7 @@ public class AuthController {
      */
     @PostMapping("/login")
     public RESTful<Object> login(@Valid @RequestBody RegisterAndLoginDTO login) {
-        log.info("用户登录: {}", login);
+        log.info("用户登录: {}", login.getUserId());
         Map<String, Object> map = IAuthService.login(login);
         return RESTful.success(map);
     }

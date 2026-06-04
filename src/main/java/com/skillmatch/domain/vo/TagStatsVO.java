@@ -12,4 +12,5 @@ public class TagStatsVO {
     private Long robotCount;
     private Long realCount;
     private Long total;
+    private String icon;
 }

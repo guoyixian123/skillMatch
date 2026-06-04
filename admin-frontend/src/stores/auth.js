@@ -4,7 +4,8 @@ import { adminLogin } from '@/api/auth'
 
 export const useAuthStore = defineStore('admin-auth', () => {
   const token = ref(localStorage.getItem('admin_token') || '')
-  const admin = ref(JSON.parse(localStorage.getItem('admin_info') || 'null'))
+  let saved = null; try { saved = JSON.parse(localStorage.getItem('admin_info')) } catch(_){}
+const admin = ref(saved)
 
   const isLoggedIn = computed(() => !!token.value)
 

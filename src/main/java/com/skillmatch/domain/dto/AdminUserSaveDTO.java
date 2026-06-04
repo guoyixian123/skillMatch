@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * 管理端新增/编辑用户
  */
@@ -33,4 +36,13 @@ public class AdminUserSaveDTO {
 
     /** 状态：1=正常 2=冻结 */
     private Integer status;
+
+    /** 能教的技能 */
+    private List<String> skillTags;
+
+    /** 想学的技能 */
+    private List<String> wantSkillTags;
+
+    /** 兴趣爱好 [{name, icon}] */
+    private List<Map<String, String>> hobbyTags;
 }

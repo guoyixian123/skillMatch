@@ -71,8 +71,9 @@ public class UserHobbyServiceImpl extends ServiceImpl<UserHobbyMapper, UserHobby
         //获取用户id
         String userId = UserContext.getUserId();
         //获取爱好
+        if(hobbyId==null) throw new BusinessException(ErrorCode.PARAM_ERROR);
         UserHobby hobby = getById(hobbyId);
-        if(hobbyId == null) throw new BusinessException(ErrorCode.PARAM_ERROR);
+        if(hobby==null) throw new BusinessException(ErrorCode.NOT_FOUND, "爱好不存在");
         //判断爱好是否属于当前用户
         if (!hobby.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.NOT_AUTH, "不能删除他人的爱好");

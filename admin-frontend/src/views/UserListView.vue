@@ -135,17 +135,52 @@
         <div class="gf" v-if="!dlg.editing"><label class="filter-label">用户ID</label><input v-model="f.userId" class="nb-input" placeholder="留空自动生成" /></div>
         <div class="gf" v-if="!dlg.editing && !f.robot"><label class="filter-label">密码</label><input v-model="f.password" type="password" class="nb-input" placeholder="6-20字符" /></div>
         <div class="gf"><label class="filter-label">联系方式</label><input v-model="f.contactInfo" class="nb-input" /></div>
-        <div class="gf"><label class="filter-label">头像URL</label><input v-model="f.avatarUrl" class="nb-input" /></div>
+        <div class="gf"><label class="filter-label">头像</label>
+          <div class="avatar-upload-row">
+            <input v-model="f.avatarUrl" class="nb-input" placeholder="头像URL" />
+            <label class="nb-btn sm" style="cursor:pointer;flex-shrink:0;">
+              <span class="material-symbols-outlined" style="font-size:16px;">upload</span> 上传
+              <input type="file" accept="image/*" hidden @change="handleAvatarUpload" />
+            </label>
+          </div>
+        </div>
         <div class="gf"><label class="filter-label">简介</label><textarea v-model="f.bio" class="nb-input" rows="2"></textarea></div>
+        <div class="gf" v-if="!dlg.editing"><label class="filter-label">能教的技能</label>
+          <div class="tag-checkbox-list">
+            <label v-for="s in tagPool.skills" :key="'can-'+s" class="tag-checkbox" :class="{ dimmed: f.selectedWantSkills.includes(s) }">
+              <input type="checkbox" :value="s" v-model="f.selectedCanSkills" :disabled="f.selectedWantSkills.includes(s)" /> {{ s }}
+            </label>
+          </div>
+        </div>
+        <div class="gf" v-if="!dlg.editing"><label class="filter-label">想学的技能</label>
+          <div class="tag-checkbox-list">
+            <label v-for="s in tagPool.skills" :key="'want-'+s" class="tag-checkbox" :class="{ dimmed: f.selectedCanSkills.includes(s) }">
+              <input type="checkbox" :value="s" v-model="f.selectedWantSkills" :disabled="f.selectedCanSkills.includes(s)" /> {{ s }}
+            </label>
+          </div>
+        </div>
+        <div class="gf" v-if="!dlg.editing"><label class="filter-label">兴趣爱好</label>
+          <div class="tag-checkbox-list">
+            <label v-for="h in tagPool.hobbies" :key="h.name" class="tag-checkbox">
+              <input type="checkbox" :value="h" v-model="f.selectedHobbies" />
+              <span class="material-symbols-outlined" style="font-size:14px;">{{ h.icon }}</span> {{ h.name }}
+            </label>
+          </div>
+        </div>
         <div class="gf-row">
-          <div class="gf"><label class="filter-label">纬度</label><input v-model="f.latitude" type="number" class="nb-input" /></div>
-          <div class="gf"><label class="filter-label">经度</label><input v-model="f.longitude" type="number" class="nb-input" /></div>
-          <div class="gf"><label class="filter-label">城市</label><input v-model="f.city" class="nb-input" /></div>
+          <div class="gf"><label class="filter-label">纬度</label><input v-model.number="f.latitude" class="nb-input" placeholder="如 39.9" /></div>
+          <div class="gf"><label class="filter-label">经度</label><input v-model.number="f.longitude" class="nb-input" placeholder="如 116.4" /></div>
+          <div class="gf"><label class="filter-label">城市</label>
+            <div class="city-input-row">
+              <input v-model="f.city" class="nb-input" placeholder="或选择城市" />
+              <button type="button" class="nb-btn xs" @click="showCityPicker = true"><span class="material-symbols-outlined" style="font-size:16px;">location_on</span></button>
+            </div>
+          </div>
         </div>
         <div class="gf"><label class="filter-label">类型</label>
           <div class="radio-row">
-            <label><input type="radio" :value="false" v-model="f.robot" /> 真人</label>
-            <label><input type="radio" :value="true" v-model="f.robot" /> 机器人</label>
+            <label><input type="radio" :value="false" v-model="f.robot" @change="onTypeChange" /> 真人</label>
+            <label><input type="radio" :value="true" v-model="f.robot" @change="onTypeChange" /> 机器人</label>
           </div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
@@ -187,6 +222,12 @@
         </div>
       </form>
     </Dialog>
+    <!-- ===== 城市选择弹窗 ===== -->
+    <Dialog v-model:visible="showCityPicker" header="选择城市" :modal="true" :style="{ width:'420px' }">
+      <div class="city-picker-grid">
+        <button v-for="c in cityList" :key="c.name" type="button" class="city-pick-btn" @click="pickCity(c)">{{ c.name }}</button>
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -218,10 +259,23 @@ const quickBtns = [
 
 const dlg = reactive({ detail:false, data:null, ban:false, banUserId:'', form:false, editing:false, robot:false })
 const banReason = ref('')
-const f = reactive({ userId:'', name:'', password:'', contactInfo:'', avatarUrl:'', signature:'', bio:'', latitude:null, longitude:null, city:'', robot:false })
+const f = reactive({ userId:'', name:'', password:'', contactInfo:'', avatarUrl:'', signature:'', bio:'', latitude:null, longitude:null, city:'', robot:false, selectedCanSkills:[], selectedWantSkills:[], selectedHobbies:[] })
 const rf = reactive({ namePrefix:'', count:10, selectedSkills:[], selectedHobbies:[], centerLat:null, centerLng:null, spreadKm:null })
 const allSkills = ref([])
 const allHobbies = ref([])
+const tagPool = reactive({ skills:[], hobbies:[] })
+const showCityPicker = ref(false)
+const saving = ref(false)
+const cityList = [
+  { name:'北京', lat:39.9, lng:116.4 },{ name:'上海', lat:31.2, lng:121.5 },{ name:'广州', lat:23.1, lng:113.3 },
+  { name:'深圳', lat:22.5, lng:114.1 },{ name:'杭州', lat:30.3, lng:120.2 },{ name:'成都', lat:30.7, lng:104.1 },
+  { name:'武汉', lat:30.6, lng:114.3 },{ name:'南京', lat:32.1, lng:118.8 },{ name:'重庆', lat:29.6, lng:106.6 },
+  { name:'天津', lat:39.1, lng:117.2 },{ name:'苏州', lat:31.3, lng:120.6 },{ name:'西安', lat:34.3, lng:108.9 },
+  { name:'长沙', lat:28.2, lng:113.0 },{ name:'郑州', lat:34.8, lng:113.6 },{ name:'青岛', lat:36.1, lng:120.4 },
+  { name:'沈阳', lat:41.8, lng:123.4 },{ name:'哈尔滨', lat:45.8, lng:126.5 },{ name:'昆明', lat:25.0, lng:102.7 },
+  { name:'福州', lat:26.1, lng:119.3 },{ name:'厦门', lat:24.5, lng:118.1 },{ name:'合肥', lat:31.8, lng:117.3 },
+  { name:'济南', lat:36.7, lng:117.0 },{ name:'南宁', lat:22.8, lng:108.4 },{ name:'贵阳', lat:26.6, lng:106.6 },
+]
 
 function defaultAvatar(id) { return `https://ui-avatars.com/api/?name=${encodeURIComponent(id||'U')}&background=000&color=fff&size=64` }
 
@@ -243,7 +297,7 @@ function reset() {
   Object.assign(q, { page:1, size:20, keyword:'', status:null, centerLat:null, centerLng:null, radiusKm:null, quickFilter:'', dateStart:'' })
   search()
 }
-function resetForm() { dlg.editing = false; Object.assign(f, { userId:'', name:'', password:'', contactInfo:'', avatarUrl:'', signature:'', bio:'', latitude:null, longitude:null, city:'', robot:false }) }
+function resetForm() { dlg.editing = false; Object.assign(f, { userId:'', name:'', password:'', contactInfo:'', avatarUrl:'', signature:'', bio:'', latitude:null, longitude:null, city:'', robot:false, selectedCanSkills:[], selectedWantSkills:[], selectedHobbies:[] }) }
 
 async function openDetail(u) { try { dlg.data = (await getUserDetail(u.userId)).data; dlg.detail = true } catch { /* */ } }
 function openFreeze(u) { dlg.banUserId = u.userId; banReason.value = ''; dlg.ban = true }
@@ -254,7 +308,15 @@ async function handleUnfreeze(u) {
   try { await updateUserStatus({ userId: u.userId, status: 1 }); toast.add({ severity:'success', summary:'完成', detail:'用户已解冻', life:3000 }); search() } catch { /* */ }
 }
 
-function openCreate() { resetForm(); dlg.form = true }
+async function openCreate() {
+  resetForm()
+  try {
+    const [sr, hr] = await Promise.all([getSkillTags(), getHobbyTags()])
+    tagPool.skills = Object.values(sr.data || {}).flat()
+    tagPool.hobbies = Object.values(hr.data || {}).flat().map(h => ({ name: h.name || h, icon: h.icon || 'interests' }))
+  } catch { /* */ }
+  dlg.form = true
+}
 function openEdit(u) {
   dlg.editing = true
   Object.assign(f, { userId:u.userId, name:u.name||'', contactInfo:u.contactInfo||'', avatarUrl:u.avatarUrl||'', signature:u.signature||'', bio:u.bio||'', latitude:u.latitude, longitude:u.longitude, city:u.city||'', robot:u.robot||false })
@@ -262,13 +324,29 @@ function openEdit(u) {
 }
 async function handleSave() {
   if (!f.name) { toast.add({ severity:'warn', summary:'必填', detail:'请输入昵称', life:3000 }); return }
+  saving.value = true
   try {
-    if (dlg.editing) await updateUser(f.userId, { ...f })
-    else await createUser({ ...f })
+    const payload = { ...f }
+    if (!dlg.editing) {
+      payload.skillTags = f.selectedCanSkills
+      payload.wantSkillTags = f.selectedWantSkills
+      payload.hobbyTags = f.selectedHobbies.map(h => ({ name: h.name, icon: h.icon }))
+    }
+    if (dlg.editing) await updateUser(f.userId, payload)
+    else await createUser(payload)
     toast.add({ severity:'success', summary:'完成', detail: dlg.editing?'已更新':'已创建', life:3000 })
     dlg.form = false; search()
-  } catch { /* */ }
+  } catch { /* */ } finally { saving.value = false }
 }
+
+function onTypeChange() { if (f.robot) f.password = '' }
+
+async function handleAvatarUpload(e) {
+  const file = e.target.files?.[0]; if (!file) return
+  try { const r = await uploadAvatar(file); f.avatarUrl = r.data || ''; toast.add({ severity:'success', summary:'完成', detail:'头像上传成功', life:3000 }) } catch { /* */ }
+}
+
+function pickCity(c) { f.latitude = c.lat; f.longitude = c.lng; f.city = c.name; showCityPicker.value = false }
 
 async function openRobotDialog() {
   // 加载可选标签
@@ -394,6 +472,14 @@ search()
 .tag-checkbox-list { max-height: 150px; overflow-y: auto; border: var(--border); padding: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
 .tag-checkbox { font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
 .tag-checkbox input { accent-color: var(--yellow); }
+.tag-checkbox.dimmed { opacity: 0.35; text-decoration: line-through; }
+.avatar-upload-row { display: flex; gap: 8px; align-items: center; }
+.avatar-upload-row .nb-input { flex: 1; }
+.city-input-row { display: flex; gap: 4px; align-items: center; }
+.city-input-row .nb-input { flex: 1; }
+.city-picker-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 300px; overflow-y: auto; }
+.city-pick-btn { padding: 6px 4px; font-size: 12px; font-weight: 700; cursor: pointer; border: var(--border); background: #fff; text-align: center; }
+.city-pick-btn:hover { background: var(--yellow); }
 
 @media (max-width: 1024px) { .filter-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 768px) { .filter-grid { grid-template-columns: 1fr; } .gf-row { grid-template-columns: 1fr; } .filter-actions { flex-direction: column; } }

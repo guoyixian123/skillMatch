@@ -52,7 +52,7 @@ public class ContactRequestServiceImpl extends ServiceImpl<ContactRequestMapper,
                 .list();
         if (list.isEmpty()) {
             //无通知,返回空
-            return null;
+            return List.of();
         }
         //根据通知id查询发送通知的用户信息
         List<String> userIds = list.stream().map(ContactRequest::getFromUserId).toList();
@@ -65,7 +65,7 @@ public class ContactRequestServiceImpl extends ServiceImpl<ContactRequestMapper,
             userBasicInfos.add(userBasicInfo);
         }
         if (userBasicInfos.isEmpty()) {
-            return null;
+            return List.of();
         }
         //用户信息,转换为map key:userid value:UserBasicVO(ID,name,url)
         Map<String, UserBasicVO> collect = userBasicInfos.stream().collect(Collectors.toMap(UserBasicVO::getId, e -> e));
@@ -199,7 +199,7 @@ public class ContactRequestServiceImpl extends ServiceImpl<ContactRequestMapper,
                 .eq(status != null, ContactRequest::getStatus, status)
                 .list();
         if (list.isEmpty()) {
-            return null;
+            return List.of();
         }
         List<String> userIds = list.stream().map(ContactRequest::getToUserId).toList();
         //获取接收端的用户id
@@ -212,7 +212,7 @@ public class ContactRequestServiceImpl extends ServiceImpl<ContactRequestMapper,
             userBasicInfos.add(userBasicInfo);
         }
         if (userBasicInfos.isEmpty()) {
-            return null;
+            return List.of();
         }
         //用户信息,转换为map key:userid value:UserBasicVO(ID,name,url)
         Map<String, UserBasicVO> collect = userBasicInfos.stream().collect(Collectors.toMap(UserBasicVO::getId, e -> e));

@@ -57,6 +57,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         //设置更新时间
         user.setUpdatedAt(LocalDateTime.now());
         //保存用户注册信息
+        user.setLikeCount(0); user.setPostCount(0); user.setStatus(1);
         save(user);
         //封装返回信息
         return getStringObjectMap(user);

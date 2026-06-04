@@ -1,41 +1,51 @@
 <template>
   <div class="page-container">
     <header class="page-header">
-      <h1 class="page-title"><i class="pi pi-bell"></i> 通知</h1>
+      <h1 class="page-title"><el-icon><Bell /></el-icon> 通知</h1>
       <p class="page-subtitle">技能交换请求</p>
     </header>
 
-    <!-- Tabs -->
-    <div class="custom-tabs" style="margin-bottom:20px;">
-      <button v-for="tab in tabs" :key="tab.value" class="tab-btn" :class="{ active: activeTab === tab.value }" @click="activeTab = tab.value; fetchData()">
-        {{ tab.label }}
-      </button>
-    </div>
+    <el-tabs v-model="activeTab" @tab-change="fetchData">
+      <el-tab-pane label="技能交换" name="received" />
+      <el-tab-pane label="已发送" name="sent" />
+      <el-tab-pane label="互动" name="likes" />
+    </el-tabs>
 
     <!-- Filter for exchange request tabs -->
     <div v-if="activeTab !== 'likes'" class="filter-row" style="margin-bottom:16px;display:flex;gap:8px;">
-      <button v-for="s in statuses" :key="s.value" class="brutal-btn small" :class="status === s.value ? 'dark' : 'outline'" @click="status = s.value; fetchData()">
+      <button
+        v-for="s in statuses"
+        :key="s.value"
+        class="brutal-btn small"
+        :class="status === s.value ? 'dark' : 'outline'"
+        @click="status = s.value; fetchData()"
+      >
         {{ s.label }}
       </button>
     </div>
 
-    <div v-if="loading" class="loading-block"><i class="pi pi-spinner pi-spin"></i> 加载中...</div>
+    <div v-if="loading" class="loading-block"><el-icon class="is-loading"><Loading /></el-icon> 加载中...</div>
 
     <!-- Exchange Request Cards -->
     <template v-else-if="activeTab !== 'likes'">
       <div v-if="requests.length === 0" class="empty-block">
-        <div class="icon"><i class="pi pi-folder-open" style="font-size:48px;"></i></div>
+        <div class="icon"><el-icon :size="48"><FolderOpened /></el-icon></div>
         <div style="font-weight:800;font-size:18px;">暂无请求</div>
       </div>
 
       <div v-else class="request-list">
         <div v-for="req in requests" :key="req.id" class="request-card brutal-card">
           <div class="request-header">
-            <img :src="req.fromUser?.avatarUrl || getDefaultAvatar(req.fromUser?.id || req.fromUser?.name)" class="brutal-avatar" />
+            <img
+              :src="req.fromUser?.avatarUrl || getDefaultAvatar(req.fromUser?.id || req.fromUser?.name)"
+              class="brutal-avatar"
+            />
             <div class="request-info">
-              <div class="request-user">{{ req.fromUser?.name }}</div>
+              <div class="request-user">
+                {{ req.fromUser?.name }}
+              </div>
               <div class="request-reason">"{{ req.reason }}"</div>
-              <div class="request-time">{{ formatTime(req.createAt) }}</div>
+              <div class="request-time">{{ formatTime(req.createdAt) }}</div>
             </div>
             <div class="request-status-tag" :class="'status-' + req.status">
               {{ statusMap[req.status] || req.status }}
@@ -43,8 +53,12 @@
           </div>
 
           <div class="request-actions" v-if="activeTab === 'received' && req.status === 1">
-            <button class="brutal-btn primary small" @click="handleAccept(req)">同意交换</button>
-            <button class="brutal-btn danger small" @click="handleDecline(req)">拒绝</button>
+            <button class="brutal-btn primary small" @click="handleAccept(req)">
+              同意交换
+            </button>
+            <button class="brutal-btn danger small" @click="handleDecline(req)">
+              拒绝
+            </button>
           </div>
         </div>
       </div>
@@ -53,14 +67,23 @@
     <!-- Like Notification Cards -->
     <template v-else>
       <div v-if="likeItems.length === 0" class="empty-block">
-        <div class="icon"><i class="pi pi-star" style="font-size:48px;"></i></div>
+        <div class="icon"><el-icon :size="48"><Star /></el-icon></div>
         <div style="font-weight:800;font-size:18px;">暂无点赞通知</div>
       </div>
 
       <div v-else class="request-list">
-        <div v-for="item in likeItems" :key="item.id" class="request-card brutal-card like-notify-card" :class="{ unread: !item.isRead }" @click="handleLikeClick(item)">
+        <div
+          v-for="item in likeItems"
+          :key="item.id"
+          class="request-card brutal-card like-notify-card"
+          :class="{ unread: !item.isRead }"
+          @click="handleLikeClick(item)"
+        >
           <div class="request-header">
-            <img :src="item.actor?.avatarUrl || getDefaultAvatar(item.actor?.id || item.actor?.name)" class="brutal-avatar" />
+            <img
+              :src="item.actor?.avatarUrl || getDefaultAvatar(item.actor?.id || item.actor?.name)"
+              class="brutal-avatar"
+            />
             <div class="request-info">
               <div class="request-user">
                 <strong>{{ item.actor?.name }}</strong>
@@ -84,28 +107,27 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDefaultAvatar } from '@/utils/avatar'
-import { useToast } from 'primevue/usetoast'
-import { useConfirm } from 'primevue/useconfirm'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Bell, Loading, FolderOpened, Star } from '@element-plus/icons-vue'
 import {
-  getReceivedRequests, getSentRequests, acceptRequest, declineRequest,
-  getLikeNotifications, markLikeRead, markLikeAllRead,
+  getReceivedRequests,
+  getSentRequests,
+  acceptRequest,
+  declineRequest,
+  getLikeNotifications,
+  markLikeRead,
+  markLikeAllRead,
 } from '@/api/notification'
 
 const router = useRouter()
-const toast = useToast()
-const confirmDialog = useConfirm()
 const activeTab = ref('received')
 const status = ref(1)
 const loading = ref(false)
 const requests = ref([])
 const likeItems = ref([])
 const likePage = ref(1)
+const likeTotal = ref(0)
 
-const tabs = [
-  { label: '技能交换', value: 'received' },
-  { label: '已发送', value: 'sent' },
-  { label: '互动', value: 'likes' },
-]
 const statuses = [
   { label: '待处理', value: 1 },
   { label: '已同意', value: 2 },
@@ -133,13 +155,16 @@ async function fetchData() {
       const res = await api({ status: status.value })
       requests.value = Array.isArray(res.data) ? res.data : (res.data?.list || [])
     }
-  } catch { /* handled */ } finally { loading.value = false }
+  } catch { /* API may not be implemented yet */ } finally {
+    loading.value = false
+  }
 }
 
 async function fetchLikes() {
   try {
     const res = await getLikeNotifications({ page: likePage.value, size: 20 })
     likeItems.value = res.data?.list || []
+    likeTotal.value = res.data?.total || 0
   } catch { /* handled */ }
 }
 
@@ -159,73 +184,110 @@ async function handleMarkAllRead() {
   try {
     const res = await markLikeAllRead()
     likeItems.value.forEach(i => i.isRead = true)
-    toast.add({ severity: 'success', summary: '成功', detail: res.message || '全部已读', life: 3000 })
+    ElMessage.success(res.message || '全部已读')
   } catch { /* ignore */ }
 }
 
 async function handleAccept(req) {
-  confirmDialog.require({
-    message: `同意后你们将成为好友，确定同意 ${req.fromUser?.name} 的交换请求吗？`,
-    header: '确认',
-    rejectLabel: '取消',
-    acceptLabel: '同意',
-    accept: async () => {
-      const res = await acceptRequest(req.id)
-      toast.add({ severity: 'success', summary: '成功', detail: res.message || '已同意交换请求，你们已成为好友', life: 3000 })
-      if (res.data) {
-        const info = typeof res.data === 'string' ? res.data : JSON.stringify(res.data)
-        toast.add({ severity: 'info', summary: '提示', detail: '对方联系方式：' + info, life: 5000 })
-      }
-      fetchData()
-    },
-  })
+  try {
+    await ElMessageBox.confirm(
+      `同意后你们将成为好友，确定同意 ${req.fromUser?.name} 的交换请求吗？`,
+      '确认',
+      { confirmButtonText: '同意', cancelButtonText: '取消', type: 'info', showClose: false }
+    )
+    const res = await acceptRequest(req.id)
+    ElMessage.success(res.message || '已同意交换请求，你们已成为好友')
+    if (res.data) {
+      ElMessage.info('对方联系方式：' + res.data)
+    }
+    fetchData()
+  } catch { /* cancel or error */ }
 }
 
 async function handleDecline(req) {
-  confirmDialog.require({
-    message: '确定拒绝该请求吗？',
-    header: '确认',
-    rejectLabel: '取消',
-    acceptLabel: '拒绝',
-    acceptClass: 'p-button-danger',
-    accept: async () => {
-      const res = await declineRequest(req.id)
-      toast.add({ severity: 'success', summary: '成功', detail: res.message || '已拒绝', life: 3000 })
-      fetchData()
-    },
-  })
+  try {
+    await ElMessageBox.confirm('确定拒绝该请求吗？', '确认', {
+      confirmButtonText: '拒绝',
+      cancelButtonText: '取消',
+      type: 'warning',
+      showClose: false,
+    })
+    const res = await declineRequest(req.id)
+    ElMessage.success(res.message || '已拒绝')
+    fetchData()
+  } catch { /* cancel or error */ }
 }
 
 onMounted(fetchData)
 </script>
 
 <style scoped>
-.custom-tabs { display: flex; border-bottom: 3px solid #1A1A1A; }
-.tab-btn {
-  padding: 10px 20px; border: none; background: none;
-  font-weight: 700; font-size: 14px; text-transform: uppercase;
-  letter-spacing: 0.5px; color: var(--color-gray); cursor: pointer;
-  border-bottom: 3px solid transparent; margin-bottom: -3px;
-  transition: all 0.15s;
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.tab-btn.active { color: #1A1A1A; border-bottom-color: var(--color-yellow); }
-
-.request-list { display: flex; flex-direction: column; gap: 12px; }
 .request-card { padding: 16px; }
-.request-header { display: flex; gap: 12px; align-items: flex-start; }
+.request-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
 .request-info { flex: 1; }
-.request-user { font-weight: 900; font-size: 15px; margin-bottom: 4px; }
-.request-reason { font-size: 14px; color: #555; font-style: italic; margin-bottom: 4px; }
-.request-time { font-size: 12px; color: #aaa; }
-.request-status-tag { padding: 4px 10px; font-size: 12px; font-weight: 700; border: 2px solid #1A1A1A; flex-shrink: 0; }
+.request-user {
+  font-weight: 900;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.request-reason {
+  font-size: 14px;
+  color: #555;
+  font-style: italic;
+  margin-bottom: 4px;
+}
+.request-time {
+  font-size: 12px;
+  color: #aaa;
+}
+.request-status-tag {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid #1A1A1A;
+  flex-shrink: 0;
+}
 .request-status-tag.status-1 { background: var(--color-yellow); }
 .request-status-tag.status-2 { background: var(--color-green); color: #000; }
 .request-status-tag.status-3 { background: #eee; color: #888; }
-.request-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 2px solid #eee; }
+.request-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 2px solid #eee;
+}
 
-.like-notify-card { cursor: pointer; transition: background 0.15s; }
+/* Like notification */
+.like-notify-card {
+  cursor: pointer;
+  transition: background 0.15s;
+}
 .like-notify-card:hover { background: #FFFDE7; }
-.like-notify-card.unread { border-left: 4px solid var(--color-yellow); }
-.like-preview { font-weight: 400; font-size: 14px; color: #555; margin-left: 6px; }
-.unread-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-yellow); flex-shrink: 0; align-self: center; }
+.like-notify-card.unread {
+  border-left: 4px solid var(--color-yellow);
+}
+.like-preview {
+  font-weight: 400;
+  font-size: 14px;
+  color: #555;
+  margin-left: 6px;
+}
+.unread-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-yellow);
+  flex-shrink: 0;
+  align-self: center;
+}
 </style>

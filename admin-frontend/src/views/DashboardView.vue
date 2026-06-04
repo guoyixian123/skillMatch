@@ -126,7 +126,7 @@
 
       <!-- 用户技能 & 爱好总览 -->
       <div class="nb-card pie-card">
-        <h3 class="pie-title">能教的技能</h3>
+        <h3 class="pie-title"><span class="material-symbols-outlined pie-icon">handyman</span>能教的技能</h3>
         <v-chart :option="canSkillOption" autoresize style="height:160px" />
         <div class="tag-list">
           <span class="tag-item" v-for="t in canSkillTags" :key="t.name">
@@ -137,7 +137,7 @@
       </div>
 
       <div class="nb-card pie-card">
-        <h3 class="pie-title">想学的技能</h3>
+        <h3 class="pie-title"><span class="material-symbols-outlined pie-icon">auto_stories</span>想学的技能</h3>
         <v-chart :option="wantSkillOption" autoresize style="height:160px" />
         <div class="tag-list">
           <span class="tag-item" v-for="t in wantSkillTags" :key="t.name">
@@ -148,11 +148,11 @@
       </div>
 
       <div class="nb-card pie-card">
-        <h3 class="pie-title">兴趣爱好</h3>
+        <h3 class="pie-title"><span class="material-symbols-outlined pie-icon">interests</span>兴趣爱好</h3>
         <v-chart :option="hobbyOption" autoresize style="height:160px" />
         <div class="tag-list">
           <span class="tag-item" v-for="t in hobbyTags" :key="t.name">
-            <span class="tag-dot" style="background:#4ADE80"></span>
+            <span class="material-symbols-outlined" style="font-size:14px;color:#4ADE80;">{{ t.icon }}</span>
             {{ t.name }} <span class="tag-count">{{ t.count }}</span>
           </span>
         </div>
@@ -342,7 +342,7 @@ const wantSkillTags = computed(() => {
 })
 const hobbyTags = computed(() => {
   return (data.value.hobbyDistribution || []).slice(0, 6).map(t => ({
-    name: t.tagName, count: t.total || 0,
+    name: t.tagName, count: t.total || 0, icon: t.icon || 'interests',
   }))
 })
 
@@ -512,7 +512,8 @@ onMounted(async () => {
 /* ===== 底排 ===== */
 .bottom-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .pie-card { padding: 20px; display: flex; flex-direction: column; align-items: center; }
-.pie-title { font-family: var(--font-headline); font-size: 18px; font-weight: 900; text-transform: uppercase; font-style: italic; margin-bottom: 8px; }
+.pie-title { font-family: var(--font-headline); font-size: 18px; font-weight: 900; text-transform: uppercase; font-style: italic; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.pie-icon { font-size: 18px !important; }
 .pie-legend-bar {
   display: flex; justify-content: space-between; width: 100%; margin-top: 8px;
   background: #000; color: #fff; padding: 6px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase;

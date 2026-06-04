@@ -9,8 +9,9 @@ const STYLES = [
  * @returns {string} 头像图片 URL
  */
 export function getDefaultAvatar(seed) {
-  const style = STYLES[hashCode(seed) % STYLES.length]
-  return `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(seed || 'default')}`
+  const s = seed || 'default'
+  const style = STYLES[hashCode(s) % STYLES.length]
+  return `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(s)}`
 }
 
 function hashCode(str) {

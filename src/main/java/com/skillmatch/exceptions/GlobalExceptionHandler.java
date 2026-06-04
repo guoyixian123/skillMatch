@@ -38,7 +38,7 @@ public class GlobalExceptionHandler{
     public RESTful<Object> handleException(Exception e) {
         return RESTful.error(
                 ErrorCode.SERVER_ERROR.getCode(),
-                e.getMessage()
+                "服务器内部错误，请稍后重试"
         );
     }
 }
