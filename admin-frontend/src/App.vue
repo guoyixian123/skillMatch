@@ -67,7 +67,7 @@
           <span class="footer-divider"></span>
           <span class="footer-dim">同步: 2分钟前</span>
         </div>
-        <div class="footer-version">V2.4.1-STABLE</div>
+        <div class="footer-version">SkillMatch Admin</div>
       </footer>
     </div>
 

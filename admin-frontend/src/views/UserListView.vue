@@ -36,8 +36,8 @@
         <div class="action-btns">
           <button class="nb-btn primary sm" @click="openCreate()"><span class="material-symbols-outlined">add_circle</span> 新增用户</button>
           <button class="nb-btn danger sm" @click="handleDeleteSelected" :disabled="!selectedRows.length"><span class="material-symbols-outlined">delete_sweep</span> 删除选中</button>
-          <button class="nb-btn danger sm" @click="handleDeleteAllRobots"><span class="material-symbols-outlined">delete_forever</span> 删除全部机器人</button>
-          <button class="nb-btn sm" @click="exportExcel" title="导出Excel"><span class="material-symbols-outlined">ios_share</span></button>
+          <button v-if="isRoot" class="nb-btn danger sm" @click="handleDeleteAllRobots"><span class="material-symbols-outlined">delete_forever</span> 删除全部机器人</button>
+          <button class="nb-btn sm" @click="exportExcel" :disabled="exporting"><span class="material-symbols-outlined">{{ exporting ? 'hourglass_top' : 'ios_share' }}</span> {{ exporting ? '导出中...' : '' }}</button>
         </div>
       </div>
       <!-- 搜索框 -->
@@ -53,7 +53,7 @@
       <DataTable
         :value="users" v-model:selection="selectedRows" dataKey="userId"
         :loading="loading" lazy :paginator="true" :rows="q.size"
-        :totalRecords="total" :rowsPerPageOptions="[10,20,50]"
+        :totalRecords="total" :rowsPerPageOptions="[10,20]"
         :first="firstOffset"
         @page="onPage" selectionMode="multiple"
         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
@@ -208,9 +208,12 @@ import Column from 'primevue/column'
 import Dialog from 'primevue/dialog'
 import { listUsers, getUserDetail, createUser, updateUser, updateUserStatus,
   batchDeleteRobots, getSkillTags, getHobbyTags } from '@/api/admin'
+import { useAuthStore } from '@/stores/auth'
 import * as XLSX from 'xlsx'
 
 const toast = useToast()
+const authStore = useAuthStore()
+const isRoot = computed(() => authStore.admin?.role === 'ROOT')
 const confirmDialog = useConfirm()
 const loading = ref(false)
 const users = ref([])
@@ -347,12 +350,20 @@ async function handleDeleteAllRobots() {
   })
 }
 
+const exporting = ref(false)
 async function exportExcel() {
+  console.log('[Export] 开始导出...')
+  exporting.value = true
   try {
-    // 导出当前筛选后的用户列表
-    const allP = { ...q, page: 1, size: 99999 }  // 获取全部数据
-    const r = await listUsers(allP)
-    const rows = (r.data?.list || []).map(u => ({
+    const p = { page: 1, size: 99999 }
+    if (q.keyword) p.keyword = q.keyword
+    if (q.status) p.status = q.status
+    if (q.quickFilter) p.quickFilter = q.quickFilter
+    if (q.dateStart) p.dateStart = q.dateStart
+    const r = await listUsers(p)
+    const list = r.data?.list || []
+    if (!list.length) { toast.add({ severity:'warn', summary:'提示', detail:'没有可导出的数据', life:3000 }); return }
+    const rows = list.map(u => ({
       ID: u.userId, 昵称: u.name, 类型: u.robot ? '机器人' : '真人',
       状态: u.status === 2 ? '冻结' : '正常',
       技能: u.skillTags || '', 兴趣: u.hobbyTags || '',
@@ -363,7 +374,8 @@ async function exportExcel() {
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Users')
     XLSX.writeFile(wb, `users_${new Date().toISOString().substring(0,10)}.xlsx`)
     toast.add({ severity:'success', summary:'完成', detail:`已导出 ${rows.length} 条记录`, life:3000 })
-  } catch { /* */ }
+  } catch (e) { console.error('导出失败:', e); toast.add({ severity:'error', summary:'导出失败', detail: e.message || '未知错误', life:3000 }) }
+  finally { exporting.value = false }
 }
 
 search()

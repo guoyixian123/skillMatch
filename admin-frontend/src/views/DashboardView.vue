@@ -26,9 +26,9 @@
         <p class="stat-label">机器人</p>
         <h2 class="stat-value">{{ fmtNum(data.robotUsers) }}</h2>
       </div>
-      <div class="stat-card stat-export">
-        <span class="material-symbols-outlined" style="font-size:64px;">description</span>
-        <span class="export-title">导出Excel</span>
+      <div class="stat-card stat-export" @click="handleExport" :class="{ exporting }">
+        <span class="material-symbols-outlined" style="font-size:64px;">{{ exporting ? 'hourglass_top' : 'description' }}</span>
+        <span class="export-title">{{ exporting ? '导出中...' : '导出Excel' }}</span>
         <p class="export-desc">完整数据导出</p>
       </div>
     </div>
@@ -179,10 +179,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getDashboard } from '@/api/admin'
+import { useToast } from 'primevue/usetoast'
+import { getDashboard, getDailyStats, listUsers } from '@/api/admin'
+import * as XLSX from 'xlsx'
 import VChart from 'vue-echarts'
 import * as echarts from 'echarts'
 
+const toast = useToast()
 const data = ref({})
 const mapReady = ref(false)
 const mapGeoReady = ref(false)
@@ -390,6 +393,33 @@ const dailyOption = computed(() => {
     ],
   }
 })
+
+const exporting = ref(false)
+async function handleExport() {
+  exporting.value = true
+  try {
+    // 并行拉取用户数据和增长数据
+    const [userRes, statsRes] = await Promise.all([
+      listUsers({ page: 1, size: 99999 }),
+      getDailyStats(30),
+    ])
+    const users = (userRes.data?.list || []).map(u => ({
+      ID: u.userId, 昵称: u.name, 类型: u.robot ? '机器人' : '真人',
+      状态: u.status === 2 ? '冻结' : '正常', 城市: u.city || '',
+      技能: u.skillTags || '', 兴趣: u.hobbyTags || '',
+      纬度: u.latitude, 经度: u.longitude, 注册时间: u.createdAt || '',
+    }))
+    const growth = (statsRes.data || []).map(d => ({
+      日期: d.date, 新增总数: d.total, 新增真人: d.realCount, 新增机器人: d.robotCount,
+    }))
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(users), `用户(${users.length})`)
+    if (growth.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(growth), '近30天增长')
+    XLSX.writeFile(wb, `SkillMatch_${new Date().toISOString().substring(0,10)}.xlsx`)
+    toast.add({ severity:'success', summary:'完成', detail:`已导出 ${users.length} 用户 + ${growth.length} 天增长`, life:3000 })
+  } catch (e) { console.error('导出失败:', e); toast.add({ severity:'error', summary:'错误', detail:'导出失败', life:3000 }) }
+  finally { exporting.value = false }
+}
 
 onMounted(async () => {
   try {
