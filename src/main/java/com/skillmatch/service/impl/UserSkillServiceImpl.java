@@ -13,7 +13,6 @@ import com.skillmatch.mapper.UserSkillMapper;
 import com.skillmatch.service.ITagService;
 import com.skillmatch.service.IUserSkillService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

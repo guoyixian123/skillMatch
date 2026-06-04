@@ -325,6 +325,8 @@ onMounted(fetchUsers)
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
 }
 .user-card:hover {
   transform: translate(-3px, -3px);
@@ -338,6 +340,9 @@ onMounted(fetchUsers)
   padding: 0 16px 20px;
   text-align: center;
   margin-top: -24px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 .card-avatar {
   display: block;
@@ -387,6 +392,7 @@ onMounted(fetchUsers)
   padding: 8px 12px;
   border: 2px solid #1A1A1A;
   background: #fafafa;
+  margin-top: auto;
 }
 .match-label {
   font-size: 12px;

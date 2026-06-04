@@ -70,15 +70,6 @@ public class UserController {
     }
 
     /**
-     * 一键删除BOT
-     */
-    @DeleteMapping("/account")
-    public RESTful<Object> account() {
-        userService.removeBotInfo();
-        return RESTful.success(null);
-    }
-
-    /**
      * 获取用户地理位置
      */
     @PutMapping("/location")

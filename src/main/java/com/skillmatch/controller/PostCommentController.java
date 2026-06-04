@@ -2,7 +2,6 @@ package com.skillmatch.controller;
 
 
 import com.skillmatch.domain.query.PostCommentQuery;
-import com.skillmatch.domain.query.PostQuery;
 import com.skillmatch.domain.vo.CommentVO;
 import com.skillmatch.domain.vo.PageVO;
 import com.skillmatch.domain.vo.RESTful;
@@ -11,8 +10,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * <p>

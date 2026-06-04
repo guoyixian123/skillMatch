@@ -29,10 +29,6 @@ export function changePassword(data) {
   return request.put('/user/password', data)
 }
 
-export function deleteAccount() {
-  return request.delete('/user/account')
-}
-
 export function getSkills() {
   return request.get('/user/skills')
 }

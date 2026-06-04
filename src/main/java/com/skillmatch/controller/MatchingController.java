@@ -1,9 +1,7 @@
 package com.skillmatch.controller;
 
 import com.skillmatch.domain.query.MatchingQuery;
-import com.skillmatch.domain.vo.CityDistributionVO;
 import com.skillmatch.domain.vo.PageVO;
-import com.skillmatch.domain.vo.ProvinceDistributionVO;
 import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.domain.vo.UserCardVO;
 import com.skillmatch.domain.vo.UserProfileVO;
@@ -52,23 +50,4 @@ public class MatchingController {
         return RESTful.success(profile);
     }
 
-    /**
-     * 获取城市用户分布（总人数，不区分真人和机器人）
-     */
-    @GetMapping("/distribution")
-    public RESTful<List<CityDistributionVO>> getCityDistribution() {
-        log.info("获取城市用户分布");
-        List<CityDistributionVO> distribution = matchingService.getCityDistribution();
-        return RESTful.success(distribution);
-    }
-
-    /**
-     * 获取省份用户分布（用于地图展示）
-     */
-    @GetMapping("/province-distribution")
-    public RESTful<List<ProvinceDistributionVO>> getProvinceDistribution() {
-        log.info("获取省份用户分布");
-        List<ProvinceDistributionVO> distribution = matchingService.getProvinceDistribution();
-        return RESTful.success(distribution);
-    }
 }

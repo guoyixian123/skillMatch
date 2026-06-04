@@ -1,8 +1,6 @@
 package com.skillmatch.controller;
 
 
-import cn.hutool.core.bean.BeanUtil;
-import com.skillmatch.domain.po.UserGallery;
 import com.skillmatch.domain.vo.GalleryVO;
 import com.skillmatch.domain.vo.RESTful;
 import com.skillmatch.service.IUserGalleryService;
