@@ -35,7 +35,6 @@
         </div>
         <div class="action-btns">
           <button class="nb-btn primary sm" @click="openCreate()"><span class="material-symbols-outlined">add_circle</span> 新增用户</button>
-          <button class="nb-btn sm" @click="openRobotDialog()" title="批量添加机器人"><span class="material-symbols-outlined">smart_toy</span></button>
           <button class="nb-btn danger sm" @click="handleDeleteSelected" :disabled="!selectedRows.length"><span class="material-symbols-outlined">delete_sweep</span> 删除选中</button>
           <button class="nb-btn danger sm" @click="handleDeleteAllRobots"><span class="material-symbols-outlined">delete_forever</span> 删除全部机器人</button>
           <button class="nb-btn sm" @click="exportExcel" title="导出Excel"><span class="material-symbols-outlined">ios_share</span></button>
@@ -190,38 +189,6 @@
       </form>
     </Dialog>
 
-    <!-- ===== 批量机器人弹窗 ===== -->
-    <Dialog v-model:visible="dlg.robot" header="批量添加机器人" :modal="true" :style="{ width:'480px' }">
-      <form @submit.prevent="handleBatchRobots" class="edit-form">
-        <div class="gf"><label class="filter-label">名称前缀</label><input v-model="rf.namePrefix" class="nb-input" required placeholder="如：北京_AI_" /></div>
-        <div class="gf"><label class="filter-label">数量</label><input v-model.number="rf.count" type="number" class="nb-input" min="1" max="100" /></div>
-        <div class="gf"><label class="filter-label">技能标签（多选）</label>
-          <div class="tag-checkbox-list">
-            <label v-for="s in allSkills" :key="s" class="tag-checkbox">
-              <input type="checkbox" :value="s" v-model="rf.selectedSkills" /> {{ s }}
-            </label>
-            <span v-if="!allSkills.length" class="tag-empty">加载中...</span>
-          </div>
-        </div>
-        <div class="gf"><label class="filter-label">兴趣标签（多选）</label>
-          <div class="tag-checkbox-list">
-            <label v-for="h in allHobbies" :key="h" class="tag-checkbox">
-              <input type="checkbox" :value="h" v-model="rf.selectedHobbies" /> {{ h }}
-            </label>
-            <span v-if="!allHobbies.length" class="tag-empty">加载中...</span>
-          </div>
-        </div>
-        <div class="gf-row">
-          <div class="gf"><label class="filter-label">中心纬度</label><input v-model="rf.centerLat" type="number" class="nb-input" /></div>
-          <div class="gf"><label class="filter-label">中心经度</label><input v-model="rf.centerLng" type="number" class="nb-input" /></div>
-          <div class="gf"><label class="filter-label">半径(km)</label><input v-model="rf.spreadKm" type="number" class="nb-input" /></div>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
-          <button type="button" class="nb-btn" @click="dlg.robot=false">取消</button>
-          <button type="submit" class="nb-btn dark">创建</button>
-        </div>
-      </form>
-    </Dialog>
     <!-- ===== 城市选择弹窗 ===== -->
     <Dialog v-model:visible="showCityPicker" header="选择城市" :modal="true" :style="{ width:'420px' }">
       <div class="city-picker-grid">
@@ -239,7 +206,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Dialog from 'primevue/dialog'
 import { listUsers, getUserDetail, createUser, updateUser, updateUserStatus,
-  batchCreateRobots, batchDeleteRobots, getSkillTags, getHobbyTags } from '@/api/admin'
+  batchDeleteRobots, getSkillTags, getHobbyTags } from '@/api/admin'
 import * as XLSX from 'xlsx'
 
 const toast = useToast()
@@ -260,9 +227,6 @@ const quickBtns = [
 const dlg = reactive({ detail:false, data:null, ban:false, banUserId:'', form:false, editing:false, robot:false })
 const banReason = ref('')
 const f = reactive({ userId:'', name:'', password:'', contactInfo:'', avatarUrl:'', signature:'', bio:'', latitude:null, longitude:null, city:'', robot:false, selectedCanSkills:[], selectedWantSkills:[], selectedHobbies:[] })
-const rf = reactive({ namePrefix:'', count:10, selectedSkills:[], selectedHobbies:[], centerLat:null, centerLng:null, spreadKm:null })
-const allSkills = ref([])
-const allHobbies = ref([])
 const tagPool = reactive({ skills:[], hobbies:[] })
 const showCityPicker = ref(false)
 const saving = ref(false)
@@ -347,29 +311,6 @@ async function handleAvatarUpload(e) {
 }
 
 function pickCity(c) { f.latitude = c.lat; f.longitude = c.lng; f.city = c.name; showCityPicker.value = false }
-
-async function openRobotDialog() {
-  // 加载可选标签
-  try {
-    const [sr, hr] = await Promise.all([getSkillTags(), getHobbyTags()])
-    // 扁平化分类结构 → 标签名数组
-    allSkills.value = Object.values(sr.data || {}).flat()
-    allHobbies.value = Object.values(hr.data || {}).flat().map(h => h.name || h)
-  } catch { /* */ }
-  rf.selectedSkills = []; rf.selectedHobbies = []
-  dlg.robot = true
-}
-async function handleBatchRobots() {
-  if (!rf.namePrefix) { toast.add({ severity:'warn', summary:'必填', detail:'请输入名称前缀', life:3000 }); return }
-  try {
-    await batchCreateRobots({ namePrefix:rf.namePrefix, count:rf.count,
-      skillTags: rf.selectedSkills,
-      hobbyTags: rf.selectedHobbies,
-      centerLat:rf.centerLat, centerLng:rf.centerLng, spreadKm:rf.spreadKm })
-    toast.add({ severity:'success', summary:'完成', detail:'机器人已创建', life:3000 })
-    dlg.robot = false; search()
-  } catch { /* */ }
-}
 
 // 删除选中的用户
 async function handleDeleteSelected() {
