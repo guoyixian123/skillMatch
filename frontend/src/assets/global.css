@@ -58,6 +58,12 @@ html {
   scroll-behavior: smooth;
 }
 
+/* 文字选中高亮 - Pop Art 风格 */
+::selection {
+  background: var(--color-yellow);
+  color: var(--color-black);
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--bg-primary);
@@ -91,6 +97,14 @@ a {
 .brutal-card.accent-purple { box-shadow: 4px 4px 0 var(--color-purple); }
 .brutal-card.accent-cyan { box-shadow: 4px 4px 0 var(--color-cyan); }
 .brutal-card.accent-green { box-shadow: 4px 4px 0 var(--color-green); }
+/* accent 卡片 hover 保留彩色阴影 */
+.brutal-card.accent-yellow:hover { box-shadow: 6px 6px 0 var(--color-yellow); }
+.brutal-card.accent-orange:hover { box-shadow: 6px 6px 0 var(--color-orange); }
+.brutal-card.accent-pink:hover { box-shadow: 6px 6px 0 var(--color-pink); }
+.brutal-card.accent-blue:hover { box-shadow: 6px 6px 0 var(--color-blue); }
+.brutal-card.accent-purple:hover { box-shadow: 6px 6px 0 var(--color-purple); }
+.brutal-card.accent-cyan:hover { box-shadow: 6px 6px 0 var(--color-cyan); }
+.brutal-card.accent-green:hover { box-shadow: 6px 6px 0 var(--color-green); }
 
 /* ===== Neo-Brutalism Buttons ===== */
 .brutal-btn {
@@ -123,6 +137,21 @@ a {
 .brutal-btn.dark { background: var(--color-black); color: #fff; }
 .brutal-btn.outline { background: #fff; }
 .brutal-btn.small { padding: 8px 16px; font-size: 13px; }
+.brutal-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: var(--shadow-hard) !important;
+}
+
+/* 键盘焦点高亮 */
+.brutal-btn:focus-visible,
+.brutal-input:focus-visible,
+.el-input__inner:focus-visible,
+.el-textarea__inner:focus-visible {
+  outline: 3px solid var(--color-yellow);
+  outline-offset: 2px;
+}
 
 /* ===== Neo-Brutalism Inputs ===== */
 .brutal-input {
@@ -230,6 +259,24 @@ a {
   font-size: 18px;
   font-weight: 700;
   color: var(--color-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+/* 加载脉冲动画 */
+.loading-block::after {
+  content: '...';
+  display: inline-block;
+  width: 24px;
+  text-align: left;
+  animation: loadDots 1.4s steps(4, end) infinite;
+}
+@keyframes loadDots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
 }
 .empty-block {
   text-align: center;
@@ -442,7 +489,7 @@ a {
   border-radius: 0 !important;
   border: var(--border-thick) !important;
   box-shadow: var(--shadow-hard) !important;
-  padding: 14px 24px !important;
+  padding: 14px 40px 14px 24px !important;
   font-weight: 700 !important;
   font-size: 15px !important;
   font-family: var(--font-sans) !important;
@@ -453,6 +500,27 @@ a {
 .el-message .el-message__content {
   font-weight: 700 !important;
 }
+/* 关闭按钮 */
+.el-message__closeBtn {
+  position: absolute !important;
+  top: 50% !important;
+  right: 12px !important;
+  transform: translateY(-50%) !important;
+  font-size: 16px !important;
+  color: #555 !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: color 0.15s, transform 0.15s !important;
+  line-height: 1 !important;
+}
+.el-message__closeBtn:hover {
+  color: #000 !important;
+  transform: translateY(-50%) scale(1.2) !important;
+}
+/* 成功/错误消息的关闭按钮颜色 */
+.el-message--success .el-message__closeBtn { color: #1A1A1A !important; }
+.el-message--error .el-message__closeBtn { color: #fff !important; }
+.el-message--error .el-message__closeBtn:hover { color: #eee !important; }
 .el-message--success {
   background: var(--color-green) !important;
   border-color: #1A1A1A !important;

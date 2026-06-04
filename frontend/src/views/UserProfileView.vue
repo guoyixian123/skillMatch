@@ -175,7 +175,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getDefaultAvatar } from '@/utils/avatar'
-import { ElMessage } from 'element-plus'
+import { ElMessage } from '@/utils/message'
 import { ArrowLeft, ChatDotRound, Star, StarFilled } from '@element-plus/icons-vue'
 import { getUserProfile } from '@/api/matching'
 import { createRequest } from '@/api/notification'

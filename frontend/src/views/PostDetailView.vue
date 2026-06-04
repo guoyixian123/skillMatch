@@ -110,7 +110,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { ElMessage } from '@/utils/message'
 import { Star, StarFilled, Delete, ArrowLeft, Loading, ChatDotRound } from '@element-plus/icons-vue'
 import { getPostDetail, togglePostLike, unlikePost, getComments, createComment, deletePost, deleteComment } from '@/api/community'
 import { getDefaultAvatar } from '@/utils/avatar'

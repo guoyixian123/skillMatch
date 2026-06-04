@@ -126,7 +126,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage } from '@/utils/message'
 import { Plus, Search, Star, StarFilled, ChatDotRound, Loading, Document } from '@element-plus/icons-vue'
 import { getDefaultAvatar } from '@/utils/avatar'
 import { getPosts, createPost, togglePostLike, unlikePost } from '@/api/community'

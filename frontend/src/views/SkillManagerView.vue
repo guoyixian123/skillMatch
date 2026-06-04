@@ -81,7 +81,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
-import { ElMessage } from 'element-plus'
+import { ElMessage } from '@/utils/message'
 import { ArrowLeft, Loading, Aim, TrendCharts, Check } from '@element-plus/icons-vue'
 import { getSkillTags } from '@/api/tags'
 

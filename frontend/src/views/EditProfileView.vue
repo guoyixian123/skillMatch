@@ -81,7 +81,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
 import { getDefaultAvatar } from '@/utils/avatar'
-import { ElMessage } from 'element-plus'
+import { ElMessage } from '@/utils/message'
 
 const router = useRouter()
 const authStore = useAuthStore()

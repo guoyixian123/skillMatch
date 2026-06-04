@@ -63,7 +63,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ElMessage } from 'element-plus'
+import { ElMessage } from '@/utils/message'
 import { User, Lock } from '@element-plus/icons-vue'
 
 const router = useRouter()

@@ -199,7 +199,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage } from '@/utils/message'
 import { Search, Location, Loading, StarFilled, Document, Clock, ChatDotRound } from '@element-plus/icons-vue'
 import { getRecommendedUsers, getUserCard } from '@/api/matching'
 import { createRequest } from '@/api/notification'

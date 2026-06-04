@@ -107,7 +107,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDefaultAvatar } from '@/utils/avatar'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { ElMessage } from '@/utils/message'
 import { Bell, Loading, FolderOpened, Star } from '@element-plus/icons-vue'
 import {
   getReceivedRequests,

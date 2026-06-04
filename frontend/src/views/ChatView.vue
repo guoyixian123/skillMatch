@@ -172,6 +172,19 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  /* 统一滚动条样式 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-black) var(--color-light-gray);
+}
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-messages::-webkit-scrollbar-track {
+  background: var(--color-light-gray);
+}
+.chat-messages::-webkit-scrollbar-thumb {
+  background: var(--color-black);
+  border: 1px solid #fff;
 }
 .chat-empty {
   display: flex;

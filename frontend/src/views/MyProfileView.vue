@@ -248,6 +248,28 @@ onMounted(async () => {
 .quick-card:hover {
   transform: translate(-2px, -2px);
 }
+@media (max-width: 768px) {
+  .brutal-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .profile-top {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 16px 16px;
+  }
+  .profile-info {
+    text-align: center;
+  }
+  .profile-stats {
+    justify-content: center;
+  }
+  .profile-actions-top {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+}
 .quick-icon { font-size: 32px; margin-bottom: 8px; }
 .quick-title {
   font-size: 18px;

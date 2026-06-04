@@ -79,9 +79,28 @@ watch(() => route.path, fetchUnread)
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
+  position: relative;
+  transition: color 0.2s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
+/* 活跃状态：黄色指示条 + 文字变色 */
 .mobile-nav-item.active {
   color: #1A1A1A;
+}
+.mobile-nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: -9px; /* 贴近 border-top 上方 */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: var(--color-yellow);
+  border-radius: 0;
+}
+/* 按下反馈 */
+.mobile-nav-item:active {
+  transform: scale(0.92);
 }
 @media (max-width: 768px) {
   .mobile-nav {
