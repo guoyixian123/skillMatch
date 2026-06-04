@@ -123,9 +123,11 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
         if (comment == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "评论不存在");
         }
-        // 3. 权限校验
+        // 3. 权限校验：评论者本人 或 帖子作者 可以删除
         String userId = UserContext.getUserId();
-        if (!comment.getUserId().equals(userId)) {
+        boolean isCommentOwner = comment.getUserId().equals(userId);
+        boolean isPostOwner = postMapper.selectAuthorId(postId).equals(userId);
+        if (!isCommentOwner && !isPostOwner) {
             throw new BusinessException(ErrorCode.NOT_AUTH, "无权删除他人评论");
         }
         //删除帖子评论
