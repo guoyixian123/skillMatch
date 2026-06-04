@@ -52,8 +52,9 @@
     <div class="table-wrap nb-card" style="padding:0;">
       <DataTable
         :value="users" v-model:selection="selectedRows" dataKey="userId"
-        :loading="loading" :paginator="true" :rows="q.size"
+        :loading="loading" lazy :paginator="true" :rows="q.size"
         :totalRecords="total" :rowsPerPageOptions="[10,20,50]"
+        :first="firstOffset"
         @page="onPage" selectionMode="multiple"
         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
@@ -215,6 +216,7 @@ const loading = ref(false)
 const users = ref([])
 const total = ref(0)
 const selectedRows = ref([])
+const firstOffset = ref(0)
 const selectedIds = computed(() => selectedRows.value.map(u => u.userId))
 
 const q = reactive({ page:1, size:20, keyword:'', status:null, centerLat:null, centerLng:null, radiusKm:null, quickFilter:'', dateStart:'' })
@@ -243,10 +245,10 @@ const cityList = [
 
 function defaultAvatar(id) { return `https://ui-avatars.com/api/?name=${encodeURIComponent(id||'U')}&background=000&color=fff&size=64` }
 
-function onPage(e) { q.page = e.page + 1; search(false) }
+function onPage(e) { firstOffset.value = e.first; q.page = e.page + 1; search(false) }
 
 async function search(rp=true) {
-  if (rp) q.page = 1
+  if (rp) { q.page = 1; firstOffset.value = 0 }
   loading.value = true
   try {
     const p = {}
@@ -254,12 +256,13 @@ async function search(rp=true) {
     const r = await listUsers(p)
     users.value = r.data?.list || []
     total.value = r.data?.total || 0
-  } catch { /* */ } finally { loading.value = false }
+    console.log('[UserList] 查询结果:', 'total=' + total.value, 'list=' + users.value.length, 'params=', p)
+  } catch (e) { console.error('[UserList] 查询失败:', e) } finally { loading.value = false }
 }
 
 function reset() {
   Object.assign(q, { page:1, size:20, keyword:'', status:null, centerLat:null, centerLng:null, radiusKm:null, quickFilter:'', dateStart:'' })
-  search()
+  firstOffset.value = 0; search()
 }
 function resetForm() { dlg.editing = false; Object.assign(f, { userId:'', name:'', password:'', contactInfo:'', avatarUrl:'', signature:'', bio:'', latitude:null, longitude:null, city:'', robot:false, selectedCanSkills:[], selectedWantSkills:[], selectedHobbies:[] }) }
 

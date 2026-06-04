@@ -170,8 +170,9 @@ def generate(count: int):
                     generate.hobby_tags = []
                     for category, items in tags_data.items():
                         for item in items:
+                            icon = (item.get("icon") or "star")[:10]
                             generate.hobby_tags.append(
-                                (item.get("name", ""), item.get("icon", "⭐"))
+                                (item.get("name", ""), icon)
                             )
                     if not generate.hobby_tags:
                         generate.hobby_tags = list(zip(HOBBY_NAMES, HOBBY_ICONS))
@@ -180,7 +181,7 @@ def generate(count: int):
 
             # ===== 4. 完善个人资料 =====
             ok(session.put(f"{base}/api/user/profile", json={
-                "signature": signature, "bio": bio,
+                "name": name, "signature": signature, "bio": bio,
             }, headers=headers))
 
             # ===== 5. 更新位置 =====
@@ -305,5 +306,5 @@ def generate(count: int):
 
 
 if __name__ == "__main__":
-    n = int(sys.argv[1]) if len(sys.argv) > 1 else 10
+    n = int(sys.argv[1]) if len(sys.argv) > 1 else 1000
     generate(n)

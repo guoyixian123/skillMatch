@@ -73,6 +73,12 @@
             </div>
           </div>
         </div>
+        <!-- 地图图例 -->
+        <div class="map-legend">
+          <span><span class="legend-dot bg-yellow"></span> 人多</span>
+          <span><span class="legend-dot bg-blue"></span> 中等</span>
+          <span><span class="legend-dot bg-magenta"></span> 人少</span>
+        </div>
       </div>
 
       <!-- Top 10 城市柱状图 -->
@@ -507,7 +513,9 @@ onMounted(async () => {
 .legend-dot { display: inline-block; width: 12px; height: 12px; border: 2px solid #000; margin-right: 4px; vertical-align: middle; }
 .legend-dot.bg-yellow { background: var(--yellow); }
 .legend-dot.bg-magenta { background: var(--magenta); }
+.legend-dot.bg-blue { background: var(--blue); }
 .legend-dot.bg-red { background: var(--red); }
+.map-legend { display: flex; justify-content: center; gap: 20px; padding: 10px 0 0; font-size: 11px; font-weight: 700; }
 
 /* ===== 底排 ===== */
 .bottom-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }

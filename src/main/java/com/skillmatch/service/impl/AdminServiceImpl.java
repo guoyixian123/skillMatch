@@ -180,14 +180,15 @@ public class AdminServiceImpl extends ServiceImpl<UserMapper, User> implements I
 
         if (geoFilter) {
             // 过滤经纬度
-            records = records.stream()
+            List<User> filtered = records.stream()
                     .filter(u -> haversine(q.getCenterLat(), q.getCenterLng(),
                             u.getLatitude(), u.getLongitude()) <= q.getRadiusKm())
                     .collect(Collectors.toList());
+            int totalFiltered = filtered.size();
             int from = (q.getPage() - 1) * q.getSize();
-            int to = Math.min(from + q.getSize(), records.size());
-            records = from >= records.size() ? Collections.emptyList() : records.subList(from, to);
-            page = new Page<>(q.getPage(), q.getSize(), records.size());
+            int to = Math.min(from + totalFiltered, totalFiltered);
+            records = from >= totalFiltered ? Collections.emptyList() : filtered.subList(from, to);
+            page = new Page<>(q.getPage(), q.getSize(), totalFiltered);
         }
 
         // 批量查询技能/爱好，避免 N+1
