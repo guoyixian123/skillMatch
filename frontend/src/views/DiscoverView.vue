@@ -21,6 +21,13 @@
           <el-option label="距离近" value="dist" />
           <el-option label="活跃度" value="active" />
         </el-select>
+        <el-select v-model="radius" class="filter-select" @change="fetchUsers">
+          <el-option label="5km" :value="5" />
+          <el-option label="10km" :value="10" />
+          <el-option label="20km" :value="20" />
+          <el-option label="50km" :value="50" />
+          <el-option label="100km" :value="100" />
+        </el-select>
         <button class="brutal-btn primary small" @click="fetchUsers">筛选</button>
       </div>
     </div>
@@ -215,6 +222,7 @@ const page = ref(1)
 const size = ref(12)
 const keyword = ref('')
 const sort = ref('score')
+const radius = ref(100)
 
 const cardVisible = ref(false)
 const cardUser = ref(null)
@@ -236,6 +244,7 @@ async function fetchUsers() {
     const res = await getRecommendedUsers({
       sort: sort.value,
       keyword: keyword.value,
+      radius: radius.value,
       page: page.value,
       size: size.value,
     })

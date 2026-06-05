@@ -330,8 +330,10 @@ public class MatchingServiceImpl implements IMatchingService {
                         double ai = aiMap.getOrDefault(c.getUserId(), 0.0);
                         c.setMatchScore((int)(c.getMatchScore() * 0.6 + ai * 40));
                     }
-                    // 7.6 按融合后的分数重新降序排列
-                    cards.sort(Comparator.comparing(UserCardVO::getMatchScore).reversed());
+                    // 7.6 仅当用户选择按匹配度排序时才重排，其他排序方式保持用户选择
+                    if ("score".equals(query.getSort())) {
+                        cards.sort(Comparator.comparing(UserCardVO::getMatchScore).reversed());
+                    }
                 }
             } catch (Exception e) {
                 // AI 服务不可用时静默降级，不影响用户体验

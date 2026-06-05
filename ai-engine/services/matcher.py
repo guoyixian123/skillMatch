@@ -1,6 +1,6 @@
 """匹配引擎 — SentenceTransformer 语义相似度 + 技能互补 + 兴趣重叠"""
 from typing import List, Dict
-from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 from config import SEMANTIC_WEIGHT, COMPLEMENT_WEIGHT, INTEREST_WEIGHT
 from utils.text import build_all_texts
@@ -24,11 +24,13 @@ def batch_match(
     )
     # 批量编码，第一项是 source，其余是 candidates
     all_vectors = embedder.encode_batch(texts)
-    source_vec = [all_vectors[0]]
-    candidate_vecs = all_vectors[1:]
+    source_vec = np.array(all_vectors[0])
+    candidate_vecs = np.array(all_vectors[1:])
 
-    # 余弦相似度计算（向量已归一化，余弦相似度 = 点积）
-    semantic_scores = cosine_similarity(source_vec, candidate_vecs).flatten()
+    # 向量已归一化（normalize_embeddings=True），余弦相似度 = 点积
+    # 直接用 numpy 点积，避免 sklearn cosine_similarity 的数值精度警告
+    # clamp 到 [0, 1]：语义向量点积范围 [-1, 1]，负相似度视为 0
+    semantic_scores = np.clip(candidate_vecs @ source_vec, 0.0, 1.0)
 
     # 2) 技能互补 + 兴趣重叠
     source_can_set = set(source_can)
