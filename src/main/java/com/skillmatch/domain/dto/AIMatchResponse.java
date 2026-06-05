@@ -12,7 +12,7 @@ public class AIMatchResponse {
     @Data
     public static class MatchScore {
         private String userId;
-        private double tfidfSimilarity;
+        private double semanticSimilarity;
         private double skillComplement;
         private double interestOverlap;
         private double score;

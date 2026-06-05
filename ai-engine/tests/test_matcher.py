@@ -41,7 +41,7 @@ def test_batch_match():
     print("AI 匹配结果:")
     for r in results:
         print(f"  {r['userId']}: score={r['score']:.4f} "
-              f"(tfidf={r['tfidfSimilarity']:.4f} "
+              f"(semantic={r['semanticSimilarity']:.4f} "
               f"complement={r['skillComplement']:.4f} "
               f"interest={r['interestOverlap']:.4f})")
 

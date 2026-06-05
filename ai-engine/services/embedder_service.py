@@ -1,29 +1,39 @@
-"""Embedding 服务 — 文本转向量 + Redis 缓存。升级到词向量模型时替换此文件。"""
+"""Embedding 服务 — 使用 SentenceTransformer 生成语义向量 + Redis 缓存。"""
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sentence_transformers import SentenceTransformer
 
-from config import MAX_CANDIDATES
+from config import EMBEDDING_MODEL
 from utils.text import build_profile_text
 from utils.redis_client import get_embedding, set_embedding
 
 
 class EmbedderService:
-    """文本向量化服务（单例）"""
+    """文本向量化服务（单例），基于 SentenceTransformer 语义模型。"""
 
     def __init__(self):
-        self.vectorizer = None  # phase2 替换为 SentenceTransformer
+        self.model = None  # 延迟加载，首次调用时初始化
 
-    def encode(self, text):
-        """将文本转为向量。Phase1 用 TF-IDF，Phase2 换词向量模型"""
-        if self.vectorizer is None:
-            self.vectorizer = TfidfVectorizer(max_features=500)
-            # 初始化一个空 fit
-            self.vectorizer.fit(["初始化占位文本"])
-        vec = self.vectorizer.transform([text]).toarray()[0]
-        return vec.tolist()
+    def _ensure_model(self):
+        """延迟加载 SentenceTransformer 模型，避免启动时阻塞。"""
+        if self.model is None:
+            print(f"[Embedder] 正在加载 SentenceTransformer 模型: {EMBEDDING_MODEL}")
+            self.model = SentenceTransformer(EMBEDDING_MODEL)
+            print(f"[Embedder] 模型加载完成，向量维度: {self.model.get_sentence_embedding_dimension()}")
+
+    def encode(self, text: str) -> list[float]:
+        """将文本转为语义向量，基于 SentenceTransformer。"""
+        self._ensure_model()
+        embedding = self.model.encode(text, normalize_embeddings=True)
+        return embedding.tolist()
+
+    def encode_batch(self, texts: list[str]) -> list[list[float]]:
+        """批量将文本转为语义向量，效率更高。"""
+        self._ensure_model()
+        embeddings = self.model.encode(texts, normalize_embeddings=True, batch_size=32)
+        return [vec.tolist() for vec in embeddings]
 
     def get_or_build_embedding(self, user_id: str, bio: str, can_skills, want_skills, hobbies) -> list[float]:
-        """获取用户向量：先查 Redis 缓存，miss 则计算并写入"""
+        """获取用户向量：先查 Redis 缓存，miss 则计算并写入。"""
         cached = get_embedding(user_id)
         if cached is not None:
             return cached
@@ -33,8 +43,10 @@ class EmbedderService:
         return vector
 
     def batch_update(self, users: list[dict]) -> int:
-        """批量更新用户向量（异步调用）"""
+        """批量更新用户向量（异步调用）。"""
         count = 0
+        # 收集所有需要计算的文本
+        uid_text_pairs = []
         for u in users:
             uid = u.get("userId")
             text = build_profile_text(
@@ -43,9 +55,16 @@ class EmbedderService:
                 u.get("wantSkills", []),
                 u.get("hobbies", []),
             )
-            vector = self.encode(text)
-            set_embedding(uid, vector)
-            count += 1
+            uid_text_pairs.append((uid, text))
+
+        # 批量编码，效率远高于逐条 encode
+        if uid_text_pairs:
+            texts = [pair[1] for pair in uid_text_pairs]
+            vectors = self.encode_batch(texts)
+            for (uid, _), vector in zip(uid_text_pairs, vectors):
+                set_embedding(uid, vector)
+                count += 1
+
         return count
 
 

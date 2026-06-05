@@ -1,10 +1,10 @@
-"""匹配引擎 — TF-IDF 语义相似度 + 技能互补 + 兴趣重叠"""
+"""匹配引擎 — SentenceTransformer 语义相似度 + 技能互补 + 兴趣重叠"""
 from typing import List, Dict
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from config import TFIDF_WEIGHT, COMPLEMENT_WEIGHT, INTEREST_WEIGHT
+from config import SEMANTIC_WEIGHT, COMPLEMENT_WEIGHT, INTEREST_WEIGHT
 from utils.text import build_all_texts
+from services.embedder_service import embedder
 
 
 def batch_match(
@@ -14,18 +14,21 @@ def batch_match(
     source_hobbies: List[str],
     candidates: List[dict],
 ) -> List[dict]:
-    """批量对候选用户打分，返回排序后的分数列表"""
+    """批量对候选用户打分，返回排序后的分数列表。"""
     if not candidates:
         return []
 
-    # 1) TF-IDF 文本相似度
+    # 1) SentenceTransformer 语义相似度 — 用预训练模型生成高质量语义向量
     texts = build_all_texts(
         source_bio, source_can, source_want, source_hobbies, candidates
     )
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform(texts)
-    source_vec = tfidf_matrix[0:1]
-    tfidf_scores = cosine_similarity(source_vec, tfidf_matrix[1:]).flatten()
+    # 批量编码，第一项是 source，其余是 candidates
+    all_vectors = embedder.encode_batch(texts)
+    source_vec = [all_vectors[0]]
+    candidate_vecs = all_vectors[1:]
+
+    # 余弦相似度计算（向量已归一化，余弦相似度 = 点积）
+    semantic_scores = cosine_similarity(source_vec, candidate_vecs).flatten()
 
     # 2) 技能互补 + 兴趣重叠
     source_can_set = set(source_can)
@@ -52,14 +55,14 @@ def batch_match(
 
         # 加权融合
         final = (
-            float(tfidf_scores[i]) * TFIDF_WEIGHT
+            float(semantic_scores[i]) * SEMANTIC_WEIGHT
             + complement_score * COMPLEMENT_WEIGHT
             + interest_score * INTEREST_WEIGHT
         )
         results.append(
             {
                 "userId": c.get("userId", f"candidate_{i}"),
-                "tfidfSimilarity": round(float(tfidf_scores[i]), 4),
+                "semanticSimilarity": round(float(semantic_scores[i]), 4),
                 "skillComplement": round(complement_score, 4),
                 "interestOverlap": round(interest_score, 4),
                 "score": round(final, 4),

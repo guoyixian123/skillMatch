@@ -294,7 +294,7 @@ public class MatchingServiceImpl implements IMatchingService {
             }
         }
         // 触发条件：候选人数 >= 20，避免对小批量做无效的 HTTP 调用
-        // 策略：TF-IDF 文本相似度(30%) + 技能互补度(40%) + 兴趣重叠度(30%)
+        // 策略：SentenceTransformer 语义相似度(30%) + 技能互补度(40%) + 兴趣重叠度(30%)
         //       与原有规则匹配分(60%) 加权融合 → 重排序
         // 降级：AI 服务不可用/超时/返回空 → 静默降级，继续使用规则排序结果
         if (cards.size() >= 20) {

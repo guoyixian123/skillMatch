@@ -32,7 +32,7 @@ class MatchRequest(BaseModel):
 
 class MatchScore(BaseModel):
     userId: str
-    tfidfSimilarity: float
+    semanticSimilarity: float
     skillComplement: float
     interestOverlap: float
     score: float
@@ -69,7 +69,7 @@ class BatchUpdateResponse(BaseModel):
 
 @app.post("/api/ai/match", response_model=MatchResponse)
 async def match(request: MatchRequest):
-    """批量语义匹配 — 对候选用户打分并排序"""
+    """批量语义匹配 — 基于 SentenceTransformer 对候选用户打分并排序"""
     start = time.perf_counter()
     src = request.source
     cands = [c.model_dump() for c in request.candidates]

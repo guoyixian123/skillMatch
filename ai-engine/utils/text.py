@@ -1,4 +1,8 @@
-"""Profile 文本构建 — 将用户多字段拼接为可用于 TF-IDF 的扁平文本"""
+"""Profile 文本构建 — 将用户多字段拼接为语义丰富的自然语言文本。
+
+SentenceTransformer 比 TF-IDF 更擅长理解自然语言，因此我们构建更接近真实描述的文本，
+而非简单的关键词拼接。
+"""
 from typing import Optional, List
 
 
@@ -8,17 +12,29 @@ def build_profile_text(
     want_skills: Optional[list] = None,
     hobbies: Optional[list] = None,
 ) -> str:
-    """拼接用户所有文本特征，空格分隔"""
+    """构建用户画像的自然语言描述，适配 SentenceTransformer 语义理解。"""
     parts = []
+
+    # bio 权重最高，重复一次以增强语义影响
     if bio:
         parts.append(bio)
+        parts.append(bio)
+
+    # 技能用自然语言描述，帮助模型理解"会"和"想学"的区别
     if can_skills:
-        parts.append("会 " + " ".join(can_skills))
+        skills_str = "、".join(can_skills)
+        parts.append(f"擅长{skills_str}")
+
     if want_skills:
-        parts.append("想学 " + " ".join(want_skills))
+        skills_str = "、".join(want_skills)
+        parts.append(f"想学习{skills_str}")
+
+    # 爱好描述
     if hobbies:
-        parts.append("爱好 " + " ".join(hobbies))
-    return " ".join(parts)
+        hobbies_str = "、".join(hobbies)
+        parts.append(f"兴趣爱好是{hobbies_str}")
+
+    return "。".join(parts) if parts else ""
 
 
 def build_all_texts(
@@ -28,7 +44,7 @@ def build_all_texts(
     source_hobbies: list,
     candidates: list,
 ) -> list:
-    """构建源用户 + 全部候选用户的文本列表（给 TF-IDF 批量 transform）"""
+    """构建源用户 + 全部候选用户的文本列表，供 SentenceTransformer 批量编码。"""
     texts = [
         build_profile_text(source_bio, source_can, source_want, source_hobbies)
     ]
