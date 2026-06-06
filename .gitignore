@@ -7,9 +7,10 @@ docs
 /frontend/node_modules/
 /frontend/dist/
 /frontend/.vite/
-CLAUDE.md
 # 包含真实密钥，仅本地使用
 src/main/resources/application.yaml
 test_data/bot_generator.py
 /admin-frontend/dist/
 /admin-frontend/node_modules/
+
+CLAUDE.md
