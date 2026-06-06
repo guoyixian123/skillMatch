@@ -1,141 +1,236 @@
-# CLAUDE.md
+# 国内计算机相关论文格式规范与要求（2026版）
+> 本规范基于GB/T 7714-2015《信息与文献 参考文献著录规则》、GB/T 1.1-2020《标准化工作导则 第1部分：标准化文件的结构和起草规则》，结合国内计算机学科主流期刊（CCF推荐）、高校学位论文要求及行业惯例制定。
+> 适用范围：本科/硕士/博士学位论文、期刊投稿、会议论文
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 一、页面设置与排版基础
+### 1.1 纸张与边距
+- A4纸（210mm×297mm），单面打印
+- 上边距：2.5cm，下边距：2.5cm
+- 左边距：3.0cm（装订边），右边距：2.0cm
+- 页眉：1.5cm，页脚：1.75cm
 
-## Project Overview
+### 1.2 字体字号与行距
+| 内容 | 字体 | 字号 | 行距 |
+|-----|-----|-----|-----|
+| 论文标题 | 黑体 | 二号 | 1.5倍 |
+| 一级标题 | 黑体 | 三号 | 1.5倍 |
+| 二级标题 | 黑体 | 四号 | 1.5倍 |
+| 三级标题 | 黑体 | 小四号 | 1.5倍 |
+| 正文 | 宋体 | 小四号 | 1.5倍 |
+| 图表标题 | 宋体 | 五号 | 单倍 |
+| 参考文献 | 宋体 | 五号 | 1.25倍 |
+| 页眉页脚 | 宋体 | 五号 | 单倍 |
 
-**SkillMatch** — 基于技能标签与地理位置的社交匹配平台，帮助用户发现身边志同道合的人。
+### 1.3 页眉页脚
+- 奇数页页眉：论文题目
+- 偶数页页眉：XX大学XX学位论文
+- 页码：前置部分用罗马数字（Ⅰ、Ⅱ...），主体部分用阿拉伯数字（1、2...），居中
 
-- Group: `com.skillmatch`, artifact: `skillMatch`, version `0.0.1-SNAPSHOT`
-- Java 21 + Spring Boot 3.3.2 + Maven
-- MySQL 8.0 + Redis（缓存 / Token 存储）
-- 前端: Vue 3 + Vite 5 + Element Plus + Pinia
+## 二、标题层级规范
+- 一级标题：`1 引言`（段前1行，段后1行）
+- 二级标题：`1.1 研究背景`（段前0.5行，段后0.5行）
+- 三级标题：`1.1.1 问题提出`（段前0.3行，段后0.3行）
+- 四级标题：`（1）XXX`（不推荐使用，确需时采用）
 
-## Build & Run
+## 三、正文格式要求
+1. 首行缩进2字符，段间距1.5倍
+2. 数字与单位之间空一格：5 ms、10 GB、3.2 GHz
+3. 范围表示用"~"：10~20 ms
+4. 首次出现术语需加全称及缩写：卷积神经网络（Convolutional Neural Network, CNN）
+5. 算法使用标准伪代码格式，包含输入、输出和步骤编号
 
-```bash
-mvn compile          # 编译
-mvn test             # 运行测试
-mvn test -Dtest=Xxx  # 运行单个测试类
-mvn package          # 打包
-mvn clean            # 清理
+## 四、图表与公式规范
+### 4.1 图
+- 图号按章编号：图1-1、图2-3
+- 图题位于图下方，居中
+- 所有图必须在正文中引用："如图1-1所示"
 
-# 启动后端（需要先配置环境变量，见 README.md）
-mvn spring-boot:run   # 后端 → localhost:8080
+### 4.2 表
+- 表号按章编号：表1-1、表2-3
+- 表题位于表上方，居中
+- 推荐使用三线表，无竖线
 
-# 启动前端
-cd frontend
-npm install
-npm run dev           # 前端 → localhost:3000，API 自动代理到 8080
-```
+### 4.3 公式
+- 公式编号按章编号：(1-1)、(2-3)
+- 编号位于公式右侧，右对齐
+- 公式居中排列
 
-## 项目结构
+## 五、参考文献格式（GB/T 7714-2015）
+按正文出现顺序编号，所有标点为英文半角：
+- 期刊：[1] 作者. 题名[J]. 刊名, 年, 卷(期):起止页码.
+- 会议：[2] 作者. 题名[C]//会议名称, 地点, 日期. 出版地:出版者, 年:起止页码.
+- 学位论文：[3] 作者. 题名[D]. 学校所在地:学校名称, 年.
+- 专著：[4] 作者. 书名[M]. 版次. 出版地:出版者, 年:起止页码.
+- 电子文献：[5] 作者. 题名[EB/OL]. (发表日期)[引用日期]. 访问路径.
+- 作者：3人及以下全列，3人以上列前3人加"等"或"et al."
 
-```
-skillMatch/
-├── src/main/java/com/skillmatch/
-│   ├── controller/         # REST 接口（16 个 Controller）
-│   ├── service/            # 业务逻辑接口 + impl 实现
-│   ├── mapper/             # MyBatis-Plus Mapper 接口（13 个）
-│   ├── domain/
-│   │   ├── po/             # 持久化实体（对应数据库表）
-│   │   ├── dto/            # 请求 DTO
-│   │   ├── vo/             # 响应 VO（含 RESTful<T> 统一封装）
-│   │   └── query/          # 分页/查询参数对象
-│   ├── config/             # Spring 配置（WebMvc、MyBatis-Plus、Geo）
-│   ├── interceptor/        # JWT 认证拦截器
-│   ├── utils/              # 工具类（JwtUtil、OssUtil）
-│   ├── context/            # UserContext（ThreadLocal 存储当前用户ID）
-│   ├── enums/              # ErrorCode 错误码枚举
-│   ├── exceptions/         # BusinessException + GlobalExceptionHandler
-│   ├── validator/          # 自定义校验器（TagValidator）
-│   └── annotation/         # 自定义注解（@ValidTag）
-├── src/main/resources/
-│   ├── mapper/             # MyBatis XML 映射文件
-│   └── application.yaml    # 主配置（通过环境变量注入敏感信息）
-├── frontend/               # Vue 3 前端工程
-│   └── src/
-│       ├── views/          # 页面组件（17 个页面）
-│       ├── stores/         # Pinia 状态管理（auth、chat、user）
-│       ├── api/            # Axios 接口封装（7 个模块）
-│       ├── router/         # 路由配置（含导航守卫）
-│       ├── components/     # 公共组件（Navbar、MobileNav）
-│       ├── utils/          # 工具函数（request 拦截器、avatar）
-│       └── constants/      # 常量定义
-├── ai-engine/              # AI 模块（FastAPI 骨架，开发中）
-│   └── app.py
-├── docs/                   # 文档（架构图、接口文档、OpenAPI 规范、部署指南）
-├── init.sql                # 数据库初始化脚本（含所有建表语句）
-└── test_data/              # 测试数据生成脚本
-```
+## 六、计算机学科特殊要求
+1. 代码使用等宽字体，关键部分加注释，长代码放附录
+2. 必须详细说明实验数据集（名称、来源、规模、预处理）
+3. 必须提供完整实验环境（硬件、操作系统、软件版本）
+4. 使用学科公认的评价指标，结果需进行统计分析
 
-## 功能模块
+---
 
-| 模块 | Controller | 核心功能 |
-|------|-----------|---------|
-| 用户系统 | `UserController`、`AuthController` | 注册、登录、个人资料编辑、修改密码 |
-| 技能标签 | `UserSkillController`、`TagController` | 个人技能添加/管理，标签分类 |
-| 兴趣爱好 | `UserHobbyController` | 兴趣爱好标签管理 |
-| 相册展示 | `UserGalleryController` | 图片上传至阿里云 OSS，个人相册管理 |
-| 社区广场 | `PostController`、`PostCommentController`、`PostTagController` | 发帖、评论、点赞、标签筛选 |
-| 好友系统 | `FriendController`、`ContactRequestController` | 好友申请、列表、管理 |
-| 即时通讯 | `ChatController` | 好友间一对一聊天 |
-| 发现匹配 | `MatchingController` | 基于地理位置的用户发现与技能匹配 |
-| 通知系统 | `LikeNotificationController` | 点赞通知、好友申请通知 |
+# 空白论文模板（直接填写内容）
 
-## 数据库表（14 张）
+# 论文题目（黑体二号，居中）
 
-`user`、`user_skill`、`user_hobby`、`user_gallery`、`skill_tag`、`hobby_tag`、`post`、`post_comment`、`post_tag`、`friend`、`contact_request`、`chat_message`、`like_info`、`notification`
+## 摘要（黑体三号）
+（宋体小四号，300~500字，概括研究目的、方法、结果和结论）
 
-所有表主键均为 VARCHAR(64) 的雪花 ID 或 UUID，使用 utf8mb4 字符集。
+关键词：关键词1；关键词2；关键词3；关键词4；关键词5（3~5个，分号分隔）
 
-## 关键架构约定
+## Abstract（黑体三号）
+（Times New Roman小四号，与中文摘要对应）
 
-### 认证流程
-1. 登录/注册返回 JWT token，前端存 localStorage，后续请求放入 `user_info` 请求头
-2. `TokenJWTInterceptor` 拦截所有请求（排除 `/api/auth/register`、`/api/auth/login`）
-3. 解析 token 拿到 userId，与 Redis 中存储的 token 比对校验
-4. 校验通过后将 userId 写入 `UserContext`（ThreadLocal）
+Keywords: Keyword1; Keyword2; Keyword3; Keyword4; Keyword5
 
-### API 响应规范
-- 统一使用 `RESTful<T>` 封装：`{ code: 200, message: "success", data: T }`
-- 成功：`RESTful.success(data)` → code=200
-- 失败：`RESTful.error(code, message)` 或抛出 `BusinessException`
+## 1 引言（黑体三号）
+### 1.1 研究背景与意义
+### 1.2 国内外研究现状
+### 1.3 本文主要工作与创新点
+### 1.4 论文结构安排
 
-### 配置管理
-- 敏感信息（数据库密码、API Key、OSS凭证等）通过**环境变量**注入，`application.yaml` 中使用 `${VAR:default}` 占位符
-- 本地开发可复制 `application-example.yaml` 手动填写
+## 2 相关工作（黑体三号）
+### 2.1 相关技术基础
+### 2.2 现有方法综述
+### 2.3 现有方法的局限性
 
-### 前端路由
-- 路由守卫 `router.beforeEach`：未登录重定向到 `/login`，已登录访问 guest 页面重定向到 `/discover`
-- 默认首页 `/` → 重定向到 `/discover`
-- 定位流程：浏览器 Geolocation API → IP 定位降级 → 提交到后端
+## 3 系统设计与实现/方法提出（黑体三号）
+### 3.1 整体架构设计
+### 3.2 关键模块设计
+#### 3.2.1 模块一设计
+#### 3.2.2 模块二设计
+### 3.3 核心算法描述
+### 3.4 实现细节
 
-### 前端状态管理
-- `auth` store：token、user、地理位置（persistedstate 持久化到 localStorage）
-- `chat` store：聊天消息管理
-- `user` store：用户资料缓存
+## 4 实验与结果分析（黑体三号）
+### 4.1 实验环境配置
+### 4.2 数据集介绍
+### 4.3 评价指标定义
+### 4.4 实验结果展示
+### 4.5 对比实验与分析
+### 4.6 消融实验
 
-## 依赖速查
+## 5 结论与展望（黑体三号）
+### 5.1 本文工作总结
+### 5.2 未来工作展望
 
-| 依赖 | 版本 | 用途 |
-|------|------|------|
-| spring-boot-starter-parent | 3.3.2 | Spring Boot 父工程 |
-| mybatis-plus-spring-boot3-starter | 3.5.9 | ORM 框架 |
-| mysql-connector-j | runtime | MySQL 驱动 |
-| spring-boot-starter-data-redis | — | Redis 集成 |
-| hutool-all | 5.8.44 | Java 工具包 |
-| jjwt-api/impl/jackson | 0.13.0 | JWT 认证 |
-| aliyun-sdk-oss | 3.18.4 | 阿里云对象存储 |
-| lombok | optional | 代码生成 |
-| Vue | ^3.4.0 | 前端框架 |
-| Element Plus | ^2.7.0 | UI 组件库 |
-| Pinia | ^2.1.0 | 状态管理 |
-| Axios | ^1.7.0 | HTTP 客户端 |
+## 参考文献（黑体三号）
 
-## 注意事项
-- 关键部分需注释,生成代码时请使用中文注释
-- 前端 Vite 开发服务器代理 `/api` 到 `localhost:8080`
-- MyBatis-Plus 分页插件已配置（`MybatisPlusConfig`），使用 `Page<T>` 即可分页
-- 图片上传限制 10MB（`application.yaml` 中 `spring.servlet.multipart` 配置）
-- Mapper XML 文件在 `src/main/resources/mapper/` 下，与 Mapper 接口对应
+## 致谢（可选）
+
+## 附录（可选）
+### A 核心代码片段
+
+## 本项目介绍:
+### 标题:《基于技能标签与语义匹配的智能社交平台设计与实现》
+### 论文创新点:
+### 创新点1 技能互补推荐机制
+1. 传统社交：
+2. 兴趣相同
+3. → 推荐
+#### 你的系统：
+1. 我会Java
+2. 你想学Java
+3. 我想学Python
+4. 你会Python
+→ 双向互补
+这是很好的创新点。
+### 创新点2 Redis GEO空间召回
+#### 你的架构：
+1. Redis GEO↓
+2. 附近用户↓
+3. 候选集
+4. 可以写：
+引入地理位置感知机制，提高匹配结果的现实可达性。
+这个表达很论文。
+### 创新点3（核心） SentenceTransformer语义匹配
+#### 用户简介
+#### +
+#### 技能
+#### +
+#### 爱好
+#### ↓ 文本构建
+#### SentenceTransformer
+
+#### ↓ Embedding
+
+#### 384维向量
+
+#### ↓ Cosine Similarity
+
+#### 语义得分
+#### 余弦相似度：cos(θ)=AB/∥A∥∥B∥
+
+#### 这一节可以写4~6页。
+#### SentenceTransformer语义向量技术这一节,强调：
+1. 传统TF-IDF：
+
+2. 基于关键词匹配
+
+3. 无法理解语义
+
+4. 例如：
+
+5. Java开发≠ SpringBoot工程师
+#### 而SentenceTransformer：
+#### Java开发≈SpringBoot工程师
+#### Python开发≈Django开发
+#### 能够理解上下文语义。
+
+## 摘  要
+中文摘要一般为300~400字，简要介绍毕业设计（论文）的研究目的、方法、结果和结论，语言力求精炼。英文摘要应与中文摘要相对应。中英文摘要均要有关键词，一般为3~8个，中英文摘要要相互对应。
+中文摘要。“摘要”两字之间空一个全角空格或两个半角空格，字体为宋体二号字加粗，居中显示，摘要内容采用正文样式。中文关键词与摘要内容间隔一行，无缩进左对齐书写。“关键词：”采用宋体四号字加粗，关键词内容采用正文样式，且换行不缩进。关键词之间用逗号分隔。
+英文摘要。此部分皆为Times New Roman字体。“ABSTRACT”为二号字加粗，居中显示。英文摘要内容采用正文样式。英文关键词与英文摘要内容间隔一行，无缩进左对齐书写。“KEY WORDS:”为四号字加粗，英文关键词采用正文样式，且换行不缩进，关键词之间用逗号分隔，词义和中文关键词相同。“ABSTRACT”和“KEY WORDS”一律用大写字母，每个关键词的首字母要大写。
+
+关键词：，，，，，，
+## ABSTRACT
+#### 英文摘要应与中文摘要相对应。字体为 Times New Roman 小四号.
+KEY WORDS: Heat transfer, Mechanics, Combustion, Engine, Analysis
+
+## 1 引言
+### 1.1 研究背景与意义
+### 1.2 国内外研究现状
+### 1.3 本文主要工作与创新点
+### 1.4 论文结构安排
+
+## 2 相关理论与技术基础
+### 2.1 Spring Boot与Vue前后端分离架构
+### 2.2 Redis GEO空间索引技术
+### 2.3 SentenceTransformer语义匹配模型
+### 2.4 本章小结
+
+## 3 系统需求分析与总体设计
+### 3.1 功能需求分析
+### 3.2 系统架构设计
+### 3.3 数据库设计
+### 3.4 本章小结
+
+## 4 核心算法设计与实现
+### 4.1 技能互补推荐机制
+### 4.2 Redis GEO空间召回策略
+### 4.3 SentenceTransformer语义匹配算法
+### 4.4 多层匹配流水线（召回→过滤→粗排→精排）
+### 4.5 本章小结
+
+## 5 系统详细设计与实现
+### 5.1 用户管理与认证模块
+### 5.2 技能与爱好管理模块
+### 5.3 匹配推荐与社交互动模块
+### 5.4 管理后台模块
+### 5.5 本章小结
+
+## 6 系统测试与结果分析
+### 6.1 测试环境与数据集
+### 6.2 功能测试
+### 6.3 性能测试
+### 6.4 匹配效果评估
+### 6.5 本章小结
+
+## 7 结论与展望
+
+### 参考文献
+### 致谢
+### 附录
