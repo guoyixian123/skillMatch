@@ -34,9 +34,9 @@ public class TokenJWTInterceptor implements HandlerInterceptor {
                 response.setStatus(401);
                 return false;
             }
-            //判断在redis中是否存在
-            //查询redis中是否存在对应的key,判断redis中的key和请求头中的token是否一致
-            if (!(redisTemplate.hasKey(LOGIN_TOKEN_KEY+userId)&&Objects.equals(redisTemplate.opsForValue().get(LOGIN_TOKEN_KEY + userId), token))) {
+            //判断在redis中是否存在（单次get替代hasKey+get，减少一次Redis RTT）
+            String cachedToken = redisTemplate.opsForValue().get(LOGIN_TOKEN_KEY + userId);
+            if (cachedToken == null || !cachedToken.equals(token)) {
                 response.setStatus(401);
                 return false;
             }

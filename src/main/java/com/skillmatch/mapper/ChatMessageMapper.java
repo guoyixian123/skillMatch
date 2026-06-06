@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ChatMessageMapper extends BaseMapper<ChatMessage> {
 
@@ -36,4 +37,35 @@ public interface ChatMessageMapper extends BaseMapper<ChatMessage> {
 
     @Select("SELECT COUNT(*) FROM chat_message WHERE from_user_id = #{friendId} AND to_user_id = #{userId} AND is_read = 0")
     int countUnreadFrom(@Param("userId") String userId, @Param("friendId") String friendId);
+
+    /**
+     * 批量查每个好友的最后一条消息（替代N+1逐条查询）
+     * 返回Map：key=fromUserId, value=ChatMessage
+     */
+    @Select("<script>" +
+            "SELECT * FROM chat_message WHERE id IN (" +
+            "  SELECT MAX(id) FROM chat_message WHERE (" +
+            "    (from_user_id = #{userId} AND to_user_id IN " +
+            "      <foreach collection='friendIds' item='fid' open='(' separator=',' close=')'>#{fid}</foreach>" +
+            "    ) OR " +
+            "    (from_user_id IN " +
+            "      <foreach collection='friendIds' item='fid' open='(' separator=',' close=')'>#{fid}</foreach>" +
+            "      AND to_user_id = #{userId}" +
+            "    )" +
+            "  ) GROUP BY CASE WHEN from_user_id = #{userId} THEN to_user_id ELSE from_user_id END" +
+            ") ORDER BY created_at DESC" +
+            "</script>")
+    List<ChatMessage> selectLastMessageBatch(@Param("userId") String userId, @Param("friendIds") List<String> friendIds);
+
+    /**
+     * 批量查每个好友的未读消息数（替代N+1逐条查询）
+     * 返回List<Map>：每条记录包含 fromUserId 和 cnt
+     */
+    @Select("<script>" +
+            "SELECT from_user_id AS fromUserId, COUNT(*) AS cnt FROM chat_message " +
+            "WHERE to_user_id = #{userId} AND is_read = 0 AND from_user_id IN " +
+            "<foreach collection='friendIds' item='fid' open='(' separator=',' close=')'>#{fid}</foreach>" +
+            " GROUP BY from_user_id" +
+            "</script>")
+    List<Map<String, Object>> countUnreadFromBatch(@Param("userId") String userId, @Param("friendIds") List<String> friendIds);
 }

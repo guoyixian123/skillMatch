@@ -19,6 +19,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static com.skillmatch.constants.RedisConstant.USER_LOCATION_KEY;
@@ -213,6 +214,11 @@ public class MatchingServiceImpl implements IMatchingService {
                 .stream().map(LikeInfo::getBizId)
                 .collect(Collectors.toSet());
 
+        // 将List转为Set，contains从O(n)优化为O(1)
+        Set<String> myCanSet = new HashSet<>(myCan);
+        Set<String> myWantSet = new HashSet<>(myWant);
+        Set<String> myHobbySet = new HashSet<>(myHobbies);
+
         // 5. 逐人计算互补度分数
         List<UserCardVO> cards = new ArrayList<>();
         for (String uid : userIds) {
@@ -228,16 +234,16 @@ public class MatchingServiceImpl implements IMatchingService {
             //TODO:后期可替换布隆过滤器
             //不满足条件的删掉
             //满足条件的留下
-            long canTeach = theirWant.stream().filter(myCan::contains).count();//contains: 判断集合中是否包含某个元素,eg:list.contains("Java");   // true,list.contains("Python"); // false
+            long canTeach = theirWant.stream().filter(myCanSet::contains).count();
             double canTeachRatio = theirWant.isEmpty() ? 0 : (double) canTeach / theirWant.size();
 
-            long canLearn = theirCan.stream().filter(myWant::contains).count();
-            double canLearnRatio = myWant.isEmpty() ? 0 : (double) canLearn / myWant.size();
+            long canLearn = theirCan.stream().filter(myWantSet::contains).count();
+            double canLearnRatio = myWantSet.isEmpty() ? 0 : (double) canLearn / myWantSet.size();
 
             //互补度
             int matchScore =(int) Math.round((canTeachRatio + canLearnRatio) / 2 * 100);
             //共同的爱好,每个共享爱好 +5 分，上限 10 分
-            long commonHobbies = theirHobbies.stream().filter(myHobbies::contains).count();
+            long commonHobbies = theirHobbies.stream().filter(myHobbySet::contains).count();
             int hobbyBonus = Math.min(10, (int) commonHobbies * 5);
 
             //匹配值
@@ -319,7 +325,8 @@ public class MatchingServiceImpl implements IMatchingService {
                 }
                 aiReq.setCandidates(cps);
 
-                AIMatchResponse aiResp = aiClient.batchMatch(aiReq);
+                // 异步调用AI引擎，不阻塞Servlet线程
+                AIMatchResponse aiResp = aiClient.batchMatchAsync(aiReq).join();
                 if (aiResp != null && aiResp.getScores() != null) {
                     Map<String, Double> aiMap = new HashMap<>();
                     for (AIMatchResponse.MatchScore s : aiResp.getScores()) {

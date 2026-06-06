@@ -9,6 +9,9 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -19,13 +22,17 @@ import java.util.concurrent.CompletableFuture;
 public class AIClient {
 
     private final RestTemplate rest;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Value("${ai.engine.url:http://localhost:8000}")
     private String baseUrl;
 
     public AIClient() {
-        this.rest = new RestTemplate();
-        // 显式注册 Jackson 转换器，确保 Java 对象能序列化为 JSON
+        // 配置连接和读取超时，防止AI引擎挂起时无限阻塞
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(3000);  // 连接超时3秒
+        factory.setReadTimeout(10000);    // 读取超时10秒
+        this.rest = new RestTemplate(factory);
         this.rest.getMessageConverters().add(0, new MappingJackson2HttpMessageConverter());
     }
 
@@ -38,7 +45,7 @@ public class AIClient {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<AIMatchRequest> entity = new HttpEntity<>(request, headers);
 
-            log.info("AI 请求体: {}", new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request));
+            log.info("AI 请求体: {}", MAPPER.writeValueAsString(request));
 
             ResponseEntity<AIMatchResponse> resp = rest.exchange(
                     baseUrl + "/api/ai/match",

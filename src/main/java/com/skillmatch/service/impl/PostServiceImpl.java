@@ -28,8 +28,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -74,12 +74,40 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements IP
         if (records.isEmpty()) {
             return new PageVO<>(0, 0, List.of());
         }
-        //开始封装vo
-        //获取作者信息,头像,id,姓名
+        // 批量预加载，避免N+1查询（10条帖子从31次查询降到5次）
         String userId = UserContext.getUserId();
+        List<String> currentPostIds = records.stream().map(Post::getId).toList();
+        List<String> authorIds = records.stream().map(Post::getAuthorId).distinct().toList();
+
+        // 1次IN查询：批量获取作者信息
+        Map<String, UserBasicVO> authorMap = userMapper.getUserBasicInfoBatch(authorIds)
+                .stream().collect(Collectors.toMap(UserBasicVO::getId, u -> u));
+
+        // 1次IN查询：批量获取帖子标签
+        Map<String, List<String>> tagMap = postTagService.lambdaQuery()
+                .in(PostTag::getPostId, currentPostIds)
+                .list()
+                .stream()
+                .collect(Collectors.groupingBy(PostTag::getPostId, Collectors.mapping(PostTag::getTagName, Collectors.toList())));
+
+        // 1次IN查询：批量获取当前用户点赞状态
+        Set<String> likedPostIds = likeService.lambdaQuery()
+                .eq(LikeInfo::getUserId, userId)
+                .eq(LikeInfo::getType, 2)
+                .in(LikeInfo::getBizId, currentPostIds)
+                .list()
+                .stream().map(LikeInfo::getBizId)
+                .collect(Collectors.toSet());
+
         List<PostVO> postVOList = new ArrayList<>(records.size());
         for (Post p : records) {
-            PostVO postVO = getPostVO(p, userId);
+            PostVO postVO = new PostVO();
+            BeanUtil.copyProperties(p, postVO);
+            postVO.setAuthor(authorMap.get(p.getAuthorId()));
+            postVO.setTags(tagMap.getOrDefault(p.getId(), List.of()));
+            postVO.setIsLiked(likedPostIds.contains(p.getId()));
+            postVO.setLikeCount(p.getLikeCount());
+            postVO.setCommentCount(p.getCommentCount());
             postVOList.add(postVO);
         }
         return new PageVO<>(page.getTotal(), page.getPages(), postVOList);

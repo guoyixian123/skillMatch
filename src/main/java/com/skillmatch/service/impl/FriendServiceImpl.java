@@ -15,8 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,10 +51,28 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
                 .list();
         if (friends.isEmpty()) return List.of();
 
+        List<String> friendIds = friends.stream().map(Friend::getFriendId).toList();
+
+        // 1. 批量查用户基本信息（1次IN查询替代N次）
+        Map<String, UserBasicVO> userMap = userMapper.getUserBasicInfoBatch(friendIds)
+                .stream().collect(Collectors.toMap(UserBasicVO::getId, u -> u));
+
+        // 2. 批量查每个好友的最后一条消息（1次GROUP BY查询替代N次）
+        Map<String, ChatMessage> lastMsgMap = chatMessageMapper.selectLastMessageBatch(userId, friendIds)
+                .stream().collect(Collectors.toMap(ChatMessage::getFromUserId, m -> m, (a, b) -> a));
+
+        // 3. 批量查每个好友的未读消息数（1次GROUP BY查询替代N次）
+        Map<String, Integer> unreadMap = chatMessageMapper.countUnreadFromBatch(userId, friendIds)
+                .stream().collect(Collectors.toMap(
+                        r -> (String) r.get("fromUserId"),
+                        r -> ((Number) r.get("cnt")).intValue()
+                ));
+
+        // 4. 组装结果
         List<FriendVO> result = new ArrayList<>(friends.size());
         for (Friend f : friends) {
             String friendId = f.getFriendId();
-            UserBasicVO userBasic = userMapper.getUserBasicInfo(friendId);
+            UserBasicVO userBasic = userMap.get(friendId);
             if (userBasic == null) continue;
 
             FriendVO vo = new FriendVO();
@@ -62,21 +80,18 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
             vo.setName(userBasic.getName());
             vo.setAvatarUrl(userBasic.getAvatarUrl());
 
-            // 最后一条消息
-            ChatMessage lastMsg = chatMessageMapper.selectLastMessage(userId, friendId);
+            ChatMessage lastMsg = lastMsgMap.get(friendId);
             if (lastMsg != null) {
                 vo.setLastMessage(lastMsg.getContent());
                 vo.setLastMessageTime(lastMsg.getCreatedAt());
             }
 
-            // 未读数
-            int unread = chatMessageMapper.countUnreadFrom(userId, friendId);
+            int unread = unreadMap.getOrDefault(friendId, 0);
             vo.setUnreadCount(unread > 0 ? unread : null);
 
             result.add(vo);
         }
 
-        // 按最后消息时间倒序
         result.sort((a, b) -> {
             if (a.getLastMessageTime() == null && b.getLastMessageTime() == null) return 0;
             if (a.getLastMessageTime() == null) return 1;

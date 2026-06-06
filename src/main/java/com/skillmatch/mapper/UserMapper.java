@@ -3,8 +3,11 @@ package com.skillmatch.mapper;
 import com.skillmatch.domain.po.User;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.skillmatch.domain.vo.UserBasicVO;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+
+import java.util.List;
 
 /**
  * <p>
@@ -53,4 +56,15 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @Update("update user set post_count = greatest(post_count - 1, 0) where user_id = #{userId}")
     void decrPostCount(String userId);
+
+    /**
+     * 批量获取用户基本信息（替代N+1逐条查询）
+     */
+    @Select("<script>" +
+            "SELECT user_id AS id, name, head_url AS avatarUrl FROM user WHERE user_id IN " +
+            "<foreach collection='userIds' item='uid' open='(' separator=',' close=')'>" +
+            "#{uid}" +
+            "</foreach>" +
+            "</script>")
+    List<UserBasicVO> getUserBasicInfoBatch(@Param("userIds") List<String> userIds);
 }
