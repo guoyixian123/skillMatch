@@ -14,3 +14,7 @@ test_data/bot_generator.py
 /admin-frontend/node_modules/
 
 CLAUDE.md
+
+# Docker 环境变量（含密码）
+.env
+/init.sql
