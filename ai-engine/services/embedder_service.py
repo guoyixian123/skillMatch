@@ -1,10 +1,14 @@
 """Embedding 服务 — 使用 SentenceTransformer 生成语义向量 + Redis 缓存。"""
+import os
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from config import EMBEDDING_MODEL
+from config import EMBEDDING_MODEL, HF_ENDPOINT
 from utils.text import build_profile_text
 from utils.redis_client import get_embedding, set_embedding
+
+# 设置 Hugging Face 镜像（国内网络必需）
+os.environ["HF_ENDPOINT"] = HF_ENDPOINT
 
 
 class EmbedderService:
@@ -17,8 +21,14 @@ class EmbedderService:
         """延迟加载 SentenceTransformer 模型，避免启动时阻塞。"""
         if self.model is None:
             print(f"[Embedder] 正在加载 SentenceTransformer 模型: {EMBEDDING_MODEL}")
-            self.model = SentenceTransformer(EMBEDDING_MODEL)
-            print(f"[Embedder] 模型加载完成，向量维度: {self.model.get_sentence_embedding_dimension()}")
+            print(f"[Embedder] 使用 Hugging Face 镜像: {HF_ENDPOINT}")
+            try:
+                self.model = SentenceTransformer(EMBEDDING_MODEL)
+                print(f"[Embedder] 模型加载完成，向量维度: {self.model.get_sentence_embedding_dimension()}")
+            except Exception as e:
+                print(f"[Embedder] 模型加载失败: {e}")
+                print(f"[Embedder] 请检查网络连接或设置 HF_ENDPOINT 环境变量")
+                raise
 
     def encode(self, text: str) -> list[float]:
         """将文本转为语义向量，基于 SentenceTransformer。"""

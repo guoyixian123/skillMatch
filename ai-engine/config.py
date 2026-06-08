@@ -6,6 +6,9 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_DB = int(os.getenv("REDIS_DB", "0"))
 REDIS_PREFIX = "user:embed:"
 
+# Hugging Face 镜像（国内网络需要）
+HF_ENDPOINT = os.getenv("HF_ENDPOINT", "https://hf-mirror.com")
+
 # Embedding 模型配置
 EMBEDDING_MODEL = os.getenv("AI_EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
