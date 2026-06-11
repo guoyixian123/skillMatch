@@ -16,6 +16,50 @@ SkillMatch 是一个面向技能型社交的全栈 Web 应用。与传统"兴趣
 - **多层匹配流水线** — 召回 → 过滤 → 粗排 → 精排，兼顾效率与精度
 - **优雅降级** — AI 服务不可用时自动回退到规则匹配，保障系统可用性
 
+## 项目展示
+
+### 登录与注册
+<p align="center">
+  <img src="screenshots/1登录&注册.png" alt="登录与注册" width="800"/>
+</p>
+
+> 用户注册与登录界面，支持账号密码注册及 JWT Token 认证
+
+### 智能匹配主页
+<p align="center">
+  <img src="screenshots/主页匹配.png" alt="智能匹配主页" width="800"/>
+</p>
+
+> 基于技能互补 + 语义相似度 + 地理位置的多维智能推荐，展示匹配度百分比与互补技能标签
+
+### 用户个人页
+<p align="center">
+  <img src="screenshots/用户页.png" alt="用户个人页" width="800"/>
+</p>
+
+> 个人资料编辑、技能标签（我会的 / 我想学的）、兴趣爱好、相册展示
+
+### 社区广场
+<p align="center">
+  <img src="screenshots/社区页.png" alt="社区广场" width="800"/>
+</p>
+
+> 发帖、评论、点赞、标签筛选，技能交流社区
+
+### 管理控制台 — 数据看板
+<p align="center">
+  <img src="screenshots/管理控制台-数据看板.png" alt="管理控制台-数据看板" width="800"/>
+</p>
+
+> ECharts 可视化图表，展示用户增长趋势、活跃度统计等核心运营数据
+
+### 管理控制台 — 用户管理
+<p align="center">
+  <img src="screenshots/管理控制台-用户管理.png" alt="管理控制台-用户管理" width="800"/>
+</p>
+
+> 用户列表查询与管理，支持地理位置筛选、状态启禁用等操作
+
 ## 技术栈
 
 ### 后端
