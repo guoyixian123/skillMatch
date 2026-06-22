@@ -12,10 +12,14 @@
     <div class="auth-container">
       <div class="auth-card geo-card accent-violet">
         <div class="auth-logo">
-          <div class="logo-circle">
-            <span class="logo-icon">⚡</span>
-          </div>
-          <h1>SkillMatch</h1>
+          <svg class="auth-logo-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="28,3 10,26 22,26 18,45 38,22 26,22 30,3" fill="#FBBF24" stroke="#1E293B" stroke-width="2.5" stroke-linejoin="round"/>
+            <circle cx="8" cy="8" r="4" fill="#F472B6" stroke="#1E293B" stroke-width="1.5"/>
+            <circle cx="40" cy="8" r="4" fill="#8B5CF6" stroke="#1E293B" stroke-width="1.5"/>
+            <circle cx="8" cy="40" r="4" fill="#34D399" stroke="#1E293B" stroke-width="1.5"/>
+            <circle cx="40" cy="40" r="4" fill="#8B5CF6" stroke="#1E293B" stroke-width="1.5"/>
+          </svg>
+          <h1><span>Skill</span><span style="color:#8B5CF6;">Match</span></h1>
           <p>技能匹配 · 轻社交</p>
         </div>
 
@@ -181,23 +185,16 @@ async function handleLogin() {
   text-align: center;
   margin-bottom: 32px;
 }
-.logo-circle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  background: var(--color-tertiary);
-  border-radius: 9999px;
-  border: 2px solid var(--color-fg);
-  box-shadow: 4px 4px 0 var(--color-fg);
+.auth-logo-svg {
+  width: 72px;
+  height: 72px;
   margin-bottom: 12px;
   transition: transform 0.4s var(--ease-bounce);
+  display: inline-block;
 }
-.logo-circle:hover {
-  transform: rotate(-15deg) scale(1.1);
+.auth-logo-svg:hover {
+  transform: rotate(-12deg) scale(1.1);
 }
-.auth-logo .logo-icon { font-size: 32px; }
 .auth-logo h1 {
   font-family: var(--font-heading);
   font-size: 32px;

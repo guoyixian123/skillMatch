@@ -2,8 +2,18 @@
   <nav class="app-navbar">
     <div class="navbar-inner">
       <router-link to="/discover" class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">SkillMatch</span>
+        <div class="logo-icon-wrap">
+          <svg class="logo-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="28,3 10,26 22,26 18,45 38,22 26,22 30,3" fill="#FBBF24" stroke="#1E293B" stroke-width="2.5" stroke-linejoin="round"/>
+            <circle cx="8" cy="8" r="4" fill="#F472B6" stroke="#1E293B" stroke-width="1.5"/>
+            <circle cx="40" cy="8" r="4" fill="#8B5CF6" stroke="#1E293B" stroke-width="1.5"/>
+            <circle cx="8" cy="40" r="4" fill="#34D399" stroke="#1E293B" stroke-width="1.5"/>
+            <circle cx="40" cy="40" r="4" fill="#8B5CF6" stroke="#1E293B" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="logo-text-wrap">
+          <span class="logo-text">Skill</span><span class="logo-text accent">Match</span>
+        </div>
       </router-link>
 
       <div class="nav-links">
@@ -156,25 +166,28 @@ watch(() => route.path, (path) => {
 .logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
 }
-.logo-icon {
-  font-size: 28px;
+.logo-icon-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--color-tertiary);
-  border-radius: var(--radius-full);
-  border: 2px solid var(--color-fg);
-  box-shadow: 3px 3px 0 var(--color-fg);
-  transition: transform 0.3s var(--ease-bounce);
+  width: 42px;
+  height: 42px;
+  transition: transform 0.4s var(--ease-bounce);
 }
-.logo:hover .logo-icon {
+.logo:hover .logo-icon-wrap {
   transform: rotate(-12deg) scale(1.1);
+}
+.logo-svg {
+  width: 42px;
+  height: 42px;
+}
+.logo-text-wrap {
+  display: flex;
+  align-items: baseline;
 }
 .logo-text {
   font-family: var(--font-heading);
@@ -182,6 +195,9 @@ watch(() => route.path, (path) => {
   font-weight: 800;
   color: var(--color-fg);
   letter-spacing: -0.5px;
+}
+.logo-text.accent {
+  color: var(--color-accent);
 }
 .nav-links {
   display: flex;
