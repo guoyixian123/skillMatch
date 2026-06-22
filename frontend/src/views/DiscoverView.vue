@@ -174,6 +174,21 @@
           <span class="match-num" :style="{ color: matchColor(cardUser.matchScore) }">{{ cardUser.matchScore }}%</span>
         </div>
 
+        <!-- AI 匹配分析 -->
+        <div class="ai-analysis" v-if="aiExplanation || aiLoading">
+          <div class="ai-header">
+            <div class="ai-icon-wrap">✦</div>
+            <span class="ai-title">AI 智能分析</span>
+          </div>
+          <div v-if="aiLoading" class="ai-loading">
+            <div class="ai-loading-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <span>正在分析匹配原因...</span>
+          </div>
+          <div v-else class="ai-content">{{ aiExplanation }}</div>
+        </div>
+
         <div class="detail-actions" style="margin-top:20px;display:flex;gap:12px;">
           <button v-if="cardUser.hasPendingRequest" class="geo-btn outline small" disabled>
             <el-icon><Clock /></el-icon> 已发送请求
@@ -213,7 +228,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from '@/utils/message'
 import { Search, Location, Loading, StarFilled, Document, Clock, ChatDotRound } from '@element-plus/icons-vue'
-import { getRecommendedUsers, getUserCard } from '@/api/matching'
+import { getRecommendedUsers, getUserCard, getMatchExplanation } from '@/api/matching'
 import { createRequest } from '@/api/notification'
 import { getDefaultAvatar } from '@/utils/avatar'
 import { useAuthStore } from '@/stores/auth'
@@ -231,6 +246,8 @@ const radius = ref(100)
 
 const cardVisible = ref(false)
 const cardUser = ref(null)
+const aiExplanation = ref('')
+const aiLoading = ref(false)
 
 const requestVisible = ref(false)
 const requestTarget = ref(null)
@@ -278,12 +295,22 @@ async function enableLocation() {
 async function showUserCard(user) {
   cardUser.value = { ...user }
   cardVisible.value = true
+  aiExplanation.value = ''
+  aiLoading.value = true
   try {
     const res = await getUserCard(user.userId)
     if (res.data) {
       cardUser.value = { ...user, ...res.data }
     }
   } catch { /* fallback */ }
+  // 异步获取 AI 分析，不阻塞卡片显示
+  getMatchExplanation(user.userId).then(res => {
+    aiExplanation.value = res.data || ''
+  }).catch(() => {
+    aiExplanation.value = ''
+  }).finally(() => {
+    aiLoading.value = false
+  })
 }
 
 function sendRequest(user) {
@@ -477,5 +504,66 @@ onMounted(fetchUsers)
   }
   .filter-search { min-width: 100%; }
   .filter-select { flex: 1; min-width: 0; }
+}
+
+/* AI 分析卡片 */
+.ai-analysis {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  box-shadow: 4px 4px 0 rgba(139, 92, 246, 0.15);
+}
+.ai-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.ai-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+.ai-title {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+.ai-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-muted-fg);
+}
+.ai-loading-dots {
+  display: flex;
+  gap: 4px;
+}
+.ai-loading-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: aiDotPulse 1.2s ease-in-out infinite;
+}
+.ai-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ai-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes aiDotPulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.2); }
+}
+.ai-content {
+  font-size: 14px;
+  color: var(--color-fg);
+  line-height: 1.8;
 }
 </style>

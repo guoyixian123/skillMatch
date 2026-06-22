@@ -11,3 +11,7 @@ export function getUserCard(userId) {
 export function getUserProfile(userId) {
   return request.get(`/matching/users/${userId}/profile`)
 }
+
+export function getMatchExplanation(userId) {
+  return request.get(`/matching/users/${userId}/explain`, { noError: true })
+}
