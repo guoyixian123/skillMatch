@@ -280,6 +280,13 @@ onUnmounted(() => {
   flex: 1;
   padding: 10px 14px !important;
   font-size: 14px !important;
+  border-radius: var(--radius-full) !important;
+  box-shadow: none !important;
+}
+.chat-input:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15) !important;
+  outline: none !important;
 }
 .send-btn {
   padding: 10px 16px !important;
