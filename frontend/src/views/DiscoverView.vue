@@ -5,17 +5,30 @@
       <p class="page-subtitle">找到与你技能互补的人</p>
     </header>
 
-    <!-- Filters -->
-    <div class="filter-bar geo-card accent-yellow">
+    <!-- 全局用户搜索 -->
+    <div class="search-bar geo-card">
+      <el-input
+        v-model="searchKeyword"
+        placeholder="搜索用户昵称、技能..."
+        :prefix-icon="Search"
+        clearable
+        size="large"
+        class="global-search-input"
+        @keyup.enter="doSearch"
+        @clear="clearSearch"
+      />
+      <button class="geo-btn primary" @click="doSearch">搜索</button>
+    </div>
+
+    <!-- 搜索状态 -->
+    <div v-if="isSearching" class="search-status">
+      <span>搜索 "{{ searchKeyword }}" · 共找到 {{ searchTotal }} 人</span>
+      <span class="back-link" @click="clearSearch">← 返回推荐</span>
+    </div>
+
+    <!-- Filters（推荐模式） -->
+    <div v-if="!isSearching" class="filter-bar geo-card accent-yellow">
       <div class="filter-row">
-        <el-input
-          v-model="keyword"
-          placeholder="搜索昵称、技能..."
-          :prefix-icon="Search"
-          clearable
-          class="filter-search"
-          @keyup.enter="fetchUsers"
-        />
         <el-select v-model="sort" class="filter-select">
           <el-option label="匹配度" value="score" />
           <el-option label="距离近" value="dist" />
@@ -40,85 +53,95 @@
       </button>
     </div>
 
-    <!-- Results Grid -->
-    <div v-if="loading" class="loading-block"><el-icon class="is-loading"><Loading /></el-icon> 正在匹配中...</div>
-
-    <div v-else-if="users.length === 0" class="empty-block">
-      <div class="icon"><el-icon :size="48"><Search /></el-icon></div>
-      <div style="font-weight:700;font-size:18px;color:var(--color-fg);">暂无匹配用户</div>
-      <div style="color:var(--color-muted-fg);margin-top:4px;">试试扩大搜索范围或添加更多技能标签</div>
-    </div>
-
-    <template v-else>
-      <div class="sort-indicator">按{{ sort === 'score' ? '匹配度' : sort === 'dist' ? '距离' : '活跃度' }}排序 · 共 {{ total }} 人</div>
-      <div class="geo-grid-3">
-        <div
-          v-for="user in users"
-          :key="user.userId"
-          class="user-card geo-card"
-          @click="showUserCard(user)"
-        >
-          <!-- Header: avatar + name inline -->
-          <div class="card-header">
-            <div class="card-avatar-wrap">
-              <img
-                :src="user.avatarUrl || getDefaultAvatar(user.userId || user.name)"
-                class="geo-avatar lg card-avatar"
-              />
-            </div>
-            <div class="card-header-info">
-              <h3 class="card-name">{{ user.name }}</h3>
-              <div class="card-location" v-if="user.city || user.distance">
-                <el-icon><Location /></el-icon>
-                <span v-if="user.city">{{ user.city }}</span>
-                <span v-if="user.city && user.distance" class="loc-sep">·</span>
-                <span v-if="user.distance">{{ user.distance }}</span>
+    <!-- 搜索结果 -->
+    <template v-if="isSearching">
+      <div v-if="searchLoading" class="loading-block"><el-icon class="is-loading"><Loading /></el-icon> 搜索中...</div>
+      <div v-else-if="searchResults.length === 0" class="empty-block">
+        <div class="icon"><el-icon :size="48"><Search /></el-icon></div>
+        <div style="font-weight:700;font-size:18px;color:var(--color-fg);">未找到相关用户</div>
+        <div style="color:var(--color-muted-fg);margin-top:4px;">换个关键词试试</div>
+      </div>
+      <template v-else>
+        <div class="search-list">
+          <div v-for="user in searchResults" :key="user.userId" class="search-item geo-card" @click="showUserCard(user)">
+            <img :src="user.avatarUrl || getDefaultAvatar(user.userId || user.name)" class="search-avatar" />
+            <div class="search-info">
+              <div class="search-name">{{ user.name }}</div>
+              <div class="search-meta">
+                <span v-if="user.city"><el-icon><Location /></el-icon> {{ user.city }}</span>
+                <span v-if="user.distance" class="search-dist">{{ user.distance }}</span>
               </div>
             </div>
-          </div>
-
-          <div class="card-bio" v-if="user.bio">{{ user.bio }}</div>
-
-          <!-- Skills -->
-          <div class="card-skills">
-            <div class="skill-group" v-if="user.canSkills?.length">
-              <div class="skill-label">我会</div>
-              <div class="flex-wrap">
-                <span v-for="s in user.canSkills.slice(0,3)" :key="s" class="geo-tag can">{{ s }}</span>
-                <span v-if="user.canSkills.length > 3" class="geo-tag">+{{ user.canSkills.length - 3 }}</span>
-              </div>
+            <div class="search-skills">
+              <span v-for="s in (user.canSkills || []).slice(0,2)" :key="s" class="geo-tag can" style="font-size:11px;padding:2px 8px;">{{ s }}</span>
+              <span v-for="s in (user.wantSkills || []).slice(0,2)" :key="s" class="geo-tag want" style="font-size:11px;padding:2px 8px;">{{ s }}</span>
             </div>
-            <div class="skill-group" v-if="user.wantSkills?.length">
-              <div class="skill-label">想学</div>
-              <div class="flex-wrap">
-                <span v-for="s in user.wantSkills.slice(0,3)" :key="s" class="geo-tag want">{{ s }}</span>
-                <span v-if="user.wantSkills.length > 3" class="geo-tag">+{{ user.wantSkills.length - 3 }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Score Bar -->
-          <div class="match-bar" v-if="user.matchScore">
-            <div class="match-label">匹配度</div>
-            <div class="match-track">
-              <div class="match-fill" :style="{ width: Math.max(user.matchScore, 8) + '%', background: matchColor(user.matchScore) }"></div>
-            </div>
-            <span class="match-num" :style="{ color: matchColor(user.matchScore) }">{{ user.matchScore }}%</span>
+            <div class="search-bio" v-if="user.bio">{{ user.bio }}</div>
           </div>
         </div>
-      </div>
+        <div class="flex-center" style="margin-top:32px;" v-if="searchTotal > searchSize">
+          <el-pagination :current-page="searchPage" :page-size="searchSize" :total="searchTotal" layout="prev, pager, next" @current-change="(p) => { searchPage = p; doSearch(); }" />
+        </div>
+      </template>
     </template>
 
-    <!-- Pagination -->
-    <div class="flex-center" style="margin-top:32px;" v-if="total > size">
-      <el-pagination
-        :current-page="page"
-        :page-size="size"
-        :total="total"
-        layout="prev, pager, next"
-        @current-change="(p) => { page = p; fetchUsers(); }"
-      />
-    </div>
+    <!-- 推荐结果 -->
+    <template v-else>
+      <div v-if="loading" class="loading-block"><el-icon class="is-loading"><Loading /></el-icon> 正在匹配中...</div>
+      <div v-else-if="users.length === 0" class="empty-block">
+        <div class="icon"><el-icon :size="48"><Search /></el-icon></div>
+        <div style="font-weight:700;font-size:18px;color:var(--color-fg);">暂无匹配用户</div>
+        <div style="color:var(--color-muted-fg);margin-top:4px;">试试扩大搜索范围或添加更多技能标签</div>
+      </div>
+      <template v-else>
+        <div class="sort-indicator">按{{ sort === 'score' ? '匹配度' : sort === 'dist' ? '距离' : '活跃度' }}排序 · 共 {{ total }} 人</div>
+        <div class="geo-grid-3">
+          <div v-for="user in users" :key="user.userId" class="user-card geo-card" @click="showUserCard(user)">
+            <div class="card-header">
+              <div class="card-avatar-wrap">
+                <img :src="user.avatarUrl || getDefaultAvatar(user.userId || user.name)" class="geo-avatar lg card-avatar" />
+              </div>
+              <div class="card-header-info">
+                <h3 class="card-name">{{ user.name }}</h3>
+                <div class="card-location" v-if="user.city || user.distance">
+                  <el-icon><Location /></el-icon>
+                  <span v-if="user.city">{{ user.city }}</span>
+                  <span v-if="user.city && user.distance" class="loc-sep">·</span>
+                  <span v-if="user.distance">{{ user.distance }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-bio" v-if="user.bio">{{ user.bio }}</div>
+            <div class="card-skills">
+              <div class="skill-group" v-if="user.canSkills?.length">
+                <div class="skill-label">我会</div>
+                <div class="flex-wrap">
+                  <span v-for="s in user.canSkills.slice(0,3)" :key="s" class="geo-tag can">{{ s }}</span>
+                  <span v-if="user.canSkills.length > 3" class="geo-tag">+{{ user.canSkills.length - 3 }}</span>
+                </div>
+              </div>
+              <div class="skill-group" v-if="user.wantSkills?.length">
+                <div class="skill-label">想学</div>
+                <div class="flex-wrap">
+                  <span v-for="s in user.wantSkills.slice(0,3)" :key="s" class="geo-tag want">{{ s }}</span>
+                  <span v-if="user.wantSkills.length > 3" class="geo-tag">+{{ user.wantSkills.length - 3 }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="match-bar" v-if="user.matchScore">
+              <div class="match-label">匹配度</div>
+              <div class="match-track">
+                <div class="match-fill" :style="{ width: Math.max(user.matchScore, 8) + '%', background: matchColor(user.matchScore) }"></div>
+              </div>
+              <span class="match-num" :style="{ color: matchColor(user.matchScore) }">{{ user.matchScore }}%</span>
+            </div>
+          </div>
+        </div>
+      </template>
+      <div class="flex-center" style="margin-top:32px;" v-if="total > size">
+        <el-pagination :current-page="page" :page-size="size" :total="total" layout="prev, pager, next" @current-change="(p) => { page = p; fetchUsers(); }" />
+      </div>
+    </template>
 
     <!-- User Card Dialog -->
     <el-dialog v-model="cardVisible" :title="cardUser?.name" width="420px" destroy-on-close>
@@ -228,7 +251,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from '@/utils/message'
 import { Search, Location, Loading, StarFilled, Document, Clock, ChatDotRound } from '@element-plus/icons-vue'
-import { getRecommendedUsers, getUserCard, getMatchExplanation } from '@/api/matching'
+import { getRecommendedUsers, getUserCard, getMatchExplanation, searchUsers } from '@/api/matching'
 import { createRequest } from '@/api/notification'
 import { getDefaultAvatar } from '@/utils/avatar'
 import { useAuthStore } from '@/stores/auth'
@@ -243,6 +266,15 @@ const size = ref(12)
 const keyword = ref('')
 const sort = ref('score')
 const radius = ref(100)
+
+// 全局搜索
+const searchKeyword = ref('')
+const searchResults = ref([])
+const searchTotal = ref(0)
+const searchPage = ref(1)
+const searchSize = ref(12)
+const searchLoading = ref(false)
+const isSearching = ref(false)
 
 const cardVisible = ref(false)
 const cardUser = ref(null)
@@ -332,10 +364,119 @@ async function confirmRequest() {
   } catch { /* handled */ }
 }
 
+async function doSearch() {
+  const kw = searchKeyword.value.trim()
+  if (!kw) return
+  isSearching.value = true
+  searchLoading.value = true
+  try {
+    const res = await searchUsers({ keyword: kw, page: searchPage.value, size: searchSize.value })
+    searchResults.value = res.data?.list || []
+    searchTotal.value = res.data?.total || 0
+  } catch { /* handled */ } finally {
+    searchLoading.value = false
+  }
+}
+
+function clearSearch() {
+  searchKeyword.value = ''
+  searchResults.value = []
+  searchTotal.value = 0
+  searchPage.value = 1
+  isSearching.value = false
+}
+
 onMounted(fetchUsers)
 </script>
 
 <style scoped>
+/* 搜索栏 */
+.search-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 16px;
+}
+.global-search-input { flex: 1; }
+.search-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-muted-fg);
+}
+.back-link {
+  color: var(--color-accent);
+  cursor: pointer;
+}
+.back-link:hover { color: #7C3AED; }
+
+/* 搜索结果列表 */
+.search-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-bounce);
+}
+.search-item:hover {
+  transform: translateX(4px);
+  box-shadow: 6px 6px 0 var(--color-border);
+}
+.search-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 3px 3px 0 var(--color-fg);
+}
+.search-info {
+  flex-shrink: 0;
+  width: 140px;
+}
+.search-name {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-fg);
+  margin-bottom: 4px;
+}
+.search-meta {
+  font-size: 12px;
+  color: var(--color-muted-fg);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.search-dist { color: #CBD5E1; }
+.search-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.search-bio {
+  font-size: 13px;
+  color: var(--color-muted-fg);
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
 .location-tip {
   display: flex;
   align-items: center;

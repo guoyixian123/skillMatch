@@ -496,18 +496,36 @@ public class MatchingServiceImpl implements IMatchingService {
     public PageVO<UserCardVO> searchUsers(String keyword, int page, int size) {
         String currentUserId = UserContext.getUserId();
 
-        // 关键词为空则返回空
         if (keyword == null || keyword.isBlank()) {
             return PageVO.of(0L, page, size, List.of());
         }
-        String kw = keyword.trim().toLowerCase();
+        String kw = keyword.trim();
 
-        // 查所有用户（分页）
+        // 1. 从技能表和爱好表找匹配的用户ID
+        Set<String> skillUserIds = userSkillService.lambdaQuery()
+                .like(UserSkill::getSkillName, kw).list()
+                .stream().map(UserSkill::getUserId).collect(Collectors.toSet());
+        Set<String> hobbyUserIds = userHobbyService.lambdaQuery()
+                .like(UserHobby::getHobbyName, kw).list()
+                .stream().map(UserHobby::getUserId).collect(Collectors.toSet());
+        Set<String> extraUserIds = new HashSet<>();
+        extraUserIds.addAll(skillUserIds);
+        extraUserIds.addAll(hobbyUserIds);
+
+        // 2. SQL层过滤：name/bio 匹配 或 userId 在技能/爱好匹配中
         Page<User> userPage = userService.lambdaQuery()
                 .ne(User::getUserId, currentUserId)
                 .eq(User::getStatus, 1)
+                .and(w -> w
+                        .like(User::getName, kw)
+                        .or()
+                        .like(User::getBio, kw)
+                        .or()
+                        .in(!extraUserIds.isEmpty(), User::getUserId, extraUserIds)
+                )
                 .orderByDesc(User::getLastLoginAt)
                 .page(new Page<>(page, size));
+
         List<User> users = userPage.getRecords();
         if (users.isEmpty()) {
             return PageVO.of(0L, page, size, List.of());
@@ -515,29 +533,16 @@ public class MatchingServiceImpl implements IMatchingService {
 
         List<String> userIds = users.stream().map(User::getUserId).toList();
 
-        // 批量查技能
+        // 3. 批量查技能
         Map<String, List<String>> canMap = userSkillService.lambdaQuery()
                 .in(UserSkill::getUserId, userIds).eq(UserSkill::getSkillType, 1).list()
                 .stream().collect(Collectors.groupingBy(UserSkill::getUserId, Collectors.mapping(UserSkill::getSkillName, Collectors.toList())));
         Map<String, List<String>> wantMap = userSkillService.lambdaQuery()
                 .in(UserSkill::getUserId, userIds).eq(UserSkill::getSkillType, 2).list()
                 .stream().collect(Collectors.groupingBy(UserSkill::getUserId, Collectors.mapping(UserSkill::getSkillName, Collectors.toList())));
-        Map<String, List<String>> hobbyMap = userHobbyService.lambdaQuery()
-                .in(UserHobby::getUserId, userIds).list()
-                .stream().collect(Collectors.groupingBy(UserHobby::getUserId, Collectors.mapping(UserHobby::getHobbyName, Collectors.toList())));
 
-        // 关键词过滤
+        // 4. 构建结果
         List<UserCardVO> results = users.stream()
-                .filter(u -> {
-                    if (u.getName() != null && u.getName().toLowerCase().contains(kw)) return true;
-                    if (u.getBio() != null && u.getBio().toLowerCase().contains(kw)) return true;
-                    List<String> can = canMap.getOrDefault(u.getUserId(), List.of());
-                    if (can.stream().anyMatch(s -> s.toLowerCase().contains(kw))) return true;
-                    List<String> want = wantMap.getOrDefault(u.getUserId(), List.of());
-                    if (want.stream().anyMatch(s -> s.toLowerCase().contains(kw))) return true;
-                    List<String> hobbies = hobbyMap.getOrDefault(u.getUserId(), List.of());
-                    return hobbies.stream().anyMatch(h -> h.toLowerCase().contains(kw));
-                })
                 .map(u -> {
                     UserCardVO card = new UserCardVO();
                     card.setUserId(u.getUserId());
@@ -552,7 +557,7 @@ public class MatchingServiceImpl implements IMatchingService {
                 })
                 .toList();
 
-        return PageVO.of((long) results.size(), page, size, results);
+        return PageVO.of(userPage.getTotal(), page, size, results);
     }
 
     @Override

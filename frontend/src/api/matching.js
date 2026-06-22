@@ -15,3 +15,7 @@ export function getUserProfile(userId) {
 export function getMatchExplanation(userId) {
   return request.get(`/matching/users/${userId}/explain`, { noError: true })
 }
+
+export function searchUsers(params) {
+  return request.get('/matching/search', { params })
+}
