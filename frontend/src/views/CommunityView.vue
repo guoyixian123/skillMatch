@@ -5,13 +5,13 @@
         <h1 class="page-title"><el-icon><ChatDotRound /></el-icon> 社区</h1>
         <p class="page-subtitle">技能搭子交流广场</p>
       </div>
-      <button class="brutal-btn primary" @click="showCreateDialog = true">
+      <button class="geo-btn primary" @click="showCreateDialog = true">
         <el-icon><Plus /></el-icon> 发帖
       </button>
     </header>
 
     <!-- Filter -->
-    <div class="filter-bar brutal-card accent-yellow" style="margin-bottom:20px;">
+    <div class="filter-bar geo-card accent-yellow" style="margin-bottom:20px;">
       <div class="filter-row">
         <el-input
           v-model="keyword"
@@ -25,7 +25,7 @@
           <el-option label="最新" value="latest" />
           <el-option label="最热" value="hot" />
         </el-select>
-        <button class="brutal-btn primary small" @click="fetchPosts">筛选</button>
+        <button class="geo-btn primary small" @click="fetchPosts">筛选</button>
       </div>
     </div>
 
@@ -34,21 +34,21 @@
 
     <div v-else-if="posts.length === 0" class="empty-block">
       <div class="icon"><el-icon :size="48"><Document /></el-icon></div>
-      <div style="font-weight:800;font-size:18px;">暂无帖子</div>
-      <div style="color:#888;">发布第一个帖子吧</div>
+      <div style="font-weight:700;font-size:18px;">暂无帖子</div>
+      <div style="color:var(--color-muted-fg);">发布第一个帖子吧</div>
     </div>
 
     <div v-else class="post-list">
       <div
         v-for="post in posts"
         :key="post.id"
-        class="post-card brutal-card accent-blue"
+        class="post-card geo-card accent-violet"
         @click="$router.push(`/community/${post.id}`)"
       >
         <div class="post-author">
           <img
             :src="post.author?.avatarUrl || getDefaultAvatar(post.author?.id || post.author?.name)"
-            class="brutal-avatar"
+            class="geo-avatar"
             @click.stop="$router.push(`/user/${post.author?.id}`)"
           />
           <span class="post-author-name" @click.stop="$router.push(`/user/${post.author?.id}`)">{{ post.author?.name }}</span>
@@ -59,7 +59,7 @@
         <p class="post-body">{{ post.body?.slice(0, 150) }}{{ post.body?.length > 150 ? '...' : '' }}</p>
 
         <div class="post-tags flex-wrap" v-if="post.tags?.length">
-          <span v-for="tag in post.tags" :key="tag" class="brutal-tag">{{ tag }}</span>
+          <span v-for="tag in post.tags" :key="tag" class="geo-tag">{{ tag }}</span>
         </div>
 
         <div class="post-meta">
@@ -114,8 +114,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <button class="brutal-btn outline small" @click="handleCancelCreate">取消</button>
-        <button class="brutal-btn primary small" @click="handleCreate" :disabled="creating">
+        <button class="geo-btn outline small" @click="handleCancelCreate">取消</button>
+        <button class="geo-btn primary small" @click="handleCreate" :disabled="creating">
           {{ creating ? '发布中...' : '发布' }}
         </button>
       </template>
@@ -192,19 +192,14 @@ function formatCount(n) {
 
 async function handleCardLike(post) {
   const wasLiked = post.isLiked
-
-  // 点赞时触发动画
   if (!wasLiked) {
     post._animating = true
     post._showPlus = true
     setTimeout(() => { post._animating = false }, 500)
     setTimeout(() => { post._showPlus = false }, 800)
   }
-
-  // optimistic update
   post.isLiked = !wasLiked
   post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? -1 : 1))
-
   try {
     if (wasLiked) {
       await unlikePost(post.id)
@@ -213,7 +208,6 @@ async function handleCardLike(post) {
       post.likeCount = res.data?.likeCount ?? post.likeCount
     }
   } catch {
-    // rollback
     post.isLiked = wasLiked
     post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? 1 : -1))
   }
@@ -226,7 +220,6 @@ function handleCancelCreate() {
 }
 
 async function handleCreate() {
-  // 兜底验证：确保必填字段不为空
   if (!createForm.value.title?.trim()) {
     ElMessage.warning('请输入标题')
     return
@@ -235,7 +228,6 @@ async function handleCreate() {
     ElMessage.warning('请输入正文')
     return
   }
-  // Element Plus 表单验证
   try {
     await createFormRef.value?.validate()
   } catch {
@@ -290,6 +282,10 @@ onMounted(fetchPosts)
 }
 .post-card {
   cursor: pointer;
+  transition: transform 0.3s var(--ease-bounce), box-shadow 0.3s var(--ease-bounce);
+}
+.post-card:hover {
+  transform: rotate(-0.5deg) scale(1.01);
 }
 .post-author {
   display: flex;
@@ -301,23 +297,26 @@ onMounted(fetchPosts)
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
+  font-family: var(--font-heading);
 }
 .post-author-name:hover { text-decoration: underline; }
-.post-author .brutal-avatar { cursor: pointer; }
-.post-author .brutal-avatar:hover { opacity: 0.85; }
+.post-author .geo-avatar { cursor: pointer; }
+.post-author .geo-avatar:hover { opacity: 0.85; }
 .post-time {
   font-size: 12px;
-  color: #aaa;
+  color: var(--color-muted-fg);
   margin-left: auto;
 }
 .post-title {
+  font-family: var(--font-heading);
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 700;
   margin-bottom: 8px;
+  color: var(--color-fg);
 }
 .post-body {
   font-size: 14px;
-  color: #555;
+  color: var(--color-muted-fg);
   line-height: 1.6;
   margin-bottom: 10px;
 }
@@ -327,80 +326,68 @@ onMounted(fetchPosts)
   gap: 16px;
   align-items: center;
   padding-top: 12px;
-  border-top: 2px solid #eee;
+  border-top: 2px solid var(--color-border);
 }
 
-/* 评论数 */
 .comment-meta {
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  font-weight: 700;
-  color: #888;
+  font-weight: 600;
+  color: var(--color-muted-fg);
   margin-left: auto;
 }
 
-/* 标签提示 */
 .tag-hint {
   font-size: 12px;
-  color: #aaa;
+  color: var(--color-muted-fg);
   margin-top: 4px;
   line-height: 1.4;
 }
 
-/* ========= 卡片点赞按钮 - 粗野主义风格 ========= */
+/* Like button */
 .card-like-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 6px 14px 6px 10px;
-  border: 2px solid #ddd;
-  border-radius: 99px;
-  background: #fafafa;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: #fff;
   cursor: pointer;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 700;
-  color: #888;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-weight: 600;
+  color: var(--color-muted-fg);
+  transition: all 0.3s var(--ease-bounce);
   user-select: none;
   position: relative;
   overflow: visible;
 }
-
 .card-like-btn:hover {
-  border-color: #FFD700;
-  background: #FFFBE6;
-  color: #E6A800;
+  border-color: var(--color-tertiary);
+  background: #FEF3C7;
+  color: #92400E;
   transform: translateY(-1px);
-  box-shadow: 0 2px 0 rgba(0,0,0,0.1);
 }
-
 .card-like-btn:active {
   transform: scale(0.96);
 }
-
-/* 已赞态 */
 .card-like-btn.liked {
-  border-color: #1A1A1A;
-  background: linear-gradient(135deg, #F5A623, #FFD700);
+  border-color: var(--color-fg);
+  background: linear-gradient(135deg, #F472B6, #8B5CF6);
   color: #fff;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.15), 0 0 12px rgba(245,166,35,0.3);
+  box-shadow: 3px 3px 0 var(--color-fg);
 }
-
-.card-like-btn.liked .el-icon {
-  color: #FFE4B5;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
-}
-
 .card-like-btn.liked:hover {
-  background: linear-gradient(135deg, #FFB830, #FFE44D);
-  border-color: #1A1A1A;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.2), 0 0 16px rgba(245,166,35,0.45);
+  background: linear-gradient(135deg, #EC4899, #7C3AED);
+  box-shadow: 4px 4px 0 var(--color-fg);
+}
+.card-like-btn.liked .el-icon {
+  color: #FCE7F3;
 }
 
-/* 图标容器 */
 .like-icon-wrap {
   position: relative;
   display: inline-flex;
@@ -408,17 +395,15 @@ onMounted(fetchPosts)
   justify-content: center;
 }
 
-/* +1 浮动动画 */
 .float-plus {
   position: absolute;
   top: -8px;
   right: -14px;
   font-size: 12px;
   font-weight: 900;
-  color: #FFD700;
+  color: var(--color-secondary);
   pointer-events: none;
   animation: floatUp 0.8s ease-out forwards;
-  text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
 }
 
 @keyframes floatUp {
@@ -428,29 +413,25 @@ onMounted(fetchPosts)
 }
 
 .like-label {
-  font-weight: 800;
+  font-weight: 700;
   font-size: 12px;
 }
-
 .like-count {
-  font-weight: 900;
+  font-weight: 800;
   font-size: 13px;
   min-width: 20px;
   text-align: center;
-  background: rgba(0,0,0,0.06);
-  border-radius: 10px;
+  background: var(--color-muted);
+  border-radius: var(--radius-full);
   padding: 1px 7px;
 }
-
 .card-like-btn.liked .like-count {
   background: rgba(255,255,255,0.25);
 }
 
-/* 点击回弹动画 */
 .card-like-btn.animating .like-icon-wrap {
-  animation: likePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: likePop 0.5s var(--ease-bounce);
 }
-
 @keyframes likePop {
   0%   { transform: scale(1); }
   25%  { transform: scale(1.45); }

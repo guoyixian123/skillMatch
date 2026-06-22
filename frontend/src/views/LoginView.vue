@@ -1,16 +1,20 @@
 <template>
   <div class="auth-page">
     <div class="auth-decor">
-      <div class="decor-shape shape-1"></div>
-      <div class="decor-shape shape-2"></div>
-      <div class="decor-shape shape-3"></div>
-      <div class="decor-shape shape-4"></div>
+      <div class="decor-circle decor-1"></div>
+      <div class="decor-circle decor-2"></div>
+      <div class="decor-triangle decor-3"></div>
+      <div class="decor-squiggle decor-4"></div>
+      <div class="decor-dot decor-5"></div>
+      <div class="decor-dot decor-6"></div>
     </div>
 
     <div class="auth-container">
-      <div class="auth-card brutal-card accent-yellow">
+      <div class="auth-card geo-card accent-violet">
         <div class="auth-logo">
-          <span class="logo-icon">⚡</span>
+          <div class="logo-circle">
+            <span class="logo-icon">⚡</span>
+          </div>
           <h1>SkillMatch</h1>
           <p>技能匹配 · 轻社交</p>
         </div>
@@ -44,15 +48,16 @@
           </el-form-item>
 
           <el-form-item>
-            <button type="submit" class="brutal-btn primary" style="width:100%;justify-content:center;" :disabled="loading">
+            <button type="submit" class="geo-btn primary login-btn" :disabled="loading">
               {{ loading ? '登录中...' : '登 录' }}
+              <span class="btn-arrow">→</span>
             </button>
           </el-form-item>
         </el-form>
 
         <div class="auth-footer">
           还没有账号？
-          <router-link to="/register">立即注册 →</router-link>
+          <router-link to="/register">立即注册</router-link>
         </div>
       </div>
     </div>
@@ -103,73 +108,150 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #FAFAFA;
+  background: var(--color-bg);
   position: relative;
   overflow: hidden;
+  background-image: radial-gradient(circle, #E2E8F0 1px, transparent 1px);
+  background-size: 24px 24px;
 }
-/* Pop Art Decor */
+
+/* Playful Geometric Decorations */
 .auth-decor { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.decor-shape {
+.decor-circle {
   position: absolute;
-  border: 3px solid #1A1A1A;
+  border-radius: 9999px;
 }
-.shape-1 {
-  top: -60px; right: -60px;
-  width: 250px; height: 250px;
-  background: var(--color-yellow);
-  transform: rotate(15deg);
+.decor-1 {
+  top: -80px; right: -80px;
+  width: 280px; height: 280px;
+  background: var(--color-tertiary);
+  opacity: 0.3;
+  animation: floatSlow 8s ease-in-out infinite;
 }
-.shape-2 {
-  bottom: -40px; left: -40px;
-  width: 200px; height: 200px;
-  background: var(--color-pink);
-  transform: rotate(-10deg);
+.decor-2 {
+  bottom: -60px; left: -60px;
+  width: 220px; height: 220px;
+  background: var(--color-secondary);
+  opacity: 0.2;
+  animation: floatSlow 10s ease-in-out infinite reverse;
 }
-.shape-3 {
-  top: 20%; left: 5%;
-  width: 80px; height: 80px;
-  background: var(--color-cyan);
-  border-radius: 50%;
+.decor-3 {
+  top: 15%; left: 8%;
+  width: 0; height: 0;
+  border-left: 20px solid transparent;
+  border-right: 20px solid transparent;
+  border-bottom: 35px solid var(--color-quaternary);
+  opacity: 0.5;
+  animation: wiggle 4s ease-in-out infinite;
 }
-.shape-4 {
-  bottom: 25%; right: 8%;
-  width: 60px; height: 60px;
-  background: var(--color-purple);
-  transform: rotate(45deg);
+.decor-4 {
+  bottom: 20%; right: 10%;
+  width: 80px; height: 20px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 20'%3E%3Cpath d='M0 10 Q10 0 20 10 T40 10 T60 10 T80 10' fill='none' stroke='%238B5CF6' stroke-width='3'/%3E%3C/svg%3E") no-repeat center;
+  opacity: 0.6;
+  animation: floatSlow 6s ease-in-out infinite;
 }
+.decor-5 {
+  top: 30%; right: 15%;
+  width: 16px; height: 16px;
+  background: var(--color-accent);
+  opacity: 0.4;
+  animation: popIn 2s ease-in-out infinite;
+}
+.decor-6 {
+  bottom: 35%; left: 12%;
+  width: 12px; height: 12px;
+  background: var(--color-secondary);
+  opacity: 0.4;
+  animation: popIn 2.5s ease-in-out infinite 0.5s;
+}
+
 .auth-container {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   padding: 20px;
 }
-.auth-card { padding: 40px 32px; }
+.auth-card {
+  padding: 40px 32px;
+  animation: popEntry 0.5s var(--ease-bounce) both;
+}
 .auth-logo {
   text-align: center;
   margin-bottom: 32px;
 }
-.auth-logo .logo-icon { font-size: 48px; }
+.logo-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: var(--color-tertiary);
+  border-radius: 9999px;
+  border: 2px solid var(--color-fg);
+  box-shadow: 4px 4px 0 var(--color-fg);
+  margin-bottom: 12px;
+  transition: transform 0.4s var(--ease-bounce);
+}
+.logo-circle:hover {
+  transform: rotate(-15deg) scale(1.1);
+}
+.auth-logo .logo-icon { font-size: 32px; }
 .auth-logo h1 {
+  font-family: var(--font-heading);
   font-size: 32px;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-weight: 800;
   letter-spacing: -1px;
   margin: 4px 0;
+  color: var(--color-fg);
 }
 .auth-logo p {
-  font-size: 13px;
-  color: #888;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+  font-size: 14px;
+  color: var(--color-muted-fg);
+  font-weight: 500;
 }
 .auth-form { margin-top: 8px; }
+.login-btn {
+  width: 100%;
+  justify-content: center;
+  font-size: 16px;
+  padding: 14px 24px;
+}
+.btn-arrow {
+  display: inline-block;
+  transition: transform 0.3s var(--ease-bounce);
+}
+.login-btn:hover .btn-arrow {
+  transform: translateX(4px);
+}
 .auth-footer {
   text-align: center;
   margin-top: 20px;
   font-size: 14px;
-  color: #888;
-  font-weight: 600;
+  color: var(--color-muted-fg);
+  font-weight: 500;
+}
+.auth-footer a {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(8deg); }
+  75% { transform: rotate(-8deg); }
+}
+@keyframes popIn {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.5); opacity: 0.7; }
+}
+@keyframes popEntry {
+  0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 </style>

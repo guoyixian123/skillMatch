@@ -1,14 +1,16 @@
 """Embedding 服务 — 使用 SentenceTransformer 生成语义向量 + Redis 缓存。"""
 import os
+
+# ⚠️ 必须在 import sentence_transformers 之前设置 HF_ENDPOINT
+# huggingface_hub 在 import 时缓存 endpoint，之后设置无效
+from config import EMBEDDING_MODEL, HF_ENDPOINT
+os.environ["HF_ENDPOINT"] = HF_ENDPOINT
+
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from config import EMBEDDING_MODEL, HF_ENDPOINT
 from utils.text import build_profile_text
 from utils.redis_client import get_embedding, set_embedding
-
-# 设置 Hugging Face 镜像（国内网络必需）
-os.environ["HF_ENDPOINT"] = HF_ENDPOINT
 
 
 class EmbedderService:

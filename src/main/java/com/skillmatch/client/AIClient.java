@@ -38,8 +38,8 @@ public class AIClient {
     public AIClient() {
         // 配置连接和读取超时，防止AI引擎挂起时无限阻塞
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(3000);  // 连接超时3秒
-        factory.setReadTimeout(10000);    // 读取超时10秒
+        factory.setConnectTimeout(5000);   // 连接超时5秒
+        factory.setReadTimeout(60000);     // 读取超时60秒（首次加载模型可能较慢）
         this.rest = new RestTemplate(factory);
         this.rest.getMessageConverters().add(0, new MappingJackson2HttpMessageConverter());
     }

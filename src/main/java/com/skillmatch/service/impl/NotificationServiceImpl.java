@@ -2,6 +2,7 @@ package com.skillmatch.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillmatch.context.UserContext;
 import com.skillmatch.domain.po.Notification;
 import com.skillmatch.domain.vo.LikeNotificationVO;
@@ -13,14 +14,15 @@ import com.skillmatch.mapper.NotificationMapper;
 import com.skillmatch.mapper.PostMapper;
 import com.skillmatch.mapper.UserMapper;
 import com.skillmatch.service.INotificationService;
+import com.skillmatch.ws.WebSocketSessionManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -30,16 +32,20 @@ import java.util.stream.Collectors;
  * @author Speed
  * @since 2026-05-27
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Notification> implements INotificationService {
 
     private final UserMapper userMapper;
     private final PostMapper postMapper;
+    private final WebSocketSessionManager sessionManager;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
      * 保存一条通知记录
      * 初始状态为未读，创建时间取当前时间
+     * 同时通过 WebSocket 推送未读更新事件
      */
     @Override
     public void save(String actorId, String receiverId, Integer type, String bizId) {
@@ -51,19 +57,78 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
                 .setIsRead(false)
                 .setCreatedAt(LocalDateTime.now());
         save(n);
+
+        // WebSocket 推送未读通知更新
+        pushNotificationUpdate(receiverId);
+    }
+
+    /**
+     * 标记单条通知为已读
+     */
+    @Override
+    public void markRead(Long id) {
+        Notification n = getById(id);
+        if (n == null) throw new BusinessException(ErrorCode.NOT_FOUND);
+        if (!n.getReceiverId().equals(UserContext.getUserId()))
+            throw new BusinessException(ErrorCode.NOT_AUTH);
+        lambdaUpdate()
+                .eq(Notification::getId, id)
+                .set(Notification::getIsRead, true)
+                .update();
+    }
+
+    /**
+     * 一键已读
+     */
+    @Override
+    public void markAllRead() {
+        String userId = UserContext.getUserId();
+        lambdaUpdate()
+                .eq(Notification::getReceiverId, userId)
+                .eq(Notification::getIsRead, false)
+                .set(Notification::getIsRead, true)
+                .update();
+    }
+
+    /**
+     * WebSocket 推送通知未读更新
+     */
+    private void pushNotificationUpdate(String userId) {
+        WebSocketSession session = sessionManager.get(userId);
+        if (session != null && session.isOpen()) {
+            try {
+                Map<String, Object> msg = new LinkedHashMap<>();
+                msg.put("type", "notification_update");
+                session.sendMessage(new TextMessage(MAPPER.writeValueAsString(msg)));
+                log.info("WS push notification_update: userId={}", userId);
+            } catch (Exception e) {
+                log.warn("WS push notification_update 失败: {}", e.getMessage());
+            }
+        }
     }
 
     /**
      * 取消点赞时删除对应的通知
      * 根据点赞者、实体ID、类型三个条件精确定位要删除的通知
+     * 删除后 WebSocket 推送接收方更新未读数
      */
     @Override
     public void removeByLike(String actorId, String bizId, Integer type) {
+        // 先查出通知接收者，用于后续推送
+        Notification n = lambdaQuery()
+                .eq(Notification::getActorId, actorId)
+                .eq(Notification::getBizId, bizId)
+                .eq(Notification::getType, type)
+                .one();
         lambdaUpdate()
                 .eq(Notification::getActorId, actorId)
                 .eq(Notification::getBizId, bizId)
                 .eq(Notification::getType, type)
                 .remove();
+        // 通知接收者刷新未读数
+        if (n != null) {
+            pushNotificationUpdate(n.getReceiverId());
+        }
     }
 
     /**
@@ -139,35 +204,6 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
                 .eq(Notification::getReceiverId, userId)
                 .eq(Notification::getIsRead, false)
                 .count());
-    }
-
-    /**
-     * 标记单条通知为已读
-     * 先校验通知存在，再校验通知属于当前用户，防止越权操作
-     */
-    @Override
-    public void markRead(Long id) {
-        Notification n = getById(id);
-        if (n == null) throw new BusinessException(ErrorCode.NOT_FOUND);
-        if (!n.getReceiverId().equals(UserContext.getUserId()))
-            throw new BusinessException(ErrorCode.NOT_AUTH);
-        lambdaUpdate()
-                .eq(Notification::getId, id)
-                .set(Notification::getIsRead, true)
-                .update();
-    }
-
-    /**
-     * 一键已读：将当前用户所有未读通知标记为已读
-     */
-    @Override
-    public void markAllRead() {
-        String userId = UserContext.getUserId();
-        lambdaUpdate()
-                .eq(Notification::getReceiverId, userId)
-                .eq(Notification::getIsRead, false)
-                .set(Notification::getIsRead, true)
-                .update();
     }
 
     /**

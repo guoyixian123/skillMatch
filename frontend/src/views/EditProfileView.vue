@@ -1,19 +1,20 @@
 <template>
   <div class="page-container">
     <header class="page-header">
-      <button class="brutal-btn outline small" @click="$router.back()" style="margin-bottom:12px;">
+      <button class="geo-btn outline small" @click="$router.back()" style="margin-bottom:12px;">
         ← 返回
       </button>
       <h1 class="page-title">编辑资料</h1>
     </header>
 
     <!-- Avatar Upload -->
-    <div class="brutal-card accent-yellow" style="margin-bottom:20px;">
-      <div class="section-title"><span class="dot" style="background:var(--color-yellow)"></span> 头像</div>
+    <div class="geo-card accent-yellow" style="margin-bottom:20px;">
+      <div class="section-title"><span class="dot" style="background:var(--color-tertiary)"></span> 头像</div>
       <div style="display:flex;align-items:center;gap:20px;">
         <img
           :src="avatarPreview || authStore.user?.avatarUrl || getDefaultAvatar(authStore.user?.userId || authStore.user?.name)"
-          class="brutal-avatar xl"
+          class="geo-avatar xl"
+          style="box-shadow:4px 4px 0 var(--color-fg);"
         />
         <div>
           <el-upload
@@ -22,10 +23,10 @@
             :on-change="handleAvatarChange"
             accept="image/jpeg,image/png,image/webp"
           >
-            <button class="brutal-btn outline small" type="button">选择图片</button>
+            <button class="geo-btn outline small" type="button">选择图片</button>
           </el-upload>
-          <div style="font-size:12px;color:#888;margin-top:8px;">JPG/PNG/WebP, ≤10MB</div>
-          <button v-if="avatarFile" class="brutal-btn primary small" style="margin-top:8px;" @click="uploadAvatar" :disabled="avatarUploading">
+          <div style="font-size:12px;color:var(--color-muted-fg);margin-top:8px;">JPG/PNG/WebP, ≤10MB</div>
+          <button v-if="avatarFile" class="geo-btn primary small" style="margin-top:8px;" @click="uploadAvatar" :disabled="avatarUploading">
             {{ avatarUploading ? '上传中...' : '上传头像' }}
           </button>
         </div>
@@ -33,8 +34,8 @@
     </div>
 
     <!-- Profile Form -->
-    <div class="brutal-card accent-cyan">
-      <div class="section-title"><span class="dot" style="background:var(--color-cyan)"></span> 基本信息</div>
+    <div class="geo-card accent-green">
+      <div class="section-title"><span class="dot" style="background:var(--color-quaternary)"></span> 基本信息</div>
       <el-form
         ref="formRef"
         :model="form"
@@ -66,7 +67,7 @@
         </el-form-item>
 
         <el-form-item>
-          <button type="submit" class="brutal-btn primary" :disabled="submitting">
+          <button type="submit" class="geo-btn primary" :disabled="submitting">
             {{ submitting ? '保存中...' : '保存修改' }}
           </button>
         </el-form-item>

@@ -2,14 +2,17 @@
   <div class="chat-page">
     <!-- Header -->
     <div class="chat-header">
-      <button class="brutal-btn outline small back-btn" @click="$router.push('/friends')">
+      <button class="geo-btn outline small back-btn" @click="$router.push('/friends')">
         <el-icon><ArrowLeft /></el-icon>
       </button>
       <img
         :src="friendInfo.avatarUrl || getDefaultAvatar(friendId)"
-        class="brutal-avatar chat-header-avatar"
+        class="geo-avatar chat-header-avatar"
       />
       <div class="chat-header-name">{{ friendInfo.name || '好友' }}</div>
+      <div class="ws-status" :class="{ online: chatStore.wsConnected }">
+        {{ chatStore.wsConnected ? '⚡ 实时' : '🔄 轮询' }}
+      </div>
     </div>
 
     <!-- Messages -->
@@ -20,8 +23,8 @@
 
       <template v-else>
         <div v-if="chatStore.messages.length === 0" class="chat-empty">
-          <div style="font-size:40px;margin-bottom:8px;">💬</div>
-          <div style="font-weight:700;color:#888;">开始和好友聊天吧</div>
+          <div class="empty-icon-circle">💬</div>
+          <div style="font-weight:600;color:var(--color-muted-fg);">开始和好友聊天吧</div>
         </div>
 
         <div
@@ -42,13 +45,13 @@
     <div class="chat-input-bar">
       <input
         v-model="inputText"
-        class="brutal-input chat-input"
+        class="geo-input chat-input"
         placeholder="输入消息..."
         @keydown.enter.prevent="handleSend"
         :disabled="chatStore.sending"
       />
       <button
-        class="brutal-btn primary send-btn"
+        class="geo-btn primary send-btn"
         @click="handleSend"
         :disabled="!inputText.trim() || chatStore.sending"
       >
@@ -108,7 +111,6 @@ watch(() => chatStore.messages.length, () => {
 })
 
 onMounted(async () => {
-  // Load friend info
   try {
     const res = await getFriends()
     const list = Array.isArray(res.data) ? res.data : []
@@ -133,12 +135,12 @@ onUnmounted(() => {
 .chat-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px); /* subtract navbar */
-  background: var(--bg-primary);
+  height: calc(100vh - 64px);
+  background: var(--color-bg);
 }
 @media (max-width: 768px) {
   .chat-page {
-    height: calc(100dvh - 60px - 56px); /* subtract navbar + mobile nav */
+    height: calc(100dvh - 64px - 56px);
   }
 }
 
@@ -148,8 +150,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
-  background: #fff;
-  border-bottom: 3px solid #1A1A1A;
+  background: rgba(255, 253, 245, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 2px solid var(--color-border);
   flex-shrink: 0;
 }
 .back-btn {
@@ -160,8 +164,24 @@ onUnmounted(() => {
   height: 36px;
 }
 .chat-header-name {
-  font-weight: 900;
+  font-family: var(--font-heading);
+  font-weight: 700;
   font-size: 16px;
+  color: var(--color-fg);
+}
+.ws-status {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: #FEE2E2;
+  color: #DC2626;
+  transition: all 0.3s;
+}
+.ws-status.online {
+  background: #D1FAE5;
+  color: #059669;
 }
 
 /* Messages */
@@ -172,19 +192,18 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* 统一滚动条样式 */
   scrollbar-width: thin;
-  scrollbar-color: var(--color-black) var(--color-light-gray);
+  scrollbar-color: var(--color-border) var(--color-muted);
 }
 .chat-messages::-webkit-scrollbar {
   width: 6px;
 }
 .chat-messages::-webkit-scrollbar-track {
-  background: var(--color-light-gray);
+  background: var(--color-muted);
 }
 .chat-messages::-webkit-scrollbar-thumb {
-  background: var(--color-black);
-  border: 1px solid #fff;
+  background: var(--color-border);
+  border-radius: 9999px;
 }
 .chat-empty {
   display: flex;
@@ -192,6 +211,18 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   flex: 1;
+  gap: 8px;
+}
+.empty-icon-circle {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  background: var(--color-muted);
+  border-radius: 9999px;
+  border: 2px solid var(--color-border);
 }
 
 .msg-row {
@@ -210,22 +241,26 @@ onUnmounted(() => {
 
 .msg-bubble {
   padding: 12px 16px;
-  border: 2px solid #1A1A1A;
-  box-shadow: 3px 3px 0 #1A1A1A;
+  border: 2px solid var(--color-fg);
   font-size: 15px;
   line-height: 1.5;
   word-break: break-word;
 }
 .msg-sent {
-  background: var(--color-yellow);
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);
+  box-shadow: 3px 3px 0 var(--color-fg);
 }
 .msg-received {
   background: #fff;
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) var(--radius-sm);
+  box-shadow: 3px 3px 0 var(--color-border);
 }
 
 .msg-time {
   font-size: 11px;
-  color: #aaa;
+  color: var(--color-muted-fg);
   margin-top: 4px;
   padding: 0 4px;
 }
@@ -235,8 +270,10 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   padding: 12px 20px;
-  background: #fff;
-  border-top: 3px solid #1A1A1A;
+  background: rgba(255, 253, 245, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 2px solid var(--color-border);
   flex-shrink: 0;
 }
 .chat-input {

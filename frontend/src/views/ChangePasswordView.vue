@@ -1,11 +1,11 @@
 <template>
   <div class="page-container">
     <header class="page-header">
-      <button class="brutal-btn outline small" @click="$router.back()" style="margin-bottom:12px;">← 返回</button>
+      <button class="geo-btn outline small" @click="$router.back()" style="margin-bottom:12px;">← 返回</button>
       <h1 class="page-title">修改密码</h1>
     </header>
 
-    <div class="brutal-card" style="max-width:480px;">
+    <div class="geo-card" style="max-width:480px;">
       <el-form
         ref="formRef"
         :model="form"
@@ -41,7 +41,7 @@
         </el-form-item>
 
         <el-form-item>
-          <button type="submit" class="brutal-btn primary" :disabled="submitting">
+          <button type="submit" class="geo-btn primary" :disabled="submitting">
             {{ submitting ? '修改中...' : '修改密码' }}
           </button>
         </el-form-item>

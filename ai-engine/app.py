@@ -16,6 +16,17 @@ from services.explainer import explain_match
 app = FastAPI(title="SkillMatch AI Engine", version="0.1.0")
 
 
+@app.on_event("startup")
+async def warmup():
+    """启动时预加载模型，避免首次请求超时"""
+    print("[AI Engine] 启动预热：加载 SentenceTransformer 模型...")
+    try:
+        embedder._ensure_model()
+        print("[AI Engine] 预热完成，模型已就绪")
+    except Exception as e:
+        print(f"[AI Engine] 预热失败（模型将在首次请求时重试加载）: {e}")
+
+
 # ====== 请求/响应模型 ======
 
 class CandidateProfile(BaseModel):

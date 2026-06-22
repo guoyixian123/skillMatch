@@ -1,17 +1,17 @@
 <template>
   <div class="page-container" v-loading="loading">
-    <button class="brutal-btn outline small" @click="$router.back()" style="margin-bottom:16px;">
+    <button class="geo-btn outline small" @click="$router.back()" style="margin-bottom:16px;">
       <el-icon><ArrowLeft /></el-icon> 返回
     </button>
 
     <template v-if="profile">
       <!-- Header -->
-      <div class="brutal-card" style="padding:0;overflow:hidden;">
-        <div class="profile-cover pop-stripes"></div>
+      <div class="geo-card" style="padding:0;overflow:hidden;">
+        <div class="profile-cover"></div>
         <div class="profile-top">
           <img
             :src="profile.avatarUrl || getDefaultAvatar(profile.userId || profile.name)"
-            class="brutal-avatar xl profile-avatar"
+            class="geo-avatar xl profile-avatar"
           />
           <div>
             <h1 class="profile-name">{{ profile.name }}</h1>
@@ -22,24 +22,24 @@
           </div>
           <div style="margin-left:auto;display:flex;gap:8px;">
             <button
-              class="brutal-btn small like-profile-btn"
+              class="geo-btn small like-profile-btn"
               :class="{ liked: profileLiked }"
               @click="handleLikeProfile"
               :disabled="liking"
             >
               <svg class="lp-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  :fill="profileLiked ? '#FF6B6B' : 'none'"
-                  :stroke="profileLiked ? '#1A1A1A' : '#888'"
+                  :fill="profileLiked ? '#F472B6' : 'none'"
+                  :stroke="profileLiked ? '#1E293B' : '#94A3B8'"
                   stroke-width="2.5"
                 />
               </svg>
               <span>{{ profileLiked ? '已赞' : '点赞' }}</span>
             </button>
-            <button v-if="isFriend" class="brutal-btn primary small" @click="$router.push(`/chat/${userId}`)">
+            <button v-if="isFriend" class="geo-btn primary small" @click="$router.push(`/chat/${userId}`)">
               <el-icon><ChatDotRound /></el-icon> 发消息
             </button>
-            <button v-else class="brutal-btn primary small" @click="showSendRequest = true">
+            <button v-else class="geo-btn primary small" @click="showSendRequest = true">
               <el-icon><ChatDotRound /></el-icon> 发起交换
             </button>
           </div>
@@ -47,60 +47,60 @@
       </div>
 
       <!-- Bio -->
-      <div class="brutal-card accent-yellow" style="margin-top:16px;" v-if="profile.signature || profile.bio">
+      <div class="geo-card accent-yellow" style="margin-top:16px;" v-if="profile.signature || profile.bio">
         <div v-if="profile.signature" class="signature">"{{ profile.signature }}"</div>
         <div v-if="profile.bio" class="bio-text">{{ profile.bio }}</div>
       </div>
 
-      <!-- Contact (only if exchange accepted) -->
-      <div v-if="profile.contactInfo" class="brutal-card accent-green" style="margin-top:16px;">
-        <div class="section-title"><span class="dot" style="background:var(--color-green)"></span> 联系方式</div>
-        <div style="font-weight:700;">{{ profile.contactInfo }}</div>
+      <!-- Contact -->
+      <div v-if="profile.contactInfo" class="geo-card accent-green" style="margin-top:16px;">
+        <div class="section-title"><span class="dot" style="background:var(--color-quaternary)"></span> 联系方式</div>
+        <div style="font-weight:600;">{{ profile.contactInfo }}</div>
       </div>
 
       <!-- Skills -->
-      <div class="brutal-grid-2" style="margin-top:16px;">
-        <div class="brutal-card accent-cyan">
+      <div class="geo-grid-2" style="margin-top:16px;">
+        <div class="geo-card accent-green">
           <div class="section-title">
-            <span class="dot" style="background:var(--color-cyan)"></span> 我会的
+            <span class="dot" style="background:var(--color-quaternary)"></span> 我会的
           </div>
           <div class="flex-wrap">
-            <span v-for="s in profile.canSkills" :key="s" class="brutal-tag can">{{ s }}</span>
-            <span v-if="!profile.canSkills?.length" style="color:#888;">暂无</span>
+            <span v-for="s in profile.canSkills" :key="s" class="geo-tag can">{{ s }}</span>
+            <span v-if="!profile.canSkills?.length" style="color:var(--color-muted-fg);">暂无</span>
           </div>
         </div>
-        <div class="brutal-card accent-pink">
+        <div class="geo-card accent-pink">
           <div class="section-title">
-            <span class="dot" style="background:var(--color-pink)"></span> 想学的
+            <span class="dot" style="background:var(--color-secondary)"></span> 想学的
           </div>
           <div class="flex-wrap">
-            <span v-for="s in profile.wantSkills" :key="s" class="brutal-tag want">{{ s }}</span>
-            <span v-if="!profile.wantSkills?.length" style="color:#888;">暂无</span>
+            <span v-for="s in profile.wantSkills" :key="s" class="geo-tag want">{{ s }}</span>
+            <span v-if="!profile.wantSkills?.length" style="color:var(--color-muted-fg);">暂无</span>
           </div>
         </div>
       </div>
 
       <!-- Hobbies -->
-      <div class="brutal-card accent-purple" style="margin-top:16px;" v-if="profile.hobbies?.length">
-        <div class="section-title"><span class="dot" style="background:var(--color-purple)"></span> 兴趣爱好</div>
+      <div class="geo-card accent-yellow" style="margin-top:16px;" v-if="profile.hobbies?.length">
+        <div class="section-title"><span class="dot" style="background:var(--color-tertiary)"></span> 兴趣爱好</div>
         <div class="flex-wrap">
-          <span v-for="h in profile.hobbies" :key="h.id" class="brutal-tag hobby" style="font-size:15px;padding:6px 16px;">
+          <span v-for="h in profile.hobbies" :key="h.id" class="geo-tag hobby" style="font-size:15px;padding:6px 16px;">
             {{ h.icon }} {{ h.hobbyName }}
           </span>
         </div>
       </div>
 
       <!-- Gallery -->
-      <div class="brutal-card" style="margin-top:16px;" v-if="profile.gallery?.length">
-        <div class="section-title"><span class="dot" style="background:var(--color-yellow)"></span> 相册</div>
-        <div class="brutal-grid-3">
+      <div class="geo-card" style="margin-top:16px;" v-if="profile.gallery?.length">
+        <div class="section-title"><span class="dot" style="background:var(--color-tertiary)"></span> 相册</div>
+        <div class="geo-grid-3">
           <img v-for="(url, i) in profile.gallery" :key="i" :src="url" class="gallery-img" />
         </div>
       </div>
 
       <!-- Posts -->
-      <div class="brutal-card accent-blue" style="margin-top:16px;" v-if="posts.length">
-        <div class="section-title"><span class="dot" style="background:var(--color-blue)"></span> Ta 的帖子</div>
+      <div class="geo-card accent-violet" style="margin-top:16px;" v-if="posts.length">
+        <div class="section-title"><span class="dot" style="background:var(--color-accent)"></span> Ta 的帖子</div>
         <div class="post-list">
           <div
             v-for="post in posts"
@@ -111,7 +111,7 @@
             <h3 class="post-item-title">{{ post.title }}</h3>
             <p class="post-item-body">{{ post.body?.slice(0, 100) }}{{ post.body?.length > 100 ? '...' : '' }}</p>
             <div class="post-item-tags flex-wrap" v-if="post.tags?.length">
-              <span v-for="tag in post.tags" :key="tag" class="brutal-tag">{{ tag }}</span>
+              <span v-for="tag in post.tags" :key="tag" class="geo-tag">{{ tag }}</span>
             </div>
             <div class="post-item-meta">
               <button
@@ -120,7 +120,7 @@
                 @click.stop="handlePostLike(post)"
               >
                 <span class="like-icon-wrap">
-                  <el-icon :size="14" :color="post.isLiked ? '#FFE4B5' : ''"><StarFilled v-if="post.isLiked" /><Star v-else /></el-icon>
+                  <el-icon :size="14" :color="post.isLiked ? '#FCE7F3' : ''"><StarFilled v-if="post.isLiked" /><Star v-else /></el-icon>
                   <span v-if="post._showPlus" class="float-plus">+1</span>
                 </span>
                 <span class="like-count">{{ formatCount(post.likeCount) }}</span>
@@ -135,8 +135,8 @@
       </div>
 
       <!-- Activities -->
-      <div class="brutal-card" style="margin-top:16px;" v-if="profile.activities?.length">
-        <div class="section-title"><span class="dot" style="background:var(--color-blue)"></span> 最近动态</div>
+      <div class="geo-card" style="margin-top:16px;" v-if="profile.activities?.length">
+        <div class="section-title"><span class="dot" style="background:var(--color-accent)"></span> 最近动态</div>
         <div v-for="(act, idx) in profile.activities" :key="idx" class="activity-item">
           <span class="activity-type">{{ act.type }}</span>
           <span class="activity-content">{{ act.content }}</span>
@@ -160,7 +160,7 @@
         </el-form-item>
         <button
           type="submit"
-          class="brutal-btn primary"
+          class="geo-btn primary"
           style="width:100%;justify-content:center;"
           :disabled="sending"
         >
@@ -246,7 +246,6 @@ onMounted(async () => {
     isFriend.value = profileRes.data?.isFriend ?? false
     posts.value = postsRes.data?.list || []
 
-    // Fallback: check friends list if backend doesn't return isFriend
     if (!isFriend.value) {
       try {
         const friendsRes = await getFriends()
@@ -262,13 +261,9 @@ onMounted(async () => {
 async function handleLikeProfile() {
   if (!profile.value) return
   const wasLiked = profileLiked.value
-
   liking.value = true
-
-  // optimistic update
   profileLiked.value = !wasLiked
   profile.value.likeCount = Math.max(0, (profile.value.likeCount || 0) + (wasLiked ? -1 : 1))
-
   try {
     if (wasLiked) {
       const res = await unlikeProfile(userId.value)
@@ -278,7 +273,6 @@ async function handleLikeProfile() {
       ElMessage.success(res.message || '点赞成功')
     }
   } catch {
-    // rollback
     profileLiked.value = wasLiked
     profile.value.likeCount = Math.max(0, (profile.value.likeCount || 0) + (wasLiked ? 1 : -1))
     ElMessage.warning('操作失败，请重试')
@@ -304,7 +298,10 @@ async function handleSendRequest() {
 </script>
 
 <style scoped>
-.profile-cover { height: 100px; }
+.profile-cover {
+  height: 100px;
+  background: linear-gradient(135deg, #EDE9FE, #FCE7F3, #FEF3C7);
+}
 .profile-top {
   display: flex;
   align-items: flex-end;
@@ -312,32 +309,45 @@ async function handleSendRequest() {
   padding: 0 24px 20px;
   margin-top: -48px;
 }
-.profile-avatar { flex-shrink: 0; background: #fff; }
-.profile-name { font-size: 24px; font-weight: 900; }
+.profile-avatar {
+  flex-shrink: 0;
+  background: #fff;
+  box-shadow: 4px 4px 0 var(--color-fg);
+  position: relative;
+  z-index: 1;
+}
+.profile-name {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-fg);
+}
 .profile-stats {
   display: flex;
   gap: 16px;
   font-size: 13px;
-  color: #888;
+  color: var(--color-muted-fg);
   margin-top: 4px;
 }
-.profile-stats strong { color: #1A1A1A; }
+.profile-stats strong { color: var(--color-fg); }
 .signature {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   font-style: italic;
   margin-bottom: 8px;
+  color: var(--color-fg);
 }
 .bio-text {
   font-size: 14px;
-  color: #555;
+  color: var(--color-muted-fg);
   line-height: 1.7;
 }
 .gallery-img {
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-  border: 2px solid #1A1A1A;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
 }
 
 .activity-item {
@@ -345,38 +355,36 @@ async function handleSendRequest() {
   align-items: center;
   gap: 8px;
   padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border);
 }
 .activity-type {
-  padding: 2px 8px;
-  border: 1px solid #ccc;
+  padding: 2px 10px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-full);
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 600;
   flex-shrink: 0;
+  font-family: var(--font-heading);
 }
 .activity-content { flex: 1; font-size: 13px; }
-.activity-time { font-size: 12px; color: #aaa; flex-shrink: 0; }
+.activity-time { font-size: 12px; color: var(--color-muted-fg); flex-shrink: 0; }
 
 /* Like profile button */
 .like-profile-btn {
-  transition: all 0.2s ease;
+  transition: all 0.3s var(--ease-bounce);
 }
 .like-profile-btn.liked {
-  background: #FF6B6B;
-  border-color: #1A1A1A;
-  color: #fff;
+  background: #FCE7F3;
+  border-color: var(--color-fg);
+  color: var(--color-fg);
 }
 .like-profile-btn .lp-icon {
   display: inline-block;
   vertical-align: middle;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.3s var(--ease-bounce);
 }
 .like-profile-btn:not(:disabled):active .lp-icon {
   transform: scale(1.3);
-}
-.like-profile-btn.liked .lp-icon {
-  filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.15));
 }
 
 /* Post list */
@@ -387,86 +395,76 @@ async function handleSendRequest() {
 }
 .post-item {
   padding: 14px 16px;
-  border: 2px solid #eee;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.3s, background 0.3s, transform 0.3s var(--ease-bounce);
 }
 .post-item:hover {
-  border-color: var(--color-blue);
-  background: #f8f9ff;
+  border-color: var(--color-accent);
+  background: #F5F3FF;
+  transform: translateX(4px);
 }
 .post-item-title {
+  font-family: var(--font-heading);
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   margin-bottom: 6px;
+  color: var(--color-fg);
 }
 .post-item-body {
   font-size: 13px;
-  color: #666;
+  color: var(--color-muted-fg);
   line-height: 1.6;
   margin-bottom: 8px;
 }
-.post-item-tags {
-  margin-bottom: 8px;
-}
+.post-item-tags { margin-bottom: 8px; }
 .post-item-meta {
   display: flex;
   align-items: center;
   gap: 12px;
   font-size: 12px;
-  color: #aaa;
+  color: var(--color-muted-fg);
 }
-.post-item-time {
-  margin-left: auto;
-}
+.post-item-time { margin-left: auto; }
 .comment-meta {
   display: flex;
   align-items: center;
   gap: 3px;
-  font-weight: 700;
-  color: #888;
+  font-weight: 600;
+  color: var(--color-muted-fg);
 }
 .card-like-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 3px 10px;
-  border: 1.5px solid #ddd;
-  border-radius: 99px;
-  background: #fafafa;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: #fff;
   cursor: pointer;
   font-family: inherit;
   font-size: 12px;
-  font-weight: 700;
-  color: #888;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-weight: 600;
+  color: var(--color-muted-fg);
+  transition: all 0.3s var(--ease-bounce);
   position: relative;
   overflow: visible;
 }
 .card-like-btn:hover {
-  border-color: #FFD700;
-  background: #FFFBE6;
-  color: #E6A800;
+  border-color: var(--color-tertiary);
+  background: #FEF3C7;
+  color: #92400E;
   transform: translateY(-1px);
 }
-.card-like-btn:active {
-  transform: scale(0.94);
-}
+.card-like-btn:active { transform: scale(0.94); }
 .card-like-btn.liked {
-  border-color: #1A1A1A;
-  background: linear-gradient(135deg, #F5A623, #FFD700);
+  border-color: var(--color-fg);
+  background: linear-gradient(135deg, #F472B6, #8B5CF6);
   color: #fff;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.15), 0 0 12px rgba(245,166,35,0.3);
+  box-shadow: 2px 2px 0 var(--color-fg);
 }
-.card-like-btn.liked:hover {
-  background: linear-gradient(135deg, #FFB830, #FFE44D);
-  border-color: #1A1A1A;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.2), 0 0 16px rgba(245,166,35,0.45);
-}
-.card-like-btn.liked .el-icon {
-  color: #FFE4B5;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
-}
+.card-like-btn.liked .el-icon { color: #FCE7F3; }
 .like-icon-wrap {
   position: relative;
   display: inline-flex;
@@ -474,14 +472,27 @@ async function handleSendRequest() {
   justify-content: center;
 }
 .like-count {
-  font-weight: 900;
+  font-weight: 800;
   min-width: 16px;
   text-align: center;
 }
-
-/* Bounce animation */
+.float-plus {
+  position: absolute;
+  top: -8px;
+  right: -14px;
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--color-secondary);
+  pointer-events: none;
+  animation: floatUp 0.8s ease-out forwards;
+}
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  40%  { opacity: 1; transform: translateY(-14px) scale(1.25); }
+  100% { opacity: 0; transform: translateY(-24px) scale(0.7); }
+}
 .card-like-btn.animating .like-icon-wrap {
-  animation: likeBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: likeBounce 0.5s var(--ease-bounce);
 }
 @keyframes likeBounce {
   0%   { transform: scale(1); }
@@ -490,23 +501,5 @@ async function handleSendRequest() {
   60%  { transform: scale(1.2); }
   80%  { transform: scale(0.95); }
   100% { transform: scale(1); }
-}
-
-/* +1 float */
-.float-plus {
-  position: absolute;
-  top: -8px;
-  right: -14px;
-  font-size: 11px;
-  font-weight: 900;
-  color: #FFD700;
-  pointer-events: none;
-  animation: floatUp 0.8s ease-out forwards;
-  text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
-}
-@keyframes floatUp {
-  0%   { opacity: 1; transform: translateY(0) scale(1); }
-  40%  { opacity: 1; transform: translateY(-14px) scale(1.25); }
-  100% { opacity: 0; transform: translateY(-24px) scale(0.7); }
 }
 </style>

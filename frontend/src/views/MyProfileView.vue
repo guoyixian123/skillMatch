@@ -1,13 +1,15 @@
 <template>
   <div class="page-container" v-loading="userStore.loading">
-    <header class="profile-header brutal-card" style="padding:0;overflow:hidden;">
+    <header class="profile-header geo-card" style="padding:0;overflow:hidden;">
       <!-- Cover -->
-      <div class="profile-cover pop-dots"></div>
+      <div class="profile-cover">
+        <div class="cover-pattern"></div>
+      </div>
       <!-- Avatar -->
       <div class="profile-top">
         <img
           :src="authStore.user?.avatarUrl || getDefaultAvatar(authStore.user?.userId || authStore.user?.name)"
-          class="brutal-avatar xl profile-avatar"
+          class="geo-avatar xl profile-avatar"
         />
         <div class="profile-info">
           <h1 class="profile-name">{{ authStore.user?.name || '未设置昵称' }}</h1>
@@ -17,7 +19,7 @@
           </div>
         </div>
         <div class="profile-actions-top">
-          <button class="brutal-btn outline small" @click="$router.push('/profile/edit')">
+          <button class="geo-btn outline small" @click="$router.push('/profile/edit')">
             <el-icon><Edit /></el-icon> 编辑
           </button>
         </div>
@@ -25,7 +27,7 @@
     </header>
 
     <!-- Bio & Contact -->
-    <div class="brutal-card accent-yellow" style="margin-top:20px;" v-if="profile">
+    <div class="geo-card accent-yellow" style="margin-top:20px;" v-if="profile">
       <div v-if="profile.signature" class="profile-signature">"{{ profile.signature }}"</div>
       <div v-if="profile.bio" class="profile-bio">{{ profile.bio }}</div>
       <div v-if="profile.contactInfo" class="profile-contact">
@@ -34,48 +36,48 @@
     </div>
 
     <!-- Quick Actions Grid -->
-    <div class="brutal-grid-2" style="margin-top:20px;">
-      <div class="brutal-card accent-cyan quick-card" @click="$router.push('/profile/skills')">
-        <div class="quick-icon"><el-icon :size="32"><Aim /></el-icon></div>
+    <div class="geo-grid-2" style="margin-top:20px;">
+      <div class="geo-card accent-green quick-card" @click="$router.push('/profile/skills')">
+        <div class="quick-icon-wrap" style="background:#D1FAE5;"><el-icon :size="28" color="#065F46"><Aim /></el-icon></div>
         <div class="quick-title">技能标签</div>
         <div class="quick-desc">管理"我会的"和"想学的"技能</div>
         <div class="flex-wrap" style="margin-top:8px;">
-          <span class="brutal-tag can" v-for="s in skills.canSkills?.slice(0,3)" :key="s.id">{{ s.skillName }}</span>
-          <span class="brutal-tag want" v-for="s in skills.wantSkills?.slice(0,3)" :key="s.id">{{ s.skillName }}</span>
-          <span v-if="(skills.canSkills?.length || 0) + (skills.wantSkills?.length || 0) === 0" class="brutal-tag">点击设置</span>
+          <span class="geo-tag can" v-for="s in skills.canSkills?.slice(0,3)" :key="s.id">{{ s.skillName }}</span>
+          <span class="geo-tag want" v-for="s in skills.wantSkills?.slice(0,3)" :key="s.id">{{ s.skillName }}</span>
+          <span v-if="(skills.canSkills?.length || 0) + (skills.wantSkills?.length || 0) === 0" class="geo-tag">点击设置</span>
         </div>
       </div>
 
-      <div class="brutal-card accent-pink quick-card" @click="$router.push('/profile/hobbies')">
-        <div class="quick-icon"><el-icon :size="32"><Brush /></el-icon></div>
+      <div class="geo-card accent-pink quick-card" @click="$router.push('/profile/hobbies')">
+        <div class="quick-icon-wrap" style="background:#FCE7F3;"><el-icon :size="28" color="#9D174D"><Brush /></el-icon></div>
         <div class="quick-title">兴趣爱好</div>
         <div class="quick-desc">展示你的兴趣爱好</div>
         <div class="flex-wrap" style="margin-top:8px;">
-          <span class="brutal-tag hobby" v-for="h in hobbies.slice(0,4)" :key="h.id">{{ h.icon }} {{ h.hobbyName }}</span>
-          <span v-if="!hobbies.length" class="brutal-tag">点击设置</span>
+          <span class="geo-tag hobby" v-for="h in hobbies.slice(0,4)" :key="h.id">{{ h.icon }} {{ h.hobbyName }}</span>
+          <span v-if="!hobbies.length" class="geo-tag">点击设置</span>
         </div>
       </div>
 
-      <div class="brutal-card accent-green quick-card" @click="$router.push('/profile/gallery')">
-        <div class="quick-icon"><el-icon :size="32"><Picture /></el-icon></div>
+      <div class="geo-card accent-violet quick-card" @click="$router.push('/profile/gallery')">
+        <div class="quick-icon-wrap" style="background:#EDE9FE;"><el-icon :size="28" color="#5B21B6"><Picture /></el-icon></div>
         <div class="quick-title">个人相册</div>
         <div class="quick-desc">上传照片展示生活</div>
         <div class="gallery-preview" v-if="gallery.length">
           <img v-for="img in gallery.slice(0,4)" :key="img.id" :src="img.imageUrl" class="gallery-thumb" />
         </div>
-        <span v-else class="brutal-tag" style="margin-top:8px;">点击上传</span>
+        <span v-else class="geo-tag" style="margin-top:8px;">点击上传</span>
       </div>
 
-      <div class="brutal-card quick-card" @click="$router.push('/profile/password')">
-        <div class="quick-icon"><el-icon :size="32"><Lock /></el-icon></div>
+      <div class="geo-card quick-card" @click="$router.push('/profile/password')">
+        <div class="quick-icon-wrap" style="background:var(--color-muted);"><el-icon :size="28" color="var(--color-muted-fg)"><Lock /></el-icon></div>
         <div class="quick-title">修改密码</div>
         <div class="quick-desc">更新你的登录密码</div>
       </div>
     </div>
 
     <!-- My Posts -->
-    <div class="brutal-card accent-blue" style="margin-top:20px;" v-if="posts.length">
-      <div class="section-title"><span class="dot" style="background:var(--color-blue)"></span> 我的帖子</div>
+    <div class="geo-card accent-violet" style="margin-top:20px;" v-if="posts.length">
+      <div class="section-title"><span class="dot" style="background:var(--color-accent)"></span> 我的帖子</div>
       <div class="post-list">
         <div
           v-for="post in posts"
@@ -86,7 +88,7 @@
           <h3 class="post-item-title">{{ post.title }}</h3>
           <p class="post-item-body">{{ post.body?.slice(0, 100) }}{{ post.body?.length > 100 ? '...' : '' }}</p>
           <div class="post-item-tags flex-wrap" v-if="post.tags?.length">
-            <span v-for="tag in post.tags" :key="tag" class="brutal-tag">{{ tag }}</span>
+            <span v-for="tag in post.tags" :key="tag" class="geo-tag">{{ tag }}</span>
           </div>
           <div class="post-item-meta">
             <button
@@ -95,7 +97,7 @@
               @click.stop="handlePostLike(post)"
             >
               <span class="like-icon-wrap">
-                <el-icon :size="14" :color="post.isLiked ? '#FFE4B5' : ''"><StarFilled v-if="post.isLiked" /><Star v-else /></el-icon>
+                <el-icon :size="14" :color="post.isLiked ? '#FCE7F3' : ''"><StarFilled v-if="post.isLiked" /><Star v-else /></el-icon>
                 <span v-if="post._showPlus" class="float-plus">+1</span>
               </span>
               <span class="like-count">{{ formatCount(post.likeCount) }}</span>
@@ -121,7 +123,6 @@ import { Edit, Phone, Aim, Brush, Picture, Lock, Star, StarFilled, ChatDotRound 
 import { getPosts, togglePostLike, unlikePost } from '@/api/community'
 
 const router = useRouter()
-
 const authStore = useAuthStore()
 const userStore = useUserStore()
 
@@ -189,7 +190,15 @@ onMounted(async () => {
 <style scoped>
 .profile-cover {
   height: 140px;
-  background-color: #f0f0f0;
+  background: linear-gradient(135deg, #EDE9FE, #FCE7F3, #FEF3C7);
+  position: relative;
+  overflow: hidden;
+}
+.cover-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(139, 92, 246, 0.1) 2px, transparent 2px);
+  background-size: 20px 20px;
 }
 .profile-top {
   display: flex;
@@ -201,84 +210,81 @@ onMounted(async () => {
 .profile-avatar {
   flex-shrink: 0;
   background: #fff;
+  box-shadow: 4px 4px 0 var(--color-fg);
+  position: relative;
+  z-index: 1;
 }
 .profile-info { flex: 1; padding-bottom: 4px; }
 .profile-name {
+  font-family: var(--font-heading);
   font-size: 24px;
-  font-weight: 900;
+  font-weight: 800;
+  color: var(--color-fg);
 }
 .profile-stats {
   display: flex;
   gap: 16px;
   margin-top: 4px;
   font-size: 13px;
-  color: #888;
+  color: var(--color-muted-fg);
 }
-.stat strong { color: #1A1A1A; }
+.stat strong { color: var(--color-fg); }
 .profile-actions-top { flex-shrink: 0; padding-bottom: 4px; }
 
 .profile-signature {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   font-style: italic;
   margin-bottom: 8px;
+  color: var(--color-fg);
 }
 .profile-bio {
   font-size: 14px;
-  color: #555;
+  color: var(--color-muted-fg);
   line-height: 1.7;
 }
 .profile-contact {
   margin-top: 12px;
-  padding: 8px 12px;
+  padding: 8px 16px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--color-yellow);
-  font-weight: 700;
+  background: var(--color-tertiary);
+  font-weight: 600;
   font-size: 13px;
-  border: 2px solid #1A1A1A;
+  border: 2px solid var(--color-fg);
+  border-radius: var(--radius-full);
+  box-shadow: 3px 3px 0 var(--color-fg);
 }
 
 /* Quick Cards */
 .quick-card {
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.3s var(--ease-bounce), box-shadow 0.3s var(--ease-bounce);
 }
 .quick-card:hover {
-  transform: translate(-2px, -2px);
+  transform: rotate(-1deg) scale(1.02);
 }
-@media (max-width: 768px) {
-  .brutal-grid-2 {
-    grid-template-columns: 1fr;
-  }
-  .profile-top {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 0 16px 16px;
-  }
-  .profile-info {
-    text-align: center;
-  }
-  .profile-stats {
-    justify-content: center;
-  }
-  .profile-actions-top {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
+.quick-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-fg);
+  margin-bottom: 10px;
 }
-.quick-icon { font-size: 32px; margin-bottom: 8px; }
 .quick-title {
+  font-family: var(--font-heading);
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 700;
   margin-bottom: 4px;
+  color: var(--color-fg);
 }
 .quick-desc {
   font-size: 13px;
-  color: #888;
+  color: var(--color-muted-fg);
 }
 
 .gallery-preview {
@@ -290,7 +296,8 @@ onMounted(async () => {
   width: 56px;
   height: 56px;
   object-fit: cover;
-  border: 2px solid #1A1A1A;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-border);
 }
 
 /* Post list */
@@ -301,85 +308,77 @@ onMounted(async () => {
 }
 .post-item {
   padding: 14px 16px;
-  border: 2px solid #eee;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.3s, background 0.3s, transform 0.3s var(--ease-bounce);
 }
 .post-item:hover {
-  border-color: var(--color-blue);
-  background: #f8f9ff;
+  border-color: var(--color-accent);
+  background: #F5F3FF;
+  transform: translateX(4px);
 }
 .post-item-title {
+  font-family: var(--font-heading);
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   margin-bottom: 6px;
+  color: var(--color-fg);
 }
 .post-item-body {
   font-size: 13px;
-  color: #666;
+  color: var(--color-muted-fg);
   line-height: 1.6;
   margin-bottom: 8px;
 }
-.post-item-tags {
-  margin-bottom: 8px;
-}
+.post-item-tags { margin-bottom: 8px; }
 .post-item-meta {
   display: flex;
   align-items: center;
   gap: 12px;
   font-size: 12px;
-  color: #aaa;
+  color: var(--color-muted-fg);
 }
-.post-item-time {
-  margin-left: auto;
-}
+.post-item-time { margin-left: auto; }
 .comment-meta {
   display: flex;
   align-items: center;
   gap: 3px;
-  font-weight: 700;
-  color: #888;
+  font-weight: 600;
+  color: var(--color-muted-fg);
 }
 .card-like-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 3px 10px;
-  border: 1.5px solid #ddd;
-  border-radius: 99px;
-  background: #fafafa;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: #fff;
   cursor: pointer;
   font-family: inherit;
   font-size: 12px;
-  font-weight: 700;
-  color: #888;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-weight: 600;
+  color: var(--color-muted-fg);
+  transition: all 0.3s var(--ease-bounce);
   position: relative;
   overflow: visible;
 }
 .card-like-btn:hover {
-  border-color: #FFD700;
-  background: #FFFBE6;
-  color: #E6A800;
+  border-color: var(--color-tertiary);
+  background: #FEF3C7;
+  color: #92400E;
   transform: translateY(-1px);
 }
-.card-like-btn:active {
-  transform: scale(0.94);
-}
+.card-like-btn:active { transform: scale(0.94); }
 .card-like-btn.liked {
-  border-color: #1A1A1A;
-  background: linear-gradient(135deg, #F5A623, #FFD700);
+  border-color: var(--color-fg);
+  background: linear-gradient(135deg, #F472B6, #8B5CF6);
   color: #fff;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.15), 0 0 12px rgba(245,166,35,0.3);
-}
-.card-like-btn.liked:hover {
-  background: linear-gradient(135deg, #FFB830, #FFE44D);
-  border-color: #1A1A1A;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.2), 0 0 16px rgba(245,166,35,0.45);
+  box-shadow: 2px 2px 0 var(--color-fg);
 }
 .card-like-btn.liked .el-icon {
-  color: #FFE4B5;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+  color: #FCE7F3;
 }
 .like-icon-wrap {
   position: relative;
@@ -388,7 +387,7 @@ onMounted(async () => {
   justify-content: center;
 }
 .like-count {
-  font-weight: 900;
+  font-weight: 800;
   min-width: 16px;
   text-align: center;
 }
@@ -398,10 +397,9 @@ onMounted(async () => {
   right: -14px;
   font-size: 11px;
   font-weight: 900;
-  color: #FFD700;
+  color: var(--color-secondary);
   pointer-events: none;
   animation: floatUp 0.8s ease-out forwards;
-  text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
 }
 @keyframes floatUp {
   0%   { opacity: 1; transform: translateY(0) scale(1); }
@@ -409,7 +407,7 @@ onMounted(async () => {
   100% { opacity: 0; transform: translateY(-24px) scale(0.7); }
 }
 .card-like-btn.animating .like-icon-wrap {
-  animation: likeBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: likeBounce 0.5s var(--ease-bounce);
 }
 @keyframes likeBounce {
   0%   { transform: scale(1); }
@@ -418,5 +416,22 @@ onMounted(async () => {
   60%  { transform: scale(1.2); }
   80%  { transform: scale(0.95); }
   100% { transform: scale(1); }
+}
+
+@media (max-width: 768px) {
+  .geo-grid-2 { grid-template-columns: 1fr; }
+  .profile-top {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 16px 16px;
+  }
+  .profile-info { text-align: center; }
+  .profile-stats { justify-content: center; }
+  .profile-actions-top {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
 }
 </style>

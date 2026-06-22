@@ -2,6 +2,7 @@ package com.skillmatch.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillmatch.context.UserContext;
 import com.skillmatch.domain.dto.NotificationDTO;
 import com.skillmatch.domain.po.ContactRequest;
@@ -14,11 +15,15 @@ import com.skillmatch.mapper.ContactRequestMapper;
 import com.skillmatch.mapper.UserMapper;
 import com.skillmatch.service.IContactRequestService;
 import com.skillmatch.service.IFriendService;
+import com.skillmatch.ws.WebSocketSessionManager;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -32,11 +37,14 @@ import java.util.stream.Collectors;
  * @author Speed
  * @since 2026-05-25
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ContactRequestServiceImpl extends ServiceImpl<ContactRequestMapper, ContactRequest> implements IContactRequestService {
     private final UserMapper userMapper;
     private final IFriendService friendService;
+    private final WebSocketSessionManager sessionManager;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
      * 获取收到的通知
@@ -130,8 +138,30 @@ public class ContactRequestServiceImpl extends ServiceImpl<ContactRequestMapper,
         // 创建双向好友关系
         friendService.addFriend(from_user_id, to_user_id);
 
+        // WebSocket 通知双方好友列表更新
+        pushFriendUpdate(from_user_id, "new_friend");
+        pushFriendUpdate(to_user_id, "new_friend");
+
         //返回联系方式
         return user.getContactInfo();
+    }
+
+    /**
+     * 推送好友列表更新通知
+     */
+    private void pushFriendUpdate(String userId, String action) {
+        WebSocketSession session = sessionManager.get(userId);
+        if (session != null && session.isOpen()) {
+            try {
+                Map<String, Object> msg = new LinkedHashMap<>();
+                msg.put("type", "friend_update");
+                msg.put("action", action);
+                session.sendMessage(new TextMessage(MAPPER.writeValueAsString(msg)));
+                log.info("WS push friend_update: userId={}, action={}", userId, action);
+            } catch (Exception e) {
+                log.warn("WS push friend_update 失败: {}", e.getMessage());
+            }
+        }
     }
 
     /**

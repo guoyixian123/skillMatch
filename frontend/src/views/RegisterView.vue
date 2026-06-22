@@ -1,15 +1,19 @@
 <template>
   <div class="auth-page">
     <div class="auth-decor">
-      <div class="decor-shape shape-1"></div>
-      <div class="decor-shape shape-2"></div>
-      <div class="decor-shape shape-3"></div>
+      <div class="decor-circle decor-1"></div>
+      <div class="decor-circle decor-2"></div>
+      <div class="decor-dot decor-3"></div>
+      <div class="decor-dot decor-4"></div>
+      <div class="decor-triangle decor-5"></div>
     </div>
 
     <div class="auth-container">
-      <div class="auth-card brutal-card accent-cyan">
+      <div class="auth-card geo-card accent-pink">
         <div class="auth-logo">
-          <span class="logo-icon">⚡</span>
+          <div class="logo-circle">
+            <span class="logo-icon">✨</span>
+          </div>
           <h1>加入我们</h1>
           <p>创建你的技能名片</p>
         </div>
@@ -63,15 +67,16 @@
           </el-form-item>
 
           <el-form-item>
-            <button type="submit" class="brutal-btn dark" style="width:100%;justify-content:center;" :disabled="loading">
+            <button type="submit" class="geo-btn primary login-btn" :disabled="loading">
               {{ loading ? '注册中...' : '注 册' }}
+              <span class="btn-arrow">→</span>
             </button>
           </el-form-item>
         </el-form>
 
         <div class="auth-footer">
           已有账号？
-          <router-link to="/login">立即登录 →</router-link>
+          <router-link to="/login">立即登录</router-link>
         </div>
       </div>
     </div>
@@ -129,7 +134,6 @@ async function handleRegister() {
   if (!valid) return
   loading.value = true
   try {
-    // backend DTO uses userId and name fields
     await authStore.doRegister({
       userId: form.username,
       name: form.nickname,
@@ -151,66 +155,144 @@ async function handleRegister() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #FAFAFA;
+  background: var(--color-bg);
   position: relative;
   overflow: hidden;
+  background-image: radial-gradient(circle, #E2E8F0 1px, transparent 1px);
+  background-size: 24px 24px;
 }
+
 .auth-decor { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.decor-shape {
+.decor-circle {
   position: absolute;
-  border: 3px solid #1A1A1A;
+  border-radius: 9999px;
 }
-.shape-1 {
-  top: -80px; left: -80px;
-  width: 300px; height: 300px;
-  background: var(--color-cyan);
-  transform: rotate(20deg);
+.decor-1 {
+  top: -70px; left: -70px;
+  width: 260px; height: 260px;
+  background: var(--color-quaternary);
+  opacity: 0.25;
+  animation: floatSlow 9s ease-in-out infinite;
 }
-.shape-2 {
+.decor-2 {
   bottom: -50px; right: -50px;
-  width: 220px; height: 220px;
-  background: var(--color-yellow);
-  transform: rotate(-15deg);
+  width: 200px; height: 200px;
+  background: var(--color-tertiary);
+  opacity: 0.2;
+  animation: floatSlow 7s ease-in-out infinite reverse;
 }
-.shape-3 {
-  bottom: 30%; right: 10%;
-  width: 70px; height: 70px;
-  background: var(--color-pink);
-  border-radius: 50%;
+.decor-3 {
+  top: 25%; right: 12%;
+  width: 14px; height: 14px;
+  background: var(--color-accent);
+  border-radius: 9999px;
+  opacity: 0.5;
+  animation: popIn 2s ease-in-out infinite;
 }
+.decor-4 {
+  bottom: 30%; left: 10%;
+  width: 10px; height: 10px;
+  background: var(--color-secondary);
+  border-radius: 9999px;
+  opacity: 0.5;
+  animation: popIn 2.5s ease-in-out infinite 0.3s;
+}
+.decor-5 {
+  top: 60%; right: 8%;
+  width: 0; height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-bottom: 24px solid var(--color-tertiary);
+  opacity: 0.4;
+  animation: wiggle 5s ease-in-out infinite;
+}
+
 .auth-container {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   padding: 20px;
 }
-.auth-card { padding: 40px 32px; }
+.auth-card {
+  padding: 40px 32px;
+  animation: popEntry 0.5s var(--ease-bounce) both;
+}
 .auth-logo {
   text-align: center;
   margin-bottom: 32px;
 }
-.auth-logo .logo-icon { font-size: 48px; }
+.logo-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: var(--color-secondary);
+  border-radius: 9999px;
+  border: 2px solid var(--color-fg);
+  box-shadow: 4px 4px 0 var(--color-fg);
+  margin-bottom: 12px;
+  transition: transform 0.4s var(--ease-bounce);
+}
+.logo-circle:hover {
+  transform: rotate(15deg) scale(1.1);
+}
+.auth-logo .logo-icon { font-size: 32px; }
 .auth-logo h1 {
+  font-family: var(--font-heading);
   font-size: 28px;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-weight: 800;
   letter-spacing: -1px;
   margin: 4px 0;
+  color: var(--color-fg);
 }
 .auth-logo p {
-  font-size: 13px;
-  color: #888;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+  font-size: 14px;
+  color: var(--color-muted-fg);
+  font-weight: 500;
 }
 .auth-form { margin-top: 8px; }
+.login-btn {
+  width: 100%;
+  justify-content: center;
+  font-size: 16px;
+  padding: 14px 24px;
+}
+.btn-arrow {
+  display: inline-block;
+  transition: transform 0.3s var(--ease-bounce);
+}
+.login-btn:hover .btn-arrow {
+  transform: translateX(4px);
+}
 .auth-footer {
   text-align: center;
   margin-top: 20px;
   font-size: 14px;
-  color: #888;
-  font-weight: 600;
+  color: var(--color-muted-fg);
+  font-weight: 500;
+}
+.auth-footer a {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(8deg); }
+  75% { transform: rotate(-8deg); }
+}
+@keyframes popIn {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.5); opacity: 0.8; }
+}
+@keyframes popEntry {
+  0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 </style>

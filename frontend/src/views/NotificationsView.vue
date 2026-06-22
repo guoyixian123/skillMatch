@@ -16,8 +16,8 @@
       <button
         v-for="s in statuses"
         :key="s.value"
-        class="brutal-btn small"
-        :class="status === s.value ? 'dark' : 'outline'"
+        class="geo-btn small"
+        :class="status === s.value ? 'primary' : 'outline'"
         @click="status = s.value; fetchData()"
       >
         {{ s.label }}
@@ -30,15 +30,15 @@
     <template v-else-if="activeTab !== 'likes'">
       <div v-if="requests.length === 0" class="empty-block">
         <div class="icon"><el-icon :size="48"><FolderOpened /></el-icon></div>
-        <div style="font-weight:800;font-size:18px;">暂无请求</div>
+        <div style="font-weight:700;font-size:18px;">暂无请求</div>
       </div>
 
       <div v-else class="request-list">
-        <div v-for="req in requests" :key="req.id" class="request-card brutal-card">
+        <div v-for="req in requests" :key="req.id" class="request-card geo-card">
           <div class="request-header">
             <img
               :src="req.fromUser?.avatarUrl || getDefaultAvatar(req.fromUser?.id || req.fromUser?.name)"
-              class="brutal-avatar"
+              class="geo-avatar"
             />
             <div class="request-info">
               <div class="request-user">
@@ -53,10 +53,10 @@
           </div>
 
           <div class="request-actions" v-if="activeTab === 'received' && req.status === 1">
-            <button class="brutal-btn primary small" @click="handleAccept(req)">
+            <button class="geo-btn primary small" @click="handleAccept(req)">
               同意交换
             </button>
-            <button class="brutal-btn danger small" @click="handleDecline(req)">
+            <button class="geo-btn danger small" @click="handleDecline(req)">
               拒绝
             </button>
           </div>
@@ -68,21 +68,21 @@
     <template v-else>
       <div v-if="likeItems.length === 0" class="empty-block">
         <div class="icon"><el-icon :size="48"><Star /></el-icon></div>
-        <div style="font-weight:800;font-size:18px;">暂无点赞通知</div>
+        <div style="font-weight:700;font-size:18px;">暂无点赞通知</div>
       </div>
 
       <div v-else class="request-list">
         <div
           v-for="item in likeItems"
           :key="item.id"
-          class="request-card brutal-card like-notify-card"
+          class="request-card geo-card like-notify-card"
           :class="{ unread: !item.isRead }"
           @click="handleLikeClick(item)"
         >
           <div class="request-header">
             <img
               :src="item.actor?.avatarUrl || getDefaultAvatar(item.actor?.id || item.actor?.name)"
-              class="brutal-avatar"
+              class="geo-avatar"
             />
             <div class="request-info">
               <div class="request-user">
@@ -96,7 +96,7 @@
         </div>
 
         <div v-if="likeItems.length > 0" style="text-align:right;margin-top:12px;">
-          <button class="brutal-btn outline small" @click="handleMarkAllRead">全部已读</button>
+          <button class="geo-btn outline small" @click="handleMarkAllRead">全部已读</button>
         </div>
       </div>
     </template>
@@ -236,58 +236,64 @@ onMounted(fetchData)
 }
 .request-info { flex: 1; }
 .request-user {
-  font-weight: 900;
+  font-family: var(--font-heading);
+  font-weight: 700;
   font-size: 15px;
   margin-bottom: 4px;
+  color: var(--color-fg);
 }
 .request-reason {
   font-size: 14px;
-  color: #555;
+  color: var(--color-muted-fg);
   font-style: italic;
   margin-bottom: 4px;
 }
 .request-time {
   font-size: 12px;
-  color: #aaa;
+  color: var(--color-muted-fg);
 }
 .request-status-tag {
-  padding: 4px 10px;
+  padding: 4px 12px;
   font-size: 12px;
-  font-weight: 700;
-  border: 2px solid #1A1A1A;
+  font-weight: 600;
+  border: 2px solid var(--color-fg);
+  border-radius: var(--radius-full);
   flex-shrink: 0;
 }
-.request-status-tag.status-1 { background: var(--color-yellow); }
-.request-status-tag.status-2 { background: var(--color-green); color: #000; }
-.request-status-tag.status-3 { background: #eee; color: #888; }
+.request-status-tag.status-1 { background: var(--color-tertiary); color: var(--color-fg); }
+.request-status-tag.status-2 { background: var(--color-quaternary); color: #065F46; }
+.request-status-tag.status-3 { background: var(--color-muted); color: var(--color-muted-fg); }
 .request-actions {
   display: flex;
   gap: 8px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 2px solid #eee;
+  border-top: 2px solid var(--color-border);
 }
 
 /* Like notification */
 .like-notify-card {
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.3s, transform 0.3s var(--ease-bounce);
 }
-.like-notify-card:hover { background: #FFFDE7; }
+.like-notify-card:hover {
+  background: #F5F3FF;
+  transform: translateX(4px);
+}
 .like-notify-card.unread {
-  border-left: 4px solid var(--color-yellow);
+  border-left: 4px solid var(--color-accent);
 }
 .like-preview {
   font-weight: 400;
   font-size: 14px;
-  color: #555;
+  color: var(--color-muted-fg);
   margin-left: 6px;
 }
 .unread-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--color-yellow);
+  background: var(--color-accent);
   flex-shrink: 0;
   align-self: center;
 }
