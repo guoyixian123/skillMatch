@@ -14,4 +14,10 @@ public interface IMatchingService {
 
     UserProfileVO getUserProfile(String userId);
 
+    /** 获取 LLM 匹配解释（独立接口，不阻塞卡片加载） */
+    String getMatchReason(String targetUserId);
+
+    /** 全用户搜索（不走匹配算法，按关键词模糊匹配昵称/技能/爱好/bio） */
+    PageVO<UserCardVO> searchUsers(String keyword, int page, int size);
+
 }

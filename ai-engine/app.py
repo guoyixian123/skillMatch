@@ -4,13 +4,14 @@
 """
 
 import time
-from typing import List
+from typing import List, Optional
 
 from fastapi import FastAPI
 from pydantic import BaseModel
 
 from services.matcher import batch_match
 from services.embedder_service import embedder
+from services.explainer import explain_match
 
 app = FastAPI(title="SkillMatch AI Engine", version="0.1.0")
 
@@ -65,6 +66,28 @@ class BatchUpdateResponse(BaseModel):
     updated: int
 
 
+class ExplainRequest(BaseModel):
+    sourceName: str = ""
+    sourceBio: str = ""
+    sourceCanSkills: List[str] = []
+    sourceWantSkills: List[str] = []
+    sourceHobbies: List[str] = []
+    targetName: str = ""
+    targetBio: str = ""
+    targetCanSkills: List[str] = []
+    targetWantSkills: List[str] = []
+    targetHobbies: List[str] = []
+    # 非敏感 LLM 配置（由 Java 端从 application.yaml 读取后传入）
+    # API Key 不在请求体中，通过 AI Engine 的环境变量注入
+    llmBaseUrl: str = "https://api.deepseek.com/v1"
+    llmModel: str = "deepseek-chat"
+    llmTimeout: int = 8
+
+
+class ExplainResponse(BaseModel):
+    reason: Optional[str] = None
+
+
 # ====== 端点 ======
 
 @app.post("/api/ai/match", response_model=MatchResponse)
@@ -102,6 +125,27 @@ async def embed_batch(request: BatchUpdateRequest):
     """批量更新用户向量"""
     count = embedder.batch_update([u.model_dump() for u in request.users])
     return BatchUpdateResponse(updated=count)
+
+
+@app.post("/api/ai/match/explain", response_model=ExplainResponse)
+async def explain(request: ExplainRequest):
+    """LLM 匹配解释 — 生成自然语言匹配原因（LLM 配置由 Java 端传入）"""
+    reason = explain_match(
+        source_name=request.sourceName,
+        source_bio=request.sourceBio,
+        source_can=request.sourceCanSkills,
+        source_want=request.sourceWantSkills,
+        source_hobbies=request.sourceHobbies,
+        target_name=request.targetName,
+        target_bio=request.targetBio,
+        target_can=request.targetCanSkills,
+        target_want=request.targetWantSkills,
+        target_hobbies=request.targetHobbies,
+        llm_base_url=request.llmBaseUrl,
+        llm_model=request.llmModel,
+        llm_timeout=request.llmTimeout,
+    )
+    return ExplainResponse(reason=reason)
 
 
 @app.get("/api/ai/health")

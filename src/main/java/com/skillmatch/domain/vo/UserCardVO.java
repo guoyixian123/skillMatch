@@ -22,4 +22,6 @@ public class UserCardVO {
     /** 当前登录用户是否已赞过此用户，用于推荐卡片上的点赞按钮状态 */
     private Boolean isLiked;
     private Boolean hasPendingRequest;
+    /** LLM 生成的匹配解释（自然语言），仅卡片详情时有值 */
+    private String matchReason;
 }

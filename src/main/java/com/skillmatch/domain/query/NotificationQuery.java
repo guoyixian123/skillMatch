@@ -13,4 +13,6 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class NotificationQuery extends PageQuery {
+    /** 通知类型筛选：1=主页赞 2=帖子赞 3=评论，不传则查全部 */
+    private Integer type;
 }

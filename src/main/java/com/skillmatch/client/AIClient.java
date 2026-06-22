@@ -2,6 +2,8 @@ package com.skillmatch.client;
 
 import com.skillmatch.domain.dto.AIMatchRequest;
 import com.skillmatch.domain.dto.AIMatchResponse;
+import com.skillmatch.domain.dto.MatchExplainRequest;
+import com.skillmatch.domain.dto.MatchExplainResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -26,6 +28,12 @@ public class AIClient {
 
     @Value("${ai.engine.url:http://localhost:8000}")
     private String baseUrl;
+
+    @Value("${ai.llm.base-url:https://api.deepseek.com/v1}")
+    private String llmBaseUrl;
+
+    @Value("${ai.llm.model:deepseek-chat}")
+    private String llmModel;
 
     public AIClient() {
         // 配置连接和读取超时，防止AI引擎挂起时无限阻塞
@@ -72,5 +80,35 @@ public class AIClient {
      */
     public CompletableFuture<AIMatchResponse> batchMatchAsync(AIMatchRequest request) {
         return CompletableFuture.supplyAsync(() -> batchMatch(request));
+    }
+
+    /**
+     * LLM 匹配解释 — 生成自然语言匹配原因，超时/异常返回 null（降级）
+     */
+    public MatchExplainResponse explainMatch(MatchExplainRequest request) {
+        // 注入 YAML 中的 LLM 配置到请求体（API Key 在 AI Engine 侧，不经过 HTTP）
+        request.setLlmBaseUrl(llmBaseUrl);
+        request.setLlmModel(llmModel);
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<MatchExplainRequest> entity = new HttpEntity<>(request, headers);
+
+            ResponseEntity<MatchExplainResponse> resp = rest.exchange(
+                    baseUrl + "/api/ai/match/explain",
+                    HttpMethod.POST,
+                    entity,
+                    MatchExplainResponse.class
+            );
+            if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
+                log.info("AI explain: {} ↔ {}, reason={}",
+                        request.getSourceName(), request.getTargetName(),
+                        resp.getBody().getReason());
+                return resp.getBody();
+            }
+        } catch (Exception e) {
+            log.warn("AI 匹配解释失败，降级不显示: {}", e.getMessage());
+        }
+        return null;
     }
 }

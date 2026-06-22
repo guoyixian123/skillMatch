@@ -72,11 +72,15 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
      * 批量查询点赞者信息和帖子标题，减少 N+1 查询
      */
     @Override
-    public PageVO<LikeNotificationVO> list(int page, int size) {
-        // 1. 分页查通知记录
+    public PageVO<LikeNotificationVO> list(int page, int size, Integer type) {
+        // 1. 分页查通知记录（支持按类型筛选）
         String userId = UserContext.getUserId();
-        Page<Notification> result = lambdaQuery()
-                .eq(Notification::getReceiverId, userId)
+        var query = lambdaQuery()
+                .eq(Notification::getReceiverId, userId);
+        if (type != null) {
+            query.eq(Notification::getType, type);
+        }
+        Page<Notification> result = query
                 .orderByDesc(Notification::getCreatedAt)
                 .page(new Page<>(page, size));
         List<Notification> records = result.getRecords();

@@ -58,8 +58,12 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
                 .stream().collect(Collectors.toMap(UserBasicVO::getId, u -> u));
 
         // 2. 批量查每个好友的最后一条消息（1次GROUP BY查询替代N次）
+        //    最后一条可能是自己发的也可能是对方发的，按会话对方的 ID 映射
         Map<String, ChatMessage> lastMsgMap = chatMessageMapper.selectLastMessageBatch(userId, friendIds)
-                .stream().collect(Collectors.toMap(ChatMessage::getFromUserId, m -> m, (a, b) -> a));
+                .stream().collect(Collectors.toMap(
+                        m -> userId.equals(m.getFromUserId()) ? m.getToUserId() : m.getFromUserId(),
+                        m -> m, (a, b) -> a
+                ));
 
         // 3. 批量查每个好友的未读消息数（1次GROUP BY查询替代N次）
         Map<String, Integer> unreadMap = chatMessageMapper.countUnreadFromBatch(userId, friendIds)
@@ -106,6 +110,7 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     @Transactional
     public void removeFriend(String friendId) {
         String userId = UserContext.getUserId();
+        // 1. 删除好友关系
         lambdaUpdate()
                 .eq(Friend::getUserId, userId)
                 .eq(Friend::getFriendId, friendId)
@@ -114,6 +119,16 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
                 .eq(Friend::getUserId, friendId)
                 .eq(Friend::getFriendId, userId)
                 .remove();
+        // 2. 清空双方的聊天记录
+        chatMessageMapper.delete(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ChatMessage>()
+                        .and(w -> w
+                                .eq(ChatMessage::getFromUserId, userId)
+                                .eq(ChatMessage::getToUserId, friendId)
+                                .or()
+                                .eq(ChatMessage::getFromUserId, friendId)
+                                .eq(ChatMessage::getToUserId, userId))
+        );
     }
 
     @Override

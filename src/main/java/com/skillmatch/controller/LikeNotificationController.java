@@ -29,7 +29,7 @@ public class LikeNotificationController {
      */
     @GetMapping
     public RESTful<PageVO<LikeNotificationVO>> list(NotificationQuery query) {
-        PageVO<LikeNotificationVO> page = notificationService.list(query.getPage(), query.getSize());
+        PageVO<LikeNotificationVO> page = notificationService.list(query.getPage(), query.getSize(), query.getType());
         return RESTful.success(page);
     }
 

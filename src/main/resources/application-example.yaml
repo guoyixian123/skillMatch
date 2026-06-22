@@ -30,3 +30,10 @@ logging:
     com.skillmatch.mapper: warn
 gaoDe:
   key: ${GAODE_API_KEY:your_gaode_key}
+
+ai:
+  engine:
+    url: ${AI_ENGINE_URL:http://localhost:8000}
+  llm:
+    base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
+    model: ${LLM_MODEL:deepseek-chat}

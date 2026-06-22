@@ -8,10 +8,7 @@ import com.skillmatch.domain.vo.UserProfileVO;
 import com.skillmatch.service.IMatchingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -38,6 +35,27 @@ public class MatchingController {
         log.info("获取用户名片:{}", userId);
         UserCardVO userCard = matchingService.getUserCard(userId);
         return RESTful.success(userCard);
+    }
+
+    /**
+     * 全用户搜索（不走匹配算法，按关键词模糊匹配）
+     */
+    @GetMapping("/search")
+    public RESTful<PageVO<UserCardVO>> searchUsers(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        PageVO<UserCardVO> result = matchingService.searchUsers(keyword, page, size);
+        return RESTful.success(result);
+    }
+
+    /**
+     * 获取 LLM 匹配解释（独立接口，不阻塞卡片加载，失败返回空）
+     */
+    @GetMapping("/users/{userId}/explain")
+    public RESTful<String> getMatchReason(@PathVariable String userId) {
+        String reason = matchingService.getMatchReason(userId);
+        return RESTful.success(reason);
     }
 
     /**

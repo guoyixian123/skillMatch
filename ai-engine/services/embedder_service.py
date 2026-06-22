@@ -24,7 +24,11 @@ class EmbedderService:
             print(f"[Embedder] 使用 Hugging Face 镜像: {HF_ENDPOINT}")
             try:
                 self.model = SentenceTransformer(EMBEDDING_MODEL)
-                print(f"[Embedder] 模型加载完成，向量维度: {self.model.get_sentence_embedding_dimension()}")
+                dim = self.model.get_sentence_embedding_dimension()
+                print(f"[Embedder] 模型加载完成，向量维度: {dim}")
+                # 预热: 避免首次请求冷启动延迟
+                _ = self.model.encode("预热", normalize_embeddings=True)
+                print(f"[Embedder] 模型预热完成")
             except Exception as e:
                 print(f"[Embedder] 模型加载失败: {e}")
                 print(f"[Embedder] 请检查网络连接或设置 HF_ENDPOINT 环境变量")

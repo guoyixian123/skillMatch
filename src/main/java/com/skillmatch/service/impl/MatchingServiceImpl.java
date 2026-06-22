@@ -6,6 +6,8 @@ import com.skillmatch.config.GeoSyncRunner;
 import com.skillmatch.domain.dto.AIProfile;
 import com.skillmatch.domain.dto.AIMatchRequest;
 import com.skillmatch.domain.dto.AIMatchResponse;
+import com.skillmatch.domain.dto.MatchExplainRequest;
+import com.skillmatch.domain.dto.MatchExplainResponse;
 import com.skillmatch.context.UserContext;
 import com.skillmatch.domain.po.*;
 import com.skillmatch.domain.query.MatchingQuery;
@@ -47,7 +49,7 @@ public class MatchingServiceImpl implements IMatchingService {
                 .eq(User::getUserId, userId)
                 .one();
         if (one == null) {
-            return new PageVO<>(0L, query.getPage(), query.getSize(), null);
+            return PageVO.of(0L, query.getPage(), query.getSize(), List.of());
         }
         //1.1获取当前用户经纬度
         double latitude = one.getLatitude();
@@ -75,10 +77,11 @@ public class MatchingServiceImpl implements IMatchingService {
         }
         // 重建后仍为空 → 真的没有附近用户
         if (results == null || results.getContent().isEmpty()) {
-            return new PageVO<>(0L, query.getPage(), query.getSize(), null);
+            return PageVO.of(0L, query.getPage(), query.getSize(), List.of());
         }
 
         // 3. 过滤：排除本人 + 已有 pending 关系的用户
+        log.info("匹配诊断: GEO 召回 {} 人", results.getContent().size());
         Map<String, Double> userIdDistanceMap = new HashMap<>();//id-距离
         List<String> userIds = new ArrayList<>();
         for (GeoResult<RedisGeoCommands.GeoLocation<String>> result : results.getContent()) {
@@ -123,12 +126,15 @@ public class MatchingServiceImpl implements IMatchingService {
                 .list()
                 .forEach(f -> excludedUserIds.add(f.getUserId()));
 
+        log.info("匹配诊断: 排除自己后 {} 人, 待排除(pending+好友) {} 人", userIds.size(), excludedUserIds.size());
+
         // 从候选列表中一次性移除
         userIds.removeAll(excludedUserIds);
         excludedUserIds.forEach(userIdDistanceMap::remove);
 
+        log.info("匹配诊断: 最终候选 {} 人", userIds.size());
         if (userIdDistanceMap.isEmpty() || userIds.isEmpty()) {
-            return new PageVO<>(0L, query.getPage(), query.getSize(), null);
+            return PageVO.of(0L, query.getPage(), query.getSize(), List.of());
         }
 
         // 4. 加载候选用户的技能标签和爱好
@@ -160,7 +166,7 @@ public class MatchingServiceImpl implements IMatchingService {
                 .in(UserHobby::getUserId, userIds)
                 .list();
         if (iCanSkills == null || iWantSkills == null || iHobbies == null) {
-            return new PageVO<>(0L, query.getPage(), query.getSize(), null);
+            return PageVO.of(0L, query.getPage(), query.getSize(), List.of());
         }
         // 5.2 按 userId 分组候选用户的技能和爱好
         Map<String, List<String>> canMap = new HashMap<>();
@@ -199,7 +205,7 @@ public class MatchingServiceImpl implements IMatchingService {
                     })
                     .collect(Collectors.toList());
             if (userIds.isEmpty()) {
-                return new PageVO<>(0L, query.getPage(), query.getSize(), null);
+                return PageVO.of(0L, query.getPage(), query.getSize(), List.of());
             }
         }
 
@@ -267,7 +273,7 @@ public class MatchingServiceImpl implements IMatchingService {
             cards.add(card);
         }
         if(cards.isEmpty()){
-            return new PageVO<>(0L, query.getPage(), query.getSize(), null);
+            return PageVO.of(0L, query.getPage(), query.getSize(), List.of());
         }
         // 6. 按 sort 参数排序（score/dist/active）
         switch (query.getSort()){
@@ -421,6 +427,132 @@ public class MatchingServiceImpl implements IMatchingService {
             card.setIsLiked(liked > 0);
         }
         return card;
+    }
+
+    @Override
+    public String getMatchReason(String targetUserId) {
+        String currentUserId = UserContext.getUserId();
+        if (currentUserId == null || currentUserId.equals(targetUserId)) {
+            return null;
+        }
+
+        User current = userService.getById(currentUserId);
+        User target = userService.getById(targetUserId);
+        if (current == null || target == null) {
+            return null;
+        }
+
+        try {
+            List<String> myCan = userSkillService.lambdaQuery()
+                    .eq(UserSkill::getUserId, currentUserId)
+                    .eq(UserSkill::getSkillType, 1)
+                    .list().stream().map(UserSkill::getSkillName).toList();
+            List<String> myWant = userSkillService.lambdaQuery()
+                    .eq(UserSkill::getUserId, currentUserId)
+                    .eq(UserSkill::getSkillType, 2)
+                    .list().stream().map(UserSkill::getSkillName).toList();
+            List<String> myHobbies = userHobbyService.lambdaQuery()
+                    .eq(UserHobby::getUserId, currentUserId)
+                    .list().stream().map(UserHobby::getHobbyName).toList();
+
+            List<String> targetCan = userSkillService.lambdaQuery()
+                    .eq(UserSkill::getUserId, targetUserId)
+                    .eq(UserSkill::getSkillType, 1)
+                    .list().stream().map(UserSkill::getSkillName).toList();
+            List<String> targetWant = userSkillService.lambdaQuery()
+                    .eq(UserSkill::getUserId, targetUserId)
+                    .eq(UserSkill::getSkillType, 2)
+                    .list().stream().map(UserSkill::getSkillName).toList();
+            List<String> targetHobbies = userHobbyService.lambdaQuery()
+                    .eq(UserHobby::getUserId, targetUserId)
+                    .list().stream().map(UserHobby::getHobbyName).toList();
+
+            MatchExplainRequest explainReq = new MatchExplainRequest();
+            explainReq.setSourceName(current.getName());
+            explainReq.setSourceBio(current.getBio());
+            explainReq.setSourceCanSkills(myCan);
+            explainReq.setSourceWantSkills(myWant);
+            explainReq.setSourceHobbies(myHobbies);
+            explainReq.setTargetName(target.getName());
+            explainReq.setTargetBio(target.getBio());
+            explainReq.setTargetCanSkills(targetCan);
+            explainReq.setTargetWantSkills(targetWant);
+            explainReq.setTargetHobbies(targetHobbies);
+
+            log.info("LLM explain: {} ↔ {}", current.getName(), target.getName());
+            MatchExplainResponse resp = aiClient.explainMatch(explainReq);
+            if (resp != null && resp.getReason() != null) {
+                log.info("LLM explain 成功: {}", resp.getReason());
+                return resp.getReason();
+            }
+            log.info("LLM explain 返回空");
+        } catch (Exception e) {
+            log.warn("LLM explain 异常: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    @Override
+    public PageVO<UserCardVO> searchUsers(String keyword, int page, int size) {
+        String currentUserId = UserContext.getUserId();
+
+        // 关键词为空则返回空
+        if (keyword == null || keyword.isBlank()) {
+            return PageVO.of(0L, page, size, List.of());
+        }
+        String kw = keyword.trim().toLowerCase();
+
+        // 查所有用户（分页）
+        Page<User> userPage = userService.lambdaQuery()
+                .ne(User::getUserId, currentUserId)
+                .eq(User::getStatus, 1)
+                .orderByDesc(User::getLastLoginAt)
+                .page(new Page<>(page, size));
+        List<User> users = userPage.getRecords();
+        if (users.isEmpty()) {
+            return PageVO.of(0L, page, size, List.of());
+        }
+
+        List<String> userIds = users.stream().map(User::getUserId).toList();
+
+        // 批量查技能
+        Map<String, List<String>> canMap = userSkillService.lambdaQuery()
+                .in(UserSkill::getUserId, userIds).eq(UserSkill::getSkillType, 1).list()
+                .stream().collect(Collectors.groupingBy(UserSkill::getUserId, Collectors.mapping(UserSkill::getSkillName, Collectors.toList())));
+        Map<String, List<String>> wantMap = userSkillService.lambdaQuery()
+                .in(UserSkill::getUserId, userIds).eq(UserSkill::getSkillType, 2).list()
+                .stream().collect(Collectors.groupingBy(UserSkill::getUserId, Collectors.mapping(UserSkill::getSkillName, Collectors.toList())));
+        Map<String, List<String>> hobbyMap = userHobbyService.lambdaQuery()
+                .in(UserHobby::getUserId, userIds).list()
+                .stream().collect(Collectors.groupingBy(UserHobby::getUserId, Collectors.mapping(UserHobby::getHobbyName, Collectors.toList())));
+
+        // 关键词过滤
+        List<UserCardVO> results = users.stream()
+                .filter(u -> {
+                    if (u.getName() != null && u.getName().toLowerCase().contains(kw)) return true;
+                    if (u.getBio() != null && u.getBio().toLowerCase().contains(kw)) return true;
+                    List<String> can = canMap.getOrDefault(u.getUserId(), List.of());
+                    if (can.stream().anyMatch(s -> s.toLowerCase().contains(kw))) return true;
+                    List<String> want = wantMap.getOrDefault(u.getUserId(), List.of());
+                    if (want.stream().anyMatch(s -> s.toLowerCase().contains(kw))) return true;
+                    List<String> hobbies = hobbyMap.getOrDefault(u.getUserId(), List.of());
+                    return hobbies.stream().anyMatch(h -> h.toLowerCase().contains(kw));
+                })
+                .map(u -> {
+                    UserCardVO card = new UserCardVO();
+                    card.setUserId(u.getUserId());
+                    card.setName(u.getName());
+                    card.setAvatarUrl(u.getAvatarUrl());
+                    card.setCity(u.getCity());
+                    card.setBio(u.getBio());
+                    card.setCanSkills(canMap.getOrDefault(u.getUserId(), List.of()));
+                    card.setWantSkills(wantMap.getOrDefault(u.getUserId(), List.of()));
+                    card.setLikeCount(u.getLikeCount() != null ? u.getLikeCount() : 0);
+                    return card;
+                })
+                .toList();
+
+        return PageVO.of((long) results.size(), page, size, results);
     }
 
     @Override

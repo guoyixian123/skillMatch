@@ -47,3 +47,6 @@ gaoDe:
 ai:
   engine:
     url: ${AI_ENGINE_URL:http://ai-engine:8000}
+  llm:
+    base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
+    model: ${LLM_MODEL:deepseek-chat}

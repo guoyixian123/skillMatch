@@ -37,7 +37,7 @@ public interface INotificationService {
      * @param size 每页条数
      * @return 分页通知列表，每条包含 actor 信息和 preview 文案
      */
-    PageVO<LikeNotificationVO> list(int page, int size);
+    PageVO<LikeNotificationVO> list(int page, int size, Integer type);
 
     /**
      * 获取当前用户的未读通知数量，用于前端铃铛角标

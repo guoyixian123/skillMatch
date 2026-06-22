@@ -21,25 +21,23 @@ public class PageVO<T> {
         this.page = (int) pages;
         this.list = postVOList;
     }
-    public PageVO(long total,Integer size, Integer page, List<T> postVOList) {
-        this.total = total;
-        this.page = page;
-        this.size = size;
-        this.list = postVOList;
+
+    /** 安全构造，避免歧义 */
+    public static <T> PageVO<T> of(long total, int page, int size, List<T> list) {
+        PageVO<T> vo = new PageVO<>();
+        vo.setTotal(total);
+        vo.setPage(page);
+        vo.setSize(size);
+        vo.setList(list);
+        return vo;
     }
 
     public static <T, E> PageVO<T> of(Page<E> page, List<T> list) {
-
         PageVO<T> vo = new PageVO<>();
-
         vo.setTotal(page.getTotal());
-
         vo.setPage((int) page.getCurrent());
-
         vo.setSize((int) page.getSize());
-
         vo.setList(list);
-
         return vo;
     }
 

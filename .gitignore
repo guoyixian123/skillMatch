@@ -18,3 +18,6 @@ CLAUDE.md
 # Docker 环境变量（含密码）
 .env
 /init.sql
+
+# AI Engine 本地配置覆盖（含 LLM API Key）
+ai-engine/config_local.py
