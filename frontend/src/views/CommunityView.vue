@@ -375,17 +375,18 @@ onMounted(fetchPosts)
   transform: scale(0.96);
 }
 .card-like-btn.liked {
-  border-color: var(--color-fg);
-  background: linear-gradient(135deg, #F472B6, #8B5CF6);
-  color: #fff;
-  box-shadow: 3px 3px 0 var(--color-fg);
+  border-color: #D97706;
+  background: #FEF3C7;
+  color: #92400E;
+  box-shadow: 3px 3px 0 #D97706;
 }
 .card-like-btn.liked:hover {
-  background: linear-gradient(135deg, #EC4899, #7C3AED);
-  box-shadow: 4px 4px 0 var(--color-fg);
+  background: #FDE68A;
+  box-shadow: 4px 4px 0 #B45309;
+  border-color: #B45309;
 }
 .card-like-btn.liked .el-icon {
-  color: #FCE7F3;
+  color: #F59E0B;
 }
 
 .like-icon-wrap {
@@ -401,7 +402,7 @@ onMounted(fetchPosts)
   right: -14px;
   font-size: 12px;
   font-weight: 900;
-  color: var(--color-secondary);
+  color: #F59E0B;
   pointer-events: none;
   animation: floatUp 0.8s ease-out forwards;
 }

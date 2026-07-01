@@ -17,29 +17,29 @@
       </router-link>
 
       <div class="nav-links">
-        <router-link to="/discover" class="nav-link" active-class="active">
-          <el-icon><Compass /></el-icon>
-          <span>发现</span>
+        <router-link to="/discover" class="nav-link" active-class="active" data-idx="0">
+          <el-icon class="nav-icon"><Compass /></el-icon>
+          <span class="nav-label">发现</span>
         </router-link>
-        <router-link to="/community" class="nav-link" active-class="active">
-          <el-icon><ChatDotRound /></el-icon>
-          <span>社区</span>
+        <router-link to="/community" class="nav-link" active-class="active" data-idx="1">
+          <el-icon class="nav-icon"><ChatDotRound /></el-icon>
+          <span class="nav-label">社区</span>
         </router-link>
-        <router-link to="/friends" class="nav-link" active-class="active">
+        <router-link to="/friends" class="nav-link" active-class="active" data-idx="2">
           <el-badge :value="chatStore.totalUnread" :hidden="!chatStore.totalUnread" class="badge-wrap">
-            <el-icon><ChatLineRound /></el-icon>
+            <el-icon class="nav-icon"><ChatLineRound /></el-icon>
           </el-badge>
-          <span>好友</span>
+          <span class="nav-label">好友</span>
         </router-link>
-        <router-link to="/notifications" class="nav-link" active-class="active">
+        <router-link to="/notifications" class="nav-link" active-class="active" data-idx="3">
           <el-badge :value="unreadCount" :hidden="!unreadCount" class="badge-wrap">
-            <el-icon><Bell /></el-icon>
+            <el-icon class="nav-icon"><Bell /></el-icon>
           </el-badge>
-          <span>通知</span>
+          <span class="nav-label">通知</span>
         </router-link>
-        <router-link to="/profile" class="nav-link" active-class="active">
-          <el-icon><UserFilled /></el-icon>
-          <span>我的</span>
+        <router-link to="/profile" class="nav-link" active-class="active" data-idx="4">
+          <el-icon class="nav-icon"><UserFilled /></el-icon>
+          <span class="nav-label">我的</span>
         </router-link>
       </div>
 
@@ -149,41 +149,51 @@ watch(() => route.path, (path) => {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 253, 245, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 253, 245, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 2px solid var(--color-border);
-  padding: 0 20px;
+  padding: 0 24px;
 }
 .navbar-inner {
   max-width: 1100px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  height: 64px;
-  gap: 32px;
+  height: 60px;
+  gap: 20px;
 }
+
+/* Logo */
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   text-decoration: none;
   flex-shrink: 0;
+  padding: 6px 10px 6px 6px;
+  border-radius: 14px;
+  transition: all 0.3s var(--ease-bounce);
+  border: 2px solid transparent;
+}
+.logo:hover {
+  border-color: var(--color-border);
+  background: var(--color-muted);
 }
 .logo-icon-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   transition: transform 0.4s var(--ease-bounce);
 }
 .logo:hover .logo-icon-wrap {
-  transform: rotate(-12deg) scale(1.1);
+  transform: rotate(-10deg) scale(1.08);
 }
 .logo-svg {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
 }
 .logo-text-wrap {
   display: flex;
@@ -191,14 +201,17 @@ watch(() => route.path, (path) => {
 }
 .logo-text {
   font-family: var(--font-heading);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--color-fg);
   letter-spacing: -0.5px;
+  line-height: 1;
 }
 .logo-text.accent {
   color: var(--color-accent);
 }
+
+/* 导航链接 */
 .nav-links {
   display: flex;
   gap: 4px;
@@ -208,58 +221,86 @@ watch(() => route.path, (path) => {
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 5px;
+  padding: 6px 14px;
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-muted-fg);
   text-decoration: none;
-  border-radius: var(--radius-full);
-  transition: all 0.3s var(--ease-bounce);
+  border-radius: 12px;
+  transition: all 0.25s var(--ease-bounce);
+  position: relative;
+  border: 2px solid transparent;
 }
 .nav-link:hover {
   color: var(--color-fg);
   background: var(--color-muted);
+  border-color: var(--color-border);
 }
 .nav-link.active {
-  color: var(--color-accent);
-  background: #EDE9FE;
+  color: var(--color-fg);
+  background: #fff;
+  border-color: var(--color-fg);
+  box-shadow: 3px 3px 0 var(--color-fg);
 }
+.nav-icon {
+  font-size: 16px;
+  transition: transform 0.25s var(--ease-bounce);
+}
+.nav-link:hover .nav-icon {
+  transform: scale(1.1);
+}
+.nav-link.active .nav-icon {
+  color: var(--color-accent);
+}
+.nav-label {
+  letter-spacing: 0.3px;
+}
+
+/* Badge */
+.badge-wrap {
+  display: flex;
+  align-items: center;
+}
+
+/* 用户菜单 */
 .nav-actions { flex-shrink: 0; }
 .user-chip {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 14px 4px 4px;
+  padding: 4px 12px 4px 4px;
   border: 2px solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: 14px;
   cursor: pointer;
-  box-shadow: 3px 3px 0 var(--color-border);
   transition: all 0.3s var(--ease-bounce);
+  background: #fff;
 }
 .user-chip:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 var(--color-fg);
-  border-color: var(--color-fg);
+  border-color: var(--color-accent);
+  box-shadow: 3px 3px 0 rgba(139, 92, 246, 0.2);
 }
 .user-chip-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  border: 2px solid var(--color-fg);
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border: 2px solid var(--color-border);
   object-fit: cover;
+  transition: border-color 0.3s;
+}
+.user-chip:hover .user-chip-avatar {
+  border-color: var(--color-accent);
 }
 .user-chip-name {
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 13px;
-  max-width: 100px;
+  max-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.badge-wrap { display: flex; align-items: center; }
 
 @media (max-width: 768px) {
   .nav-links { display: none; }
@@ -269,85 +310,65 @@ watch(() => route.path, (path) => {
 
 <!-- 下拉菜单样式（teleport 到 body，不能 scoped） -->
 <style>
-/* 用户下拉菜单容器 */
 .user-dropdown-menu {
-  border-radius: var(--radius-lg) !important;
+  border-radius: 16px !important;
   border: 2px solid var(--color-fg) !important;
-  box-shadow: 6px 6px 0 var(--color-fg) !important;
-  padding: 8px !important;
+  box-shadow: 5px 5px 0 var(--color-fg) !important;
+  padding: 6px !important;
   min-width: 180px !important;
   background: #fff !important;
 }
-
-/* 菜单项 */
 .user-dropdown-menu .el-dropdown-menu__item {
-  border-radius: var(--radius-md) !important;
+  border-radius: 10px !important;
   padding: 10px 14px !important;
-  font-family: var(--font-body) !important;
+  font-family: var(--font-heading) !important;
   font-weight: 600 !important;
-  font-size: 14px !important;
+  font-size: 13px !important;
   color: var(--color-fg) !important;
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-  line-height: 1.4 !important;
+  transition: all 0.2s var(--ease-bounce) !important;
 }
-
-/* 图标圆形底色 */
 .user-dropdown-menu .el-dropdown-menu__item .el-icon {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 28px !important;
-  height: 28px !important;
-  border-radius: 9999px !important;
-  font-size: 14px !important;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
   flex-shrink: 0 !important;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transition: transform 0.25s var(--ease-bounce) !important;
 }
-
-/* 各菜单项图标颜色 */
 .user-dropdown-menu .el-dropdown-menu__item:nth-child(1) .el-icon {
-  background: #EDE9FE !important;
-  color: #7C3AED !important;
+  background: #EDE9FE !important; color: #7C3AED !important;
 }
 .user-dropdown-menu .el-dropdown-menu__item:nth-child(2) .el-icon {
-  background: #D1FAE5 !important;
-  color: #059669 !important;
+  background: #D1FAE5 !important; color: #059669 !important;
 }
 .user-dropdown-menu .el-dropdown-menu__item:nth-child(3) .el-icon {
-  background: #FEF3C7 !important;
-  color: #D97706 !important;
+  background: #FEF3C7 !important; color: #D97706 !important;
 }
 .user-dropdown-menu .el-dropdown-menu__item:nth-child(5) .el-icon {
-  background: #FEE2E2 !important;
-  color: #DC2626 !important;
+  background: #FEE2E2 !important; color: #DC2626 !important;
 }
-
-/* hover 效果 */
 .user-dropdown-menu .el-dropdown-menu__item:hover {
   background: var(--color-muted) !important;
-  color: var(--color-fg) !important;
-  transform: translateX(4px) !important;
+  transform: translateX(3px) !important;
 }
 .user-dropdown-menu .el-dropdown-menu__item:hover .el-icon {
-  transform: scale(1.15) rotate(-8deg) !important;
+  transform: scale(1.12) rotate(-6deg) !important;
 }
-
-/* 分割线 */
 .user-dropdown-menu .el-dropdown-menu__item--divided {
   border-top: 2px solid var(--color-border) !important;
   margin-top: 4px !important;
   padding-top: 12px !important;
 }
-
-/* 退出登录 hover 红色 */
 .user-dropdown-menu .el-dropdown-menu__item:nth-child(5):hover {
-  background: #FEE2E2 !important;
-  color: #DC2626 !important;
+  background: #FEE2E2 !important; color: #DC2626 !important;
 }
 .user-dropdown-menu .el-dropdown-menu__item:nth-child(5):hover .el-icon {
-  transform: scale(1.15) rotate(8deg) !important;
+  transform: scale(1.12) rotate(6deg) !important;
 }
 </style>

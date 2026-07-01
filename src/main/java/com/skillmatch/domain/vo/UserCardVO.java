@@ -24,4 +24,6 @@ public class UserCardVO {
     private Boolean hasPendingRequest;
     /** LLM 生成的匹配解释（自然语言），仅卡片详情时有值 */
     private String matchReason;
+    /** AI 生成的技能交换建议（自然语言），发现页卡片展示 */
+    private String aiSuggestion;
 }

@@ -10,7 +10,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -66,6 +68,45 @@ public class MatchingController {
         log.info("获取用户完整主页:{}", userId);
         UserProfileVO profile = matchingService.getUserProfile(userId);
         return RESTful.success(profile);
+    }
+
+    /**
+     * 发现页：随机获取6个匹配用户（支持附近/普通模式）
+     */
+    @GetMapping("/discover")
+    public RESTful<List<UserCardVO>> getDiscoverUsers(
+            @RequestParam(defaultValue = "standard") String matchType,
+            @RequestParam(required = false) String excludeUserIds) {
+        log.info("发现页匹配: matchType={}, excludeUserIds={}", matchType, excludeUserIds);
+        List<String> excludeList = null;
+        if (excludeUserIds != null && !excludeUserIds.isBlank()) {
+            excludeList = Arrays.stream(excludeUserIds.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+        }
+        List<UserCardVO> users = matchingService.getDiscoverUsers(matchType, excludeList);
+        return RESTful.success(users);
+    }
+
+    /**
+     * 获取单个用户的匹配分数（延迟加载）
+     */
+    @GetMapping("/users/{userId}/score")
+    public RESTful<Integer> getMatchScore(@PathVariable String userId) {
+        log.info("获取匹配分数: {}", userId);
+        int score = matchingService.getMatchScore(userId);
+        return RESTful.success(score);
+    }
+
+    /**
+     * 获取单个用户的 AI 建议（前端异步加载卡片后调用）
+     */
+    @GetMapping("/discover/{userId}/ai-suggestion")
+    public RESTful<String> getAiSuggestion(@PathVariable String userId) {
+        log.info("获取 AI 建议: {}", userId);
+        String suggestion = matchingService.getAiSuggestion(userId);
+        return RESTful.success(suggestion);
     }
 
 }

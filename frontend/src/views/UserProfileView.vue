@@ -120,7 +120,7 @@
                 @click.stop="handlePostLike(post)"
               >
                 <span class="like-icon-wrap">
-                  <el-icon :size="14" :color="post.isLiked ? '#FCE7F3' : ''"><StarFilled v-if="post.isLiked" /><Star v-else /></el-icon>
+                  <el-icon :size="14" :color="post.isLiked ? '#F59E0B' : ''"><StarFilled v-if="post.isLiked" /><Star v-else /></el-icon>
                   <span v-if="post._showPlus" class="float-plus">+1</span>
                 </span>
                 <span class="like-count">{{ formatCount(post.likeCount) }}</span>
@@ -459,12 +459,12 @@ async function handleSendRequest() {
 }
 .card-like-btn:active { transform: scale(0.94); }
 .card-like-btn.liked {
-  border-color: var(--color-fg);
-  background: linear-gradient(135deg, #F472B6, #8B5CF6);
-  color: #fff;
-  box-shadow: 2px 2px 0 var(--color-fg);
+  border-color: #D97706;
+  background: #FEF3C7;
+  color: #92400E;
+  box-shadow: 2px 2px 0 #D97706;
 }
-.card-like-btn.liked .el-icon { color: #FCE7F3; }
+.card-like-btn.liked .el-icon { color: #F59E0B; }
 .like-icon-wrap {
   position: relative;
   display: inline-flex;

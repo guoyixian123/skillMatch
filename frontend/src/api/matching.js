@@ -19,3 +19,15 @@ export function getMatchExplanation(userId) {
 export function searchUsers(params) {
   return request.get('/matching/search', { params })
 }
+
+export function getDiscoverUsers(params) {
+  return request.get('/matching/discover', { params })
+}
+
+export function getMatchScore(userId) {
+  return request.get(`/matching/users/${userId}/score`, { noError: true })
+}
+
+export function getAiSuggestion(userId) {
+  return request.get(`/matching/discover/${userId}/ai-suggestion`, { noError: true })
+}

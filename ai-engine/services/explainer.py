@@ -39,7 +39,7 @@ def explain_match(
     source_text = build_profile_text(source_bio, source_can, source_want, source_hobbies)
     target_text = build_profile_text(target_bio, target_can, target_want, target_hobbies)
 
-    prompt = f"""你是一个技能社交平台的匹配助手。请用一句话（不超过40字）解释为什么这两个用户适合技能交换。
+    prompt = f"""你是一个技能社交平台的匹配助手。请用一句话（不超过40字）解释为什么这两个用户适合技能交换,要有趣味性。
 
 用户A（{source_name}）：{source_text}
 

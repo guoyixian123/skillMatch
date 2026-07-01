@@ -21,4 +21,3 @@ CLAUDE.md
 
 # AI Engine 本地配置覆盖（含 LLM API Key）
 ai-engine/config_local.py
-/.env.example

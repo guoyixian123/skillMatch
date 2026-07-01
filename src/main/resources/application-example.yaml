@@ -1,4 +1,4 @@
-spring:
+我spring:
   application:
     name: skillMatch
   servlet:

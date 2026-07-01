@@ -21,9 +21,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import static com.skillmatch.constants.FinalConstant.MATCHING_DISTANCE;
 import static com.skillmatch.constants.RedisConstant.USER_LOCATION_KEY;
 
 @Service
@@ -246,14 +246,17 @@ public class MatchingServiceImpl implements IMatchingService {
             long canLearn = theirCan.stream().filter(myWantSet::contains).count();
             double canLearnRatio = myWantSet.isEmpty() ? 0 : (double) canLearn / myWantSet.size();
 
-            //互补度
-            int matchScore =(int) Math.round((canTeachRatio + canLearnRatio) / 2 * 100);
-            //共同的爱好,每个共享爱好 +5 分，上限 10 分
+            //技能互补度 (0-100)
+            int skillComplement = (int) Math.round((canTeachRatio + canLearnRatio) / 2 * 100);
+            //兴趣重叠度 (0-100)，Jaccard 相似系数
             long commonHobbies = theirHobbies.stream().filter(myHobbySet::contains).count();
-            int hobbyBonus = Math.min(10, (int) commonHobbies * 5);
-
-            //匹配值
-            matchScore = Math.min(100, (int) (matchScore * 0.9 + hobbyBonus));
+            int hobbyOverlap = 0;
+            int unionSize = myHobbySet.size() + theirHobbies.size() - (int) commonHobbies;
+            if (unionSize > 0) {
+                hobbyOverlap = (int) Math.round((double) commonHobbies / unionSize * 100);
+            }
+            //匹配值：技能互补 70% + 兴趣重叠 30%
+            int matchScore = Math.min(100, (int) (skillComplement * 0.7 + hobbyOverlap * 0.3));
             //构建卡片
             UserCardVO card = new UserCardVO();
             card.setUserId( uid);
@@ -558,6 +561,393 @@ public class MatchingServiceImpl implements IMatchingService {
                 .toList();
 
         return PageVO.of(userPage.getTotal(), page, size, results);
+    }
+
+    @Override
+    public List<UserCardVO> getDiscoverUsers(String matchType, List<String> excludeUserIds) {
+        String userId = UserContext.getUserId();
+        if (userId == null) {
+            return List.of();
+        }
+
+        User currentUser = userService.lambdaQuery()
+                .eq(User::getUserId, userId)
+                .one();
+        if (currentUser == null) {
+            return List.of();
+        }
+
+        boolean isNearby = "nearby".equals(matchType);
+        Map<String, Double> userIdDistanceMap = new HashMap<>();
+        List<String> candidateIds = new ArrayList<>();
+
+        if (isNearby) {
+            // 附近匹配：使用 Redis GEO 召回 100km 内用户
+            double latitude = currentUser.getLatitude();
+            double longitude = currentUser.getLongitude();
+            if (latitude == 0 && longitude == 0) {
+                return List.of();
+            }
+
+            Circle circle = new Circle(new Point(longitude, latitude), new Distance(100, Metrics.KILOMETERS));
+            GeoResults<RedisGeoCommands.GeoLocation<String>> results = redisTemplate.opsForGeo()
+                    .radius(USER_LOCATION_KEY, circle,
+                            RedisGeoCommands.GeoRadiusCommandArgs.newGeoRadiusArgs()
+                                    .includeDistance()
+                                    .limit(200));
+
+            if (results == null || results.getContent().isEmpty()) {
+                geoSyncRunner.syncAllUsersToGeo();
+                results = redisTemplate.opsForGeo().radius(USER_LOCATION_KEY, circle,
+                        RedisGeoCommands.GeoRadiusCommandArgs.newGeoRadiusArgs()
+                                .includeDistance()
+                                .limit(200));
+            }
+
+            if (results == null || results.getContent().isEmpty()) {
+                return List.of();
+            }
+
+            for (GeoResult<RedisGeoCommands.GeoLocation<String>> result : results.getContent()) {
+                String id = result.getContent().getName();
+                if (id.equals(userId)) continue;
+                candidateIds.add(id);
+                userIdDistanceMap.put(id, result.getDistance().getValue());
+            }
+        } else {
+            // 普通匹配：从全库随机获取活跃用户（不限距离）
+            List<User> allUsers = userService.lambdaQuery()
+                    .ne(User::getUserId, userId)
+                    .eq(User::getStatus, 1)
+                    .orderByDesc(User::getLastLoginAt)
+                    .last("LIMIT 200")
+                    .list();
+            for (User u : allUsers) {
+                candidateIds.add(u.getUserId());
+            }
+        }
+
+        if (candidateIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 排除：已发pending请求、已是好友
+        Set<String> excludedSet = new HashSet<>();
+        contactRequestService.lambdaQuery()
+                .eq(ContactRequest::getFromUserId, userId).eq(ContactRequest::getStatus, 1).list()
+                .forEach(r -> excludedSet.add(r.getToUserId()));
+        contactRequestService.lambdaQuery()
+                .eq(ContactRequest::getToUserId, userId).eq(ContactRequest::getStatus, 1).list()
+                .forEach(r -> excludedSet.add(r.getFromUserId()));
+        friendService.lambdaQuery().eq(Friend::getUserId, userId).list()
+                .forEach(f -> excludedSet.add(f.getFriendId()));
+        friendService.lambdaQuery().eq(Friend::getFriendId, userId).list()
+                .forEach(f -> excludedSet.add(f.getUserId()));
+
+        // 排除前端传入的已展示用户
+        if (excludeUserIds != null) {
+            excludedSet.addAll(excludeUserIds);
+        }
+
+        candidateIds.removeAll(excludedSet);
+        userIdDistanceMap.keySet().removeAll(excludedSet);
+
+        if (candidateIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 加载当前用户技能和爱好
+        List<String> myCan = userSkillService.lambdaQuery()
+                .eq(UserSkill::getUserId, userId).eq(UserSkill::getSkillType, 1).list()
+                .stream().map(UserSkill::getSkillName).toList();
+        List<String> myWant = userSkillService.lambdaQuery()
+                .eq(UserSkill::getUserId, userId).eq(UserSkill::getSkillType, 2).list()
+                .stream().map(UserSkill::getSkillName).toList();
+        List<String> myHobbies = userHobbyService.lambdaQuery()
+                .eq(UserHobby::getUserId, userId).list()
+                .stream().map(UserHobby::getHobbyName).toList();
+
+        // 批量加载候选用户技能和爱好
+        List<UserSkill> candidateCanSkills = userSkillService.lambdaQuery()
+                .in(UserSkill::getUserId, candidateIds).eq(UserSkill::getSkillType, 1).list();
+        List<UserSkill> candidateWantSkills = userSkillService.lambdaQuery()
+                .in(UserSkill::getUserId, candidateIds).eq(UserSkill::getSkillType, 2).list();
+        List<UserHobby> candidateHobbies = userHobbyService.lambdaQuery()
+                .in(UserHobby::getUserId, candidateIds).list();
+
+        Map<String, List<String>> canMap = new HashMap<>();
+        for (UserSkill s : candidateCanSkills) {
+            canMap.computeIfAbsent(s.getUserId(), k -> new ArrayList<>()).add(s.getSkillName());
+        }
+        Map<String, List<String>> wantMap = new HashMap<>();
+        for (UserSkill s : candidateWantSkills) {
+            wantMap.computeIfAbsent(s.getUserId(), k -> new ArrayList<>()).add(s.getSkillName());
+        }
+        Map<String, List<String>> hobbyMap = new HashMap<>();
+        for (UserHobby h : candidateHobbies) {
+            hobbyMap.computeIfAbsent(h.getUserId(), k -> new ArrayList<>()).add(h.getHobbyName());
+        }
+
+        // 批量查询候选用户基本信息
+        Map<String, User> userMap = userService.lambdaQuery()
+                .in(User::getUserId, candidateIds).list()
+                .stream().collect(Collectors.toMap(User::getUserId, u -> u));
+
+        Set<String> myCanSet = new HashSet<>(myCan);
+        Set<String> myWantSet = new HashSet<>(myWant);
+
+        // 计算匹配分数用于排序
+        List<Map.Entry<String, Double>> scoredCandidates = new ArrayList<>();
+        for (String uid : candidateIds) {
+            if (!userMap.containsKey(uid)) continue;
+            List<String> theirCan = canMap.getOrDefault(uid, List.of());
+            List<String> theirWant = wantMap.getOrDefault(uid, List.of());
+
+            long canTeach = theirWant.stream().filter(myCanSet::contains).count();
+            double canTeachRatio = theirWant.isEmpty() ? 0 : (double) canTeach / theirWant.size();
+            long canLearn = theirCan.stream().filter(myWantSet::contains).count();
+            double canLearnRatio = myWantSet.isEmpty() ? 0 : (double) canLearn / myWantSet.size();
+            int skillComplement = (int) Math.round((canTeachRatio + canLearnRatio) / 2 * 100);
+
+            List<String> theirHobbies = hobbyMap.getOrDefault(uid, List.of());
+            long commonHobbies = theirHobbies.stream().filter(myHobbies::contains).count();
+            int hobbyOverlap = 0;
+            int unionSize = myHobbies.size() + theirHobbies.size() - (int) commonHobbies;
+            if (unionSize > 0) {
+                hobbyOverlap = (int) Math.round((double) commonHobbies / unionSize * 100);
+            }
+            int matchScore = Math.min(100, (int) (skillComplement * 0.7 + hobbyOverlap * 0.3));
+
+            scoredCandidates.add(Map.entry(uid, (double) matchScore));
+        }
+
+        // 按匹配分数降序排序
+        scoredCandidates.sort(Comparator.<Map.Entry<String, Double>, Double>comparing(Map.Entry::getValue).reversed());
+
+        // 从前30个候选中随机选取6个
+        List<UserCardVO> result = new ArrayList<>();
+        List<String> selectedIds = new ArrayList<>();
+        Random random = new Random();
+        int poolSize = Math.min(scoredCandidates.size(), 30);
+        List<String> pool = scoredCandidates.subList(0, poolSize).stream()
+                .map(Map.Entry::getKey).collect(Collectors.toList());
+
+        while (result.size() < 6 && !pool.isEmpty()) {
+            int idx = random.nextInt(pool.size());
+            String selectedId = pool.remove(idx);
+            if (selectedIds.contains(selectedId)) continue;
+            selectedIds.add(selectedId);
+
+            User user = userMap.get(selectedId);
+            if (user == null) continue;
+
+            List<String> theirCan = canMap.getOrDefault(selectedId, List.of());
+            List<String> theirWant = wantMap.getOrDefault(selectedId, List.of());
+            List<String> theirHobbies = hobbyMap.getOrDefault(selectedId, List.of());
+
+            // 先用规则生成降级建议
+            String fallbackSuggestion = generateAiSuggestion(myCan, myWant, myHobbies, theirCan, theirWant, theirHobbies, user.getName());
+
+            UserCardVO card = new UserCardVO();
+            card.setUserId(selectedId);
+            card.setName(user.getName());
+            card.setAvatarUrl(user.getAvatarUrl());
+            // 设置距离
+            if (isNearby) {
+                double distance = userIdDistanceMap.getOrDefault(selectedId, 0.0);
+                card.setDistance(distance < 1 ? Math.round(distance * 1000) + "m" : String.format("%.1fkm", distance));
+            } else {
+                try {
+                    Distance dist = redisTemplate.opsForGeo()
+                        .distance(USER_LOCATION_KEY, userId, selectedId, Metrics.KILOMETERS);
+                    if (dist != null) {
+                        double value = dist.getValue();
+                        if (value > 0) {
+                            card.setDistance(value < 1 ? Math.round(value * 1000) + "m" : String.format("%.1fkm", value));
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+            card.setCity(user.getCity());
+            card.setCanSkills(theirCan);
+            card.setWantSkills(theirWant);
+            card.setBio(user.getBio());
+            card.setLikeCount(user.getLikeCount() != null ? user.getLikeCount() : 0);
+            card.setAiSuggestion(fallbackSuggestion);
+            result.add(card);
+        }
+
+        return result;
+    }
+
+    @Override
+    public int getMatchScore(String targetUserId) {
+        String userId = UserContext.getUserId();
+        if (userId == null || userId.equals(targetUserId)) {
+            return 0;
+        }
+
+        List<String> myCan = userSkillService.lambdaQuery()
+                .eq(UserSkill::getUserId, userId).eq(UserSkill::getSkillType, 1).list()
+                .stream().map(UserSkill::getSkillName).toList();
+        List<String> myWant = userSkillService.lambdaQuery()
+                .eq(UserSkill::getUserId, userId).eq(UserSkill::getSkillType, 2).list()
+                .stream().map(UserSkill::getSkillName).toList();
+        List<String> myHobbies = userHobbyService.lambdaQuery()
+                .eq(UserHobby::getUserId, userId).list()
+                .stream().map(UserHobby::getHobbyName).toList();
+
+        List<String> targetCan = userSkillService.lambdaQuery()
+                .eq(UserSkill::getUserId, targetUserId).eq(UserSkill::getSkillType, 1).list()
+                .stream().map(UserSkill::getSkillName).toList();
+        List<String> targetWant = userSkillService.lambdaQuery()
+                .eq(UserSkill::getUserId, targetUserId).eq(UserSkill::getSkillType, 2).list()
+                .stream().map(UserSkill::getSkillName).toList();
+        List<String> targetHobbies = userHobbyService.lambdaQuery()
+                .eq(UserHobby::getUserId, targetUserId).list()
+                .stream().map(UserHobby::getHobbyName).toList();
+
+        // 1. 规则计算
+        Set<String> myCanSet = new HashSet<>(myCan);
+        Set<String> myWantSet = new HashSet<>(myWant);
+
+        long canTeach = targetWant.stream().filter(myCanSet::contains).count();
+        double canTeachRatio = targetWant.isEmpty() ? 0 : (double) canTeach / targetWant.size();
+        long canLearn = targetCan.stream().filter(myWantSet::contains).count();
+        double canLearnRatio = myWantSet.isEmpty() ? 0 : (double) canLearn / myWantSet.size();
+        int skillComplement = (int) Math.round((canTeachRatio + canLearnRatio) / 2 * 100);
+
+        long commonHobbies = targetHobbies.stream().filter(myHobbies::contains).count();
+        int hobbyOverlap = 0;
+        int unionSize = myHobbies.size() + targetHobbies.size() - (int) commonHobbies;
+        if (unionSize > 0) {
+            hobbyOverlap = (int) Math.round((double) commonHobbies / unionSize * 100);
+        }
+        int ruleScore = Math.min(100, (int) (skillComplement * 0.7 + hobbyOverlap * 0.3));
+
+        // 2. AI 语义计算（降级：AI 不可用时只用规则分）
+        try {
+            AIMatchRequest aiReq = new AIMatchRequest();
+            AIProfile source = new AIProfile();
+            source.setUserId(userId);
+            source.setCanSkills(myCan);
+            source.setWantSkills(myWant);
+            source.setHobbies(myHobbies);
+            aiReq.setSource(source);
+
+            AIProfile target = new AIProfile();
+            target.setUserId(targetUserId);
+            target.setCanSkills(targetCan);
+            target.setWantSkills(targetWant);
+            target.setHobbies(targetHobbies);
+            aiReq.setCandidates(List.of(target));
+
+            AIMatchResponse aiResp = aiClient.batchMatchAsync(aiReq).join();
+            if (aiResp != null && aiResp.getScores() != null && !aiResp.getScores().isEmpty()) {
+                double aiScore = aiResp.getScores().get(0).getScore();
+                // 加权融合：规则 60% + AI 40%
+                return Math.min(100, (int) (ruleScore * 0.6 + aiScore * 40));
+            }
+        } catch (Exception e) {
+            log.warn("AI 匹配分计算失败，降级使用规则分: {}", e.getMessage());
+        }
+
+        return ruleScore;
+    }
+
+    /**
+     * 根据双方技能和爱好生成 AI 建议
+     */
+    private String generateAiSuggestion(List<String> myCan, List<String> myWant, List<String> myHobbies,
+                                         List<String> theirCan, List<String> theirWant, List<String> theirHobbies,
+                                         String targetName) {
+        // 找出互补技能
+        List<String> iCanTeachThem = myCan.stream().filter(theirWant::contains).toList();
+        List<String> theyCanTeachMe = theirCan.stream().filter(myWant::contains).toList();
+        List<String> commonHobbiesList = myHobbies.stream().filter(theirHobbies::contains).toList();
+
+        StringBuilder suggestion = new StringBuilder();
+
+        if (!iCanTeachThem.isEmpty() && !theyCanTeachMe.isEmpty()) {
+            suggestion.append(String.format("你们在 %s 和 %s 学习上有很好的互补性",
+                    String.join("、", iCanTeachThem.subList(0, Math.min(2, iCanTeachThem.size()))),
+                    String.join("、", theyCanTeachMe.subList(0, Math.min(2, theyCanTeachMe.size())))));
+            if (!commonHobbiesList.isEmpty()) {
+                suggestion.append(String.format("，而且都喜欢 %s", String.join("和", commonHobbiesList.subList(0, Math.min(2, commonHobbiesList.size())))));
+            }
+            suggestion.append("。");
+        } else if (!iCanTeachThem.isEmpty()) {
+            suggestion.append(String.format("你可以教 %s %s，这是很好的技能交换机会。",
+                    targetName, String.join("和", iCanTeachThem.subList(0, Math.min(2, iCanTeachThem.size())))));
+        } else if (!theyCanTeachMe.isEmpty()) {
+            suggestion.append(String.format("%s 可以教你 %s，非常值得交流学习。",
+                    targetName, String.join("和", theyCanTeachMe.subList(0, Math.min(2, theyCanTeachMe.size())))));
+        } else if (!commonHobbiesList.isEmpty()) {
+            suggestion.append(String.format("你们都对 %s 有浓厚兴趣，可以一起探讨交流。",
+                    String.join("和", commonHobbiesList.subList(0, Math.min(2, commonHobbiesList.size())))));
+        } else {
+            suggestion.append(String.format("和 %s 交流一下，也许能发现新的学习方向。", targetName));
+        }
+
+        return suggestion.toString();
+    }
+
+    @Override
+    public String getAiSuggestion(String targetUserId) {
+        String userId = UserContext.getUserId();
+        if (userId == null || userId.equals(targetUserId)) {
+            return null;
+        }
+
+        User currentUser = userService.lambdaQuery().eq(User::getUserId, userId).one();
+        User target = userService.lambdaQuery().eq(User::getUserId, targetUserId).one();
+        if (currentUser == null || target == null) {
+            return null;
+        }
+
+        List<String> myCan = userSkillService.lambdaQuery()
+                .eq(UserSkill::getUserId, userId).eq(UserSkill::getSkillType, 1).list()
+                .stream().map(UserSkill::getSkillName).toList();
+        List<String> myWant = userSkillService.lambdaQuery()
+                .eq(UserSkill::getUserId, userId).eq(UserSkill::getSkillType, 2).list()
+                .stream().map(UserSkill::getSkillName).toList();
+        List<String> myHobbies = userHobbyService.lambdaQuery()
+                .eq(UserHobby::getUserId, userId).list()
+                .stream().map(UserHobby::getHobbyName).toList();
+
+        List<String> targetCan = userSkillService.lambdaQuery()
+                .eq(UserSkill::getUserId, targetUserId).eq(UserSkill::getSkillType, 1).list()
+                .stream().map(UserSkill::getSkillName).toList();
+        List<String> targetWant = userSkillService.lambdaQuery()
+                .eq(UserSkill::getUserId, targetUserId).eq(UserSkill::getSkillType, 2).list()
+                .stream().map(UserSkill::getSkillName).toList();
+        List<String> targetHobbies = userHobbyService.lambdaQuery()
+                .eq(UserHobby::getUserId, targetUserId).list()
+                .stream().map(UserHobby::getHobbyName).toList();
+
+        try {
+            MatchExplainRequest explainReq = new MatchExplainRequest();
+            explainReq.setSourceName(currentUser.getName());
+            explainReq.setSourceBio(currentUser.getBio() != null ? currentUser.getBio() : "");
+            explainReq.setSourceCanSkills(myCan);
+            explainReq.setSourceWantSkills(myWant);
+            explainReq.setSourceHobbies(myHobbies);
+            explainReq.setTargetName(target.getName());
+            explainReq.setTargetBio(target.getBio() != null ? target.getBio() : "");
+            explainReq.setTargetCanSkills(targetCan);
+            explainReq.setTargetWantSkills(targetWant);
+            explainReq.setTargetHobbies(targetHobbies);
+            explainReq.setLlmTimeout(5);
+
+            MatchExplainResponse resp = aiClient.explainMatch(explainReq);
+            if (resp != null && resp.getReason() != null && !resp.getReason().isBlank()) {
+                log.info("AI 建议成功: {} ↔ {}", currentUser.getName(), target.getName());
+                return resp.getReason();
+            }
+        } catch (Exception e) {
+            log.warn("AI 建议失败: {}", e.getMessage());
+        }
+        return null;
     }
 
     @Override

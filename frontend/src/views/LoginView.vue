@@ -3,10 +3,16 @@
     <div class="auth-decor">
       <div class="decor-circle decor-1"></div>
       <div class="decor-circle decor-2"></div>
-      <div class="decor-triangle decor-3"></div>
-      <div class="decor-squiggle decor-4"></div>
-      <div class="decor-dot decor-5"></div>
-      <div class="decor-dot decor-6"></div>
+      <!-- 渐变光斑 -->
+      <div class="light-blob blob-1"></div>
+      <div class="light-blob blob-2"></div>
+      <div class="light-blob blob-3"></div>
+      <div class="light-blob blob-4"></div>
+      <div class="light-blob blob-5"></div>
+      <div class="light-blob blob-6"></div>
+      <!-- 渐变光环 -->
+      <div class="halo halo-1"></div>
+      <div class="halo halo-2"></div>
     </div>
 
     <div class="auth-container">
@@ -120,7 +126,103 @@ async function handleLogin() {
 }
 
 /* Playful Geometric Decorations */
-.auth-decor { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.auth-decor { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+
+/* 渐变光斑 */
+.light-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0;
+  animation: blobFloat ease-in-out infinite;
+}
+.blob-1 {
+  top: -5%; left: -5%;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.35), transparent 70%);
+  animation-duration: 18s; animation-delay: 0s;
+}
+.blob-2 {
+  bottom: -8%; right: -8%;
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.3), transparent 70%);
+  animation-duration: 22s; animation-delay: 3s;
+}
+.blob-3 {
+  top: 20%; right: 5%;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.3), transparent 70%);
+  animation-duration: 15s; animation-delay: 1s;
+}
+.blob-4 {
+  bottom: 25%; left: 8%;
+  width: 250px; height: 250px;
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.28), transparent 70%);
+  animation-duration: 20s; animation-delay: 5s;
+}
+.blob-5 {
+  top: 50%; left: 50%;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.2), transparent 70%);
+  animation-duration: 16s; animation-delay: 2s;
+  transform: translate(-50%, -50%);
+}
+.blob-6 {
+  top: 10%; left: 60%;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.25), transparent 70%);
+  animation-duration: 19s; animation-delay: 7s;
+}
+
+/* 渐变光环 */
+.halo {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0;
+  animation: haloFloat ease-in-out infinite;
+}
+.halo-1 {
+  top: 18%; right: 18%;
+  width: 120px; height: 120px;
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.06), transparent 70%);
+  animation-duration: 12s; animation-delay: 0s;
+}
+.halo-2 {
+  bottom: 15%; left: 12%;
+  width: 100px; height: 100px;
+  border: 2px solid rgba(244, 114, 182, 0.18);
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.05), transparent 70%);
+  animation-duration: 14s; animation-delay: 4s;
+}
+
+@keyframes blobFloat {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.9);
+  }
+  15% {
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(30px, -25px) scale(1.1);
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.9);
+  }
+}
+@keyframes haloFloat {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+  20% { opacity: 0.5; }
+  50% { opacity: 0.7; transform: translate(15px, -10px) scale(1.05); }
+  80% { opacity: 0.5; }
+  100% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+}
 .decor-circle {
   position: absolute;
   border-radius: 9999px;
@@ -138,36 +240,6 @@ async function handleLogin() {
   background: var(--color-secondary);
   opacity: 0.2;
   animation: floatSlow 10s ease-in-out infinite reverse;
-}
-.decor-3 {
-  top: 15%; left: 8%;
-  width: 0; height: 0;
-  border-left: 20px solid transparent;
-  border-right: 20px solid transparent;
-  border-bottom: 35px solid var(--color-quaternary);
-  opacity: 0.5;
-  animation: wiggle 4s ease-in-out infinite;
-}
-.decor-4 {
-  bottom: 20%; right: 10%;
-  width: 80px; height: 20px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 20'%3E%3Cpath d='M0 10 Q10 0 20 10 T40 10 T60 10 T80 10' fill='none' stroke='%238B5CF6' stroke-width='3'/%3E%3C/svg%3E") no-repeat center;
-  opacity: 0.6;
-  animation: floatSlow 6s ease-in-out infinite;
-}
-.decor-5 {
-  top: 30%; right: 15%;
-  width: 16px; height: 16px;
-  background: var(--color-accent);
-  opacity: 0.4;
-  animation: popIn 2s ease-in-out infinite;
-}
-.decor-6 {
-  bottom: 35%; left: 12%;
-  width: 12px; height: 12px;
-  background: var(--color-secondary);
-  opacity: 0.4;
-  animation: popIn 2.5s ease-in-out infinite 0.5s;
 }
 
 .auth-container {
@@ -237,15 +309,6 @@ async function handleLogin() {
 @keyframes floatSlow {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-20px); }
-}
-@keyframes wiggle {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(8deg); }
-  75% { transform: rotate(-8deg); }
-}
-@keyframes popIn {
-  0%, 100% { transform: scale(1); opacity: 0.4; }
-  50% { transform: scale(1.5); opacity: 0.7; }
 }
 @keyframes popEntry {
   0% { opacity: 0; transform: scale(0.8) translateY(20px); }
